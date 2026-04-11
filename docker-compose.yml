@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    container_name: moonshine_postgres
+    environment:
+      POSTGRES_USER: moonshine
+      POSTGRES_PASSWORD: moonshine
+      POSTGRES_DB: moonshine_lms
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moonshine -d moonshine_lms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: moonshine_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@moonshine.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

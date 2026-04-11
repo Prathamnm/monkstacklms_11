@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  HR
+  ADMIN
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  REVOKED
+}
+
+enum HalfDayType {
+  NONE
+  FIRST_HALF
+  SECOND_HALF
+}
+
+enum LedgerEntryType {
+  ACCRUAL
+  USAGE
+  REVERSAL
+  ADJUSTMENT
+  CARRY_FORWARD
+  YEAR_RESET
+  EMERGENCY_GRANT
+}
+
+enum NotificationType {
+  LEAVE_APPLIED
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+  LEAVE_CANCELLED
+  LEAVE_REVOKED
+  BALANCE_ADJUSTED
+  EMPLOYEE_ONBOARDED
+  EMPLOYEE_OFFBOARDED
+  PROJECT_ASSIGNED
+  PROJECT_REMOVED
+  SYSTEM
+}
+
+enum AuditAction {
+  LEAVE_APPLY
+  LEAVE_APPROVE
+  LEAVE_REJECT
+  LEAVE_CANCEL
+  LEAVE_REVOKE
+  BALANCE_ADJUST
+  EMPLOYEE_ONBOARD
+  EMPLOYEE_OFFBOARD
+  EMPLOYEE_UPDATE
+  PROJECT_CREATE
+  PROJECT_UPDATE
+  PROJECT_MEMBER_ADD
+  PROJECT_MEMBER_REMOVE
+  RULES_UPDATE
+  ACCRUAL_RUN
+}
+
+// ─── MODELS ───────────────────────────────────────────────────────────────────
+
+model Employee {
+  id                String           @id @default(cuid())
+  entraObjectId     String           @unique
+  email             String           @unique
+  displayName       String
+  firstName         String
+  lastName          String
+  jobTitle          String?
+  department        String?
+  phoneNumber       String?
+  profilePictureUrl String?
+  role              Role             @default(EMPLOYEE)
+  employmentStatus  EmploymentStatus @default(ACTIVE)
+  managerId         String?
+  manager           Employee?        @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates      Employee[]       @relation("ManagerSubordinates")
+  joinDate          DateTime         @default(now())
+  terminationDate   DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  projectMemberships    EmployeeProject[]
+  leaveRequests         LeaveRequest[]    @relation("EmployeeLeaveRequests")
+  approvedLeaves        LeaveRequest[]    @relation("ApproverLeaveRequests")
+  leaveLedgerEntries    LeaveLedgerEntry[]
+  sentNotifications     Notification[]    @relation("NotificationSender")
+  receivedNotifications Notification[]    @relation("NotificationRecipient")
+  auditLogsPerformed    AuditLog[]        @relation("AuditPerformer")
+  auditLogsTargeted     AuditLog[]        @relation("AuditTarget")
+  leaveBalance          LeaveBalance?
+
+  @@map("employees")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  color       String   @default("#6366f1")
+  isActive    Boolean  @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members EmployeeProject[]
+
+  @@map("projects")
+}
+
+model EmployeeProject {
+  id         String   @id @default(cuid())
+  employeeId String
+  projectId  String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+  removedAt  DateTime?
+  isActive   Boolean  @default(true)
+
+  @@unique([employeeId, projectId])
+  @@map("employee_projects")
+}
+
+model LeaveRequest {
+  id              String      @id @default(cuid())
+  employeeId      String
+  employee        Employee    @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id])
+  startDate       DateTime
+  endDate         DateTime
+  startHalfDay    HalfDayType @default(NONE)
+  endHalfDay      HalfDayType @default(NONE)
+  totalDays       Float
+  reason          String
+  status          LeaveStatus @default(PENDING)
+  approverId      String?
+  approver        Employee?   @relation("ApproverLeaveRequests", fields: [approverId], references: [id])
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  revokedAt       DateTime?
+  revokedBy       String?
+  revocationReason String?
+  cancelledAt     DateTime?
+  emailsSent      Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("leave_requests")
+}
+
+model LeaveBalance {
+  id                  String   @id @default(cuid())
+  employeeId          String   @unique
+  employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  year                Int
+  standardTotal       Float    @default(18)
+  standardAccrued     Float    @default(0)
+  standardUsed        Float    @default(0)
+  standardCarryForward Float   @default(0)
+  emergencyTotal      Float    @default(2)
+  emergencyUsed       Float    @default(0)
+  updatedAt           DateTime @updatedAt
+
+  @@map("leave_balances")
+}
+
+model LeaveLedgerEntry {
+  id          String          @id @default(cuid())
+  employeeId  String
+  employee    Employee        @relation(fields: [employeeId], references: [id])
+  type        LedgerEntryType
+  days        Float
+  reason      String
+  referenceId String?
+  performedBy String?
+  year        Int
+  month       Int?
+  createdAt   DateTime        @default(now())
+
+  @@map("leave_ledger_entries")
+}
+
+model AccrualRule {
+  id                    String   @id @default(cuid())
+  name                  String   @default("Default Accrual Rule")
+  standardLeavesPerYear Float    @default(18)
+  emergencyLeavesPerYear Float   @default(2)
+  accrualMethod         String   @default("MONTHLY")
+  daysPerMonth          Float    @default(1.5)
+  carryForwardEnabled   Boolean  @default(true)
+  carryForwardMaxDays   Float    @default(10)
+  isActive              Boolean  @default(true)
+  effectiveFrom         DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("accrual_rules")
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  title       String
+  message     String
+  recipientId String
+  recipient   Employee         @relation("NotificationRecipient", fields: [recipientId], references: [id])
+  senderId    String?
+  sender      Employee?        @relation("NotificationSender", fields: [senderId], references: [id])
+  referenceId String?
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  action      AuditAction
+  performedBy String
+  performer   Employee    @relation("AuditPerformer", fields: [performedBy], references: [id])
+  targetId    String?
+  target      Employee?   @relation("AuditTarget", fields: [targetId], references: [id])
+  details     Json
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  @@map("audit_logs")
+}
+
+model SystemSettings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
