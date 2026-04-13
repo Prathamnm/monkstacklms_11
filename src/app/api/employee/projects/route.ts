@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
             displayName: m.employee.displayName,
             email: m.employee.email,
             jobTitle: m.employee.jobTitle,
-            department: m.employee.department,
+
             profilePictureUrl: m.employee.profilePictureUrl,
             availabilityStatus,
           },

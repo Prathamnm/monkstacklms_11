@@ -105,7 +105,6 @@ export default function HRLeavesPage() {
                       </div>
                       <div>
                         <p className="text-slate-900 text-sm font-medium">{leave.employee?.displayName}</p>
-                        <p className="text-slate-400 text-xs">{leave.employee?.department}</p>
                       </div>
                     </div>
                   </td>

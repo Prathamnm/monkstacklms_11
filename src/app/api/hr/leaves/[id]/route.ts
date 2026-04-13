@@ -20,7 +20,7 @@ export async function GET(
             id: true,
             displayName: true,
             email: true,
-            department: true,
+
             jobTitle: true,
             profilePictureUrl: true,
           },

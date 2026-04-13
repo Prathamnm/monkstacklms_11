@@ -9,7 +9,13 @@ interface SendMailParams {
 }
 
 export async function sendMail(params: SendMailParams): Promise<void> {
-  const senderEmail = process.env.GRAPH_SENDER_EMAIL!
+  const senderEmail = process.env.GRAPH_SENDER_EMAIL
+  
+  if (!senderEmail || senderEmail === 'no-reply@moonshine.onmicrosoft.com') {
+    console.warn('[graphMailer] GRAPH_SENDER_EMAIL not configured or is placeholder. Email not sent:', params.subject)
+    return
+  }
+
   const accessToken = await getAppAccessToken()
 
   const message = {

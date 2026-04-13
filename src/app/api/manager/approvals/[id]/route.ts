@@ -46,6 +46,7 @@ export async function PATCH(
           status: 'APPROVED',
           approverId: token.userId,
           approvedAt: new Date(),
+          approverComments: reason || null,
         },
       })
 

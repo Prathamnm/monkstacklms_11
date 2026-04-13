@@ -5,7 +5,7 @@ import { parseISO } from 'date-fns'
 import { computeTotalDays } from '@/lib/utils/dateUtils'
 import { validateLeaveDates, validateBalance } from '@/lib/leave/leaveValidator'
 import { getLeaveBalance } from '@/lib/leave/balanceService'
-import { notifyLeaveApplied } from '@/lib/notifications/notificationService'
+import { createNotifications, notifyLeaveApplied } from '@/lib/notifications/notificationService'
 import { logAudit } from '@/lib/audit/auditLogger'
 import { formatDateRange } from '@/lib/utils/dateUtils'
 
@@ -83,6 +83,8 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     })
 
+    const dateLabel = formatDateRange(startDate, endDate)
+
     if (employee?.managerId) {
       await notifyLeaveApplied(
         token.userId,
@@ -90,7 +92,25 @@ export async function POST(req: NextRequest) {
         employee.managerId,
         hrEmployees.map((h) => h.id),
         leave.id,
-        formatDateRange(startDate, endDate)
+        dateLabel
+      )
+    } else {
+      const allManagers = await prisma.employee.findMany({
+        where: { role: 'MANAGER', employmentStatus: 'ACTIVE' },
+        select: { id: true },
+      })
+      const recipientIds = Array.from(
+        new Set([...allManagers.map((m) => m.id), ...hrEmployees.map((h) => h.id)])
+      )
+      await createNotifications(
+        recipientIds.map((recipientId) => ({
+          type: 'LEAVE_APPLIED' as const,
+          title: 'New Leave Request',
+          message: `${employee?.displayName ?? 'An employee'} has submitted a leave request for ${dateLabel}`,
+          recipientId,
+          senderId: token.userId,
+          referenceId: leave.id,
+        }))
       )
     }
 

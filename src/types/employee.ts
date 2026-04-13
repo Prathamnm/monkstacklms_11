@@ -10,7 +10,7 @@ export interface Employee {
   firstName: string
   lastName: string
   jobTitle?: string | null
-  department?: string | null
+  designation?: string | null
   phoneNumber?: string | null
   profilePictureUrl?: string | null
   role: Role
@@ -26,6 +26,7 @@ export interface Employee {
 export interface EmployeeWithAvailability extends Employee {
   availabilityStatus: AvailabilityStatus
   currentLeaveEnd?: string | null
+  managerName?: string | null
   projects?: { id: string; name: string; code: string; color: string }[]
 }
 

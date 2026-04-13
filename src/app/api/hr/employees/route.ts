@@ -12,12 +12,16 @@ export async function GET(req: NextRequest) {
     const statusFilter = searchParams.get('status')
 
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayEnd = new Date()
+    todayEnd.setHours(23, 59, 59, 999)
 
     const employees = await prisma.employee.findMany({
       where: statusFilter ? { employmentStatus: statusFilter as 'ACTIVE' | 'INACTIVE' | 'TERMINATED' } : undefined,
       include: {
+        manager: { select: { id: true, displayName: true } },
         leaveRequests: {
-          where: { status: 'APPROVED', startDate: { lte: today }, endDate: { gte: today } },
+          where: { status: 'APPROVED', startDate: { lte: todayEnd }, endDate: { gte: today } },
         },
         projectMemberships: {
           where: { isActive: true },
@@ -47,12 +51,13 @@ export async function GET(req: NextRequest) {
         firstName: emp.firstName,
         lastName: emp.lastName,
         jobTitle: emp.jobTitle,
-        department: emp.department,
+        designation: emp.designation,
         phoneNumber: emp.phoneNumber,
         profilePictureUrl: emp.profilePictureUrl,
         role: emp.role,
         employmentStatus: emp.employmentStatus,
         managerId: emp.managerId,
+        managerName: emp.manager?.displayName ?? null,
         joinDate: emp.joinDate.toISOString(),
         terminationDate: emp.terminationDate?.toISOString() ?? null,
         createdAt: emp.createdAt.toISOString(),

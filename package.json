@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "ts-node --project tsconfig.json prisma/seed.ts",
     "db:reset": "prisma migrate reset",
-    "db:studio": "prisma studio"
+    "db: studio": "prisma studio",
+    "db:cleanup-test": "ts-node --project tsconfig.json scripts/cleanup-test-users.ts"
   },
   "dependencies": {
     "@azure/msal-browser": "^3.27.0",

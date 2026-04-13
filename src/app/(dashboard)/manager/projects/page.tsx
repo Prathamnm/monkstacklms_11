@@ -63,8 +63,8 @@ export default function ManagerProjectsPage() {
   return (
     <div className="p-6 lg:p-8">
       <PageHeader
-        title="Projects"
-        description="Manage project assignments and team allocations"
+        title="Ongoing Projects"
+        description="Create and manage your active projects"
         badge={projects.length}
         actions={
           <button onClick={() => setShowNewForm(!showNewForm)} className="btn-primary flex items-center gap-2">

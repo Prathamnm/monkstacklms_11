@@ -24,6 +24,7 @@ export default function ManagerApprovalsPage() {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false)
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [approvalReason, setApprovalReason] = useState('')
 
   const { data: approvals = [], isLoading } = useQuery<LeaveRequest[]>({
     queryKey: ['managerApprovals'],
@@ -69,6 +70,7 @@ export default function ManagerApprovalsPage() {
       setApproveDialogOpen(false)
       setRejectDialogOpen(false)
       setRejectionReason('')
+      setApprovalReason('')
     },
     onError: (err: Error) => {
       toast.error(err.message)
@@ -144,7 +146,6 @@ export default function ManagerApprovalsPage() {
                   </div>
                   <div>
                     <p className="text-slate-900 font-semibold">{selectedLeave.employee?.displayName}</p>
-                    <p className="text-slate-500 text-xs">{selectedLeave.employee?.department}</p>
                     <p className="text-slate-500 text-xs">{selectedLeave.employee?.email}</p>
                   </div>
                 </div>
@@ -201,13 +202,26 @@ export default function ManagerApprovalsPage() {
         onClose={() => setApproveDialogOpen(false)}
         onConfirm={() =>
           selectedLeave &&
-          actionMutation.mutate({ id: selectedLeave.id, action: 'approve' })
+          actionMutation.mutate({ id: selectedLeave.id, action: 'approve', reason: approvalReason })
         }
         title="Approve Leave Request"
-        description={`Approve leave for ${selectedLeave?.employee?.displayName} from ${selectedLeave ? formatDateRange(selectedLeave.startDate, selectedLeave.endDate) : ''}?`}
+        description={`Approve leave for ${selectedLeave?.employee?.displayName}?`}
         confirmLabel="Approve"
         isLoading={actionMutation.isPending}
-      />
+      >
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Comments (Optional)
+          </label>
+          <textarea
+            value={approvalReason}
+            onChange={(e) => setApprovalReason(e.target.value)}
+            rows={3}
+            className="input w-full"
+            placeholder="Add any internal comments or notes..."
+          />
+        </div>
+      </ConfirmDialog>
 
       {/* Reject dialog */}
       <ConfirmDialog

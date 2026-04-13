@@ -1,22 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 
-type AuditAction =
-  | 'LEAVE_APPLY'
-  | 'LEAVE_APPROVE'
-  | 'LEAVE_REJECT'
-  | 'LEAVE_CANCEL'
-  | 'LEAVE_REVOKE'
-  | 'BALANCE_ADJUST'
-  | 'EMPLOYEE_ONBOARD'
-  | 'EMPLOYEE_OFFBOARD'
-  | 'EMPLOYEE_UPDATE'
-  | 'PROJECT_CREATE'
-  | 'PROJECT_UPDATE'
-  | 'PROJECT_MEMBER_ADD'
-  | 'PROJECT_MEMBER_REMOVE'
-  | 'RULES_UPDATE'
-  | 'ACCRUAL_RUN'
+import { AuditAction } from '@prisma/client'
 
 export async function logAudit(
   action: AuditAction,

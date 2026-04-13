@@ -32,6 +32,7 @@ export default function HRLifecyclePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          onClick={() => router.push('/hr/lifecycle/offboard')}
           className="bg-white border-2 border-red-200 hover:border-red-400 rounded-xl p-8 cursor-pointer transition-all hover:shadow-md group"
         >
           <div className="w-14 h-14 bg-red-50 text-red-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-red-100 transition-colors">

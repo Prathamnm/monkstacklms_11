@@ -26,7 +26,7 @@ export default function DashboardGroupLayout({
     if (isLoading) return
 
     if (isError || !data?.user) {
-      router.replace('/login')
+      router.replace('/') // Send to root to handle sync or login redirect
       return
     }
 

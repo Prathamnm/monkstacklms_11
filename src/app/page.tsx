@@ -21,12 +21,16 @@ export default function RootPage() {
       // Still fetching user data — wait
       if (isLoading) return
 
-      // User exists in Entra but hasn't been synced to the DB yet (e.g. a new user whose sync failed).
-      // Redirect to /auth/callback to re-trigger the sync flow.
+      // In dev bypass mode, if we reach here and there's an error/no data, 
+      // it might mean the bypass email isn't in the DB.
+      // But mainly we need to avoid the infinite loop if we are not technically "authenticated"
       if (isError) {
         router.replace('/auth/callback')
         return
       }
+      // If not authenticated by MSAL, go to login
+      router.replace('/login')
+      return
     }
 
     if (data?.user) {

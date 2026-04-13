@@ -1,5 +1,17 @@
 import { prisma } from '@/lib/db/prisma'
-import type { LeaveBalanceSummary } from '@/types/employee'
+
+export interface LeaveBalanceSummary {
+  year: number
+  standardTotal: number
+  standardUsed: number
+  standardCarryForward: number
+  availableStandard: number
+  emergencyTotal: number
+  emergencyUsed: number
+  availableEmergency: number
+  pendingDays: number
+  effectiveAvailable: number
+}
 
 export async function getLeaveBalance(
   employeeId: string,
@@ -27,31 +39,28 @@ export async function getLeaveBalance(
     return {
       year: targetYear,
       standardTotal: 18,
-      standardAccrued: 0,
       standardUsed: 0,
       standardCarryForward: 0,
+      availableStandard: 18,
       emergencyTotal: 2,
       emergencyUsed: 0,
-      availableStandard: 0,
       availableEmergency: 2,
       pendingDays,
-      effectiveAvailable: 0,
+      effectiveAvailable: 18,
     }
   }
 
-  const availableStandard =
-    balance.standardAccrued + balance.standardCarryForward - balance.standardUsed
+  const availableStandard = balance.standardTotal + balance.standardCarryForward - balance.standardUsed
   const availableEmergency = balance.emergencyTotal - balance.emergencyUsed
 
   return {
     year: balance.year,
     standardTotal: balance.standardTotal,
-    standardAccrued: balance.standardAccrued,
     standardUsed: balance.standardUsed,
     standardCarryForward: balance.standardCarryForward,
+    availableStandard,
     emergencyTotal: balance.emergencyTotal,
     emergencyUsed: balance.emergencyUsed,
-    availableStandard,
     availableEmergency,
     pendingDays,
     effectiveAvailable: availableStandard - pendingDays,

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
-import { getAvailabilityForDate } from '@/lib/utils/dateUtils'
+import { Role } from '@prisma/client'
+import { getAppAccessToken, createGraphClient } from '@/lib/auth/graphClient'
 import { logAudit } from '@/lib/audit/auditLogger'
+import { sendMail } from '@/lib/email/graphMailer'
+import { roleChangedTemplate } from '@/lib/email/templates/roleChanged'
+
+import { getAvailabilityForDate } from '@/lib/utils/dateUtils'
 
 export async function GET(
   req: NextRequest,
@@ -12,25 +17,26 @@ export async function GET(
     const token = await validateToken(req)
     requireRole(token, ['HR', 'ADMIN'])
 
-    const { id } = params
+    const { id } = await Promise.resolve(params)
+
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayEnd = new Date()
+    todayEnd.setHours(23, 59, 59, 999)
 
     const employee = await prisma.employee.findUnique({
       where: { id },
       include: {
-        leaveRequests: {
-          where: { status: 'APPROVED', startDate: { lte: today }, endDate: { gte: today } },
-        },
-        projectMemberships: {
-          where: { isActive: true },
-          include: { project: { select: { id: true, name: true, code: true, color: true } } },
-        },
+        manager: { select: { id: true, displayName: true } },
         leaveBalance: true,
+        leaveRequests: {
+          where: { status: 'APPROVED', startDate: { lte: todayEnd }, endDate: { gte: today } },
+        },
       },
     })
 
     if (!employee) {
-      return NextResponse.json({ error: 'Employee not found', code: 'NOT_FOUND' }, { status: 404 })
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
     }
 
     const availabilityStatus = getAvailabilityForDate(
@@ -45,32 +51,14 @@ export async function GET(
     )
 
     return NextResponse.json({
-      id: employee.id,
-      entraObjectId: employee.entraObjectId,
-      email: employee.email,
-      displayName: employee.displayName,
-      firstName: employee.firstName,
-      lastName: employee.lastName,
-      jobTitle: employee.jobTitle,
-      department: employee.department,
-      phoneNumber: employee.phoneNumber,
-      profilePictureUrl: employee.profilePictureUrl,
-      role: employee.role,
-      employmentStatus: employee.employmentStatus,
-      managerId: employee.managerId,
-      joinDate: employee.joinDate.toISOString(),
-      terminationDate: employee.terminationDate?.toISOString() ?? null,
-      createdAt: employee.createdAt.toISOString(),
-      updatedAt: employee.updatedAt.toISOString(),
+      ...employee,
       availabilityStatus,
-      projects: employee.projectMemberships.map((pm) => pm.project),
-      leaveBalance: employee.leaveBalance,
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown'
-    if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 })
-    if (message === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 })
-    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 })
+    if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (message === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -82,42 +70,93 @@ export async function PATCH(
     const token = await validateToken(req)
     requireRole(token, ['HR', 'ADMIN'])
 
-    const { id } = params
     const body = await req.json()
+    const { designation, phoneNumber, emergencyContact, managerId, role, employmentStatus } = body
 
-    const before = await prisma.employee.findUnique({ where: { id } })
+    const employeeId = params.id
+    const prevEmployee = await prisma.employee.findUnique({ where: { id: employeeId } })
+    if (!prevEmployee) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const employee = await prisma.employee.update({
-      where: { id },
+    const updatedEmployee = await prisma.employee.update({
+      where: { id: employeeId },
       data: {
-        firstName: body.firstName,
-        lastName: body.lastName,
-        email: body.email,
-        phoneNumber: body.phoneNumber,
-        jobTitle: body.jobTitle,
-        department: body.department,
-        role: body.role,
-        managerId: body.managerId,
+        designation,
+        phoneNumber,
+        emergencyContact,
+        managerId: managerId || null,
+        role: role as Role,
+        employmentStatus,
       },
     })
 
-    await logAudit('EMPLOYEE_UPDATE', token.userId, id, {
-      before,
-      after: employee,
-      params: {},
-    }, req)
+    if (prevEmployee.role !== role) {
+      // Role changed
+      await prisma.notification.create({
+        data: {
+          type: 'ROLE_CHANGED',
+          title: 'Your Role Has Changed',
+          message: `Your permission role has been changed from ${prevEmployee.role} to ${role}.`,
+          recipientId: employeeId,
+          senderId: token.userId,
+        },
+      })
+      
+      await logAudit('ROLE_CHANGE', token.userId, employeeId, {
+        before: { role: prevEmployee.role },
+        after: { role },
+        params: {},
+      }, req)
 
-    return NextResponse.json({
-      ...employee,
-      joinDate: employee.joinDate.toISOString(),
-      terminationDate: employee.terminationDate?.toISOString() ?? null,
-      createdAt: employee.createdAt.toISOString(),
-      updatedAt: employee.updatedAt.toISOString(),
-    })
+      // Send email
+      const emailObj = roleChangedTemplate({
+        employeeName: updatedEmployee.displayName,
+        oldRole: prevEmployee.role,
+        newRole: role,
+        effectiveDate: new Date().toLocaleDateString()
+      })
+      await sendMail({
+        to: [updatedEmployee.email],
+        subject: emailObj.subject,
+        htmlBody: emailObj.body
+      }).catch(console.error)
+
+      // Sync Entra Groups
+      try {
+        if (updatedEmployee.entraObjectId && !updatedEmployee.entraObjectId.startsWith('pending-')) {
+          const appToken = await getAppAccessToken()
+          const client = createGraphClient(appToken)
+          // Look up Entra groups
+          const groups = await client.api('/groups').filter("startsWith(displayName,'LMS_')").get()
+          const lmsGroups = groups.value || []
+          
+          const oldGroupName = `LMS_${prevEmployee.role}`
+          const newGroupName = `LMS_${role}`
+          const oldGroup = lmsGroups.find((g: any) => g.displayName === oldGroupName)
+          const newGroup = lmsGroups.find((g: any) => g.displayName === newGroupName)
+
+          if (oldGroup) {
+            await client.api(`/groups/${oldGroup.id}/members/${updatedEmployee.entraObjectId}/$ref`).delete()
+          }
+          if (newGroup) {
+            await client.api(`/groups/${newGroup.id}/members/$ref`).post({
+              '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${updatedEmployee.entraObjectId}`
+            })
+          }
+        }
+      } catch (err) {
+        console.error('Error syncing Entra roles:', err)
+      }
+    } else {
+      await logAudit('EMPLOYEE_UPDATE', token.userId, employeeId, {
+        before: {}, after: { designation, phoneNumber }, params: {}
+      }, req)
+    }
+
+    return NextResponse.json(updatedEmployee)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown'
-    if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 })
-    if (message === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 })
-    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 })
+    if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (message === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

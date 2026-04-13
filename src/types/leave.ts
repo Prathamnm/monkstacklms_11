@@ -3,14 +3,16 @@ export type HalfDayType = 'NONE' | 'FIRST_HALF' | 'SECOND_HALF'
 
 export interface LeaveRequest {
   id: string
+  title: string
   employeeId: string
   employee?: {
     id: string
     displayName: string
     email: string
     jobTitle?: string | null
-    department?: string | null
+
     profilePictureUrl?: string | null
+    role?: string
   }
   startDate: string
   endDate: string
@@ -18,12 +20,14 @@ export interface LeaveRequest {
   endHalfDay: HalfDayType
   totalDays: number
   reason: string
+  isEmergency?: boolean
   status: LeaveStatus
   approverId?: string | null
   approver?: {
     id: string
     displayName: string
     email: string
+    role?: string
   } | null
   approvedAt?: string | null
   rejectedAt?: string | null
@@ -38,11 +42,13 @@ export interface LeaveRequest {
 }
 
 export interface ApplyLeavePayload {
+  title: string
   startDate: string
   endDate: string
   startHalfDay: HalfDayType
   endHalfDay: HalfDayType
   reason: string
+  isEmergency?: boolean
 }
 
 export interface AccrualRule {

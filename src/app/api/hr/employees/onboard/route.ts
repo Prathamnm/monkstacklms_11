@@ -10,10 +10,20 @@ export async function POST(req: NextRequest) {
     requireRole(token, ['HR', 'ADMIN'])
 
     const body = await req.json()
-    const { firstName, lastName, email, phoneNumber, jobTitle, department, role, startDate } = body
+    const { firstName, lastName, email, phoneNumber, designation, role, startDate, managerId } = body
 
-    if (!firstName || !lastName || !email) {
-      return NextResponse.json({ error: 'First name, last name and email are required', code: 'BAD_REQUEST' }, { status: 400 })
+    if (!firstName || !lastName || !email || !designation) {
+      return NextResponse.json(
+        { error: 'First name, last name, email, and designation are required', code: 'BAD_REQUEST' },
+        { status: 400 }
+      )
+    }
+
+    if (!email.endsWith('@monikajadhav1907gmail.onmicrosoft.com')) {
+      return NextResponse.json(
+        { error: 'Email must use the company domain @monikajadhav1907gmail.onmicrosoft.com', code: 'INVALID_EMAIL' },
+        { status: 400 }
+      )
     }
 
     const year = new Date().getFullYear()
@@ -27,11 +37,12 @@ export async function POST(req: NextRequest) {
         firstName,
         lastName,
         phoneNumber,
-        jobTitle,
-        department,
+        jobTitle: designation,
+        designation,
         role: role ?? 'EMPLOYEE',
         employmentStatus: 'ACTIVE',
         joinDate: startDate ? new Date(startDate) : new Date(),
+        managerId: managerId || null,
       },
     })
 

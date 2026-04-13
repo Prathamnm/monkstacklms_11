@@ -138,7 +138,6 @@ export default function HRLeaveDetailPage() {
             <div>
               <p className="text-slate-900 font-semibold">{leave.employee?.displayName}</p>
               <p className="text-slate-500 text-xs">{leave.employee?.email}</p>
-              <p className="text-slate-500 text-xs">{leave.employee?.department}</p>
             </div>
           </div>
         </div>

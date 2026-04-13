@@ -21,7 +21,7 @@ const REPORT_TYPES = [
   {
     id: 'employee-directory',
     title: 'Employee Directory',
-    description: 'All employees with contact info, manager, department, projects, join date',
+    description: 'All employees with contact info, manager, projects, join date',
   },
   {
     id: 'attendance-overview',

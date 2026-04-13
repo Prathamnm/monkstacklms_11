@@ -38,7 +38,9 @@ export default function HREmployeesPage() {
   const filtered = employees.filter((e) => {
     const matchSearch =
       e.displayName.toLowerCase().includes(search.toLowerCase()) ||
-      e.email.toLowerCase().includes(search.toLowerCase())
+      e.email.toLowerCase().includes(search.toLowerCase()) ||
+      (e.designation ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (e.jobTitle ?? '').toLowerCase().includes(search.toLowerCase())
     const matchRole = roleFilter === 'ALL' || e.role === roleFilter
     return matchSearch && matchRole
   })
@@ -46,7 +48,7 @@ export default function HREmployeesPage() {
   return (
     <div className="p-6 lg:p-8">
       <PageHeader
-        title="Employees"
+        title="Team Monkstack"
         description="Full employee directory with edit access"
         badge={filtered.length}
         actions={
@@ -105,7 +107,8 @@ export default function HREmployeesPage() {
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Employee</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Role</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Department</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Designation</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Reporting To</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Join Date</th>
                 <th className="text-right px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
@@ -121,7 +124,14 @@ export default function HREmployeesPage() {
                       </div>
                       <div>
                         <p className="text-slate-900 text-sm font-medium">{employee.displayName}</p>
-                        <p className="text-slate-500 text-xs">{employee.email}</p>
+                        <p className="text-slate-500 text-xs">
+                          <a
+                            href={`mailto:${employee.email}`}
+                            className="hover:text-blue-600 hover:underline transition-colors"
+                          >
+                            {employee.email}
+                          </a>
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -130,7 +140,8 @@ export default function HREmployeesPage() {
                       {ROLE_LABELS[employee.role]}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-slate-600 text-sm">{employee.department ?? '—'}</td>
+                  <td className="px-5 py-3 text-slate-600 text-sm">{employee.designation ?? employee.jobTitle ?? '—'}</td>
+                  <td className="px-5 py-3 text-slate-600 text-sm">{employee.managerName ?? '—'}</td>
                   <td className="px-5 py-3">
                     <AvailabilityBadge status={employee.availabilityStatus} />
                   </td>

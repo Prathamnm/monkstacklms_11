@@ -17,12 +17,15 @@ export async function GET(req: NextRequest) {
         firstName: true,
         lastName: true,
         jobTitle: true,
-        department: true,
+        designation: true,
+
         phoneNumber: true,
+        emergencyContact: true,
         profilePictureUrl: true,
         role: true,
         employmentStatus: true,
         managerId: true,
+        joinDate: true,
       },
     })
 
@@ -32,7 +35,13 @@ export async function GET(req: NextRequest) {
 
     const balance = await getLeaveBalance(token.userId)
 
-    return NextResponse.json({ user: employee, balance })
+    return NextResponse.json({
+      user: {
+        ...employee,
+        joinDate: employee.joinDate.toISOString(),
+      },
+      balance,
+    })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     if (message === 'UNAUTHORIZED' || message === 'USER_NOT_SYNCED') {

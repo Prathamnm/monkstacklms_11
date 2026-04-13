@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
 import { getAvailabilityForDate } from '@/lib/utils/dateUtils'
+import { logAudit } from '@/lib/audit/auditLogger'
 
 export async function GET(
   req: NextRequest,
@@ -58,7 +59,7 @@ export async function GET(
           displayName: m.employee.displayName,
           email: m.employee.email,
           jobTitle: m.employee.jobTitle,
-          department: m.employee.department,
+
           profilePictureUrl: m.employee.profilePictureUrl,
           role: m.employee.role,
           employmentStatus: m.employee.employmentStatus,
@@ -120,6 +121,40 @@ export async function PATCH(
       createdAt: project.createdAt.toISOString(),
       updatedAt: project.updatedAt.toISOString(),
     })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown'
+    if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 })
+    if (message === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 })
+    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const token = await validateToken(req)
+    requireRole(token, ['MANAGER', 'ADMIN'])
+
+    const { id } = params
+
+    await prisma.employeeProject.deleteMany({ where: { projectId: id } })
+    await prisma.project.delete({ where: { id } })
+
+    await logAudit(
+      'PROJECT_UPDATE',
+      token.userId,
+      null,
+      {
+        before: { projectId: id },
+        after: { deleted: true },
+        params: {},
+      },
+      req
+    )
+
+    return NextResponse.json({ success: true })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown'
     if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 })

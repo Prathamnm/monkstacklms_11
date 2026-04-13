@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
             endDate: { lte: toDate },
           },
           include: {
-            employee: { select: { displayName: true, email: true, department: true } },
+            employee: { select: { displayName: true, email: true } },
             approver: { select: { displayName: true } },
           },
           orderBy: { createdAt: 'desc' },
@@ -39,7 +39,6 @@ export async function GET(req: NextRequest) {
         rows = leaves.map((l) => ({
           Employee: l.employee.displayName,
           Email: l.employee.email,
-          Department: l.employee.department ?? '',
           'Start Date': format(l.startDate, 'yyyy-MM-dd'),
           'End Date': format(l.endDate, 'yyyy-MM-dd'),
           'Total Days': l.totalDays,
@@ -54,7 +53,7 @@ export async function GET(req: NextRequest) {
       case 'leave-balance': {
         const balances = await prisma.leaveBalance.findMany({
           include: {
-            employee: { select: { displayName: true, email: true, department: true } },
+            employee: { select: { displayName: true, email: true } },
           },
           where: { year: new Date().getFullYear() },
         })
@@ -84,7 +83,6 @@ export async function GET(req: NextRequest) {
           Name: e.displayName,
           Email: e.email,
           'Job Title': e.jobTitle ?? '',
-          Department: e.department ?? '',
           Phone: e.phoneNumber ?? '',
           Role: e.role,
           'Join Date': format(e.joinDate, 'yyyy-MM-dd'),

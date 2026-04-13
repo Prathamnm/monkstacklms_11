@@ -4,19 +4,20 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Folder,
-  CalendarPlus,
+  CalendarDays,
   Users,
   ClipboardList,
   LayoutDashboard,
   CheckSquare,
   FolderKanban,
-  UserCircle,
   RefreshCw,
   BarChart2,
   Settings,
-  Bell,
   ScrollText,
   LogOut,
+  CalendarPlus,
+  UserCheck,
+  UserX,
 } from 'lucide-react'
 import { useMsal } from '@azure/msal-react'
 import { cn } from '@/lib/utils/cn'
@@ -41,41 +42,44 @@ function getNavItems(role: string, pendingCount = 0): NavItem[] {
   switch (role) {
     case 'EMPLOYEE':
       return [
-        { label: 'Dashboard', href: '/employee/dashboard', icon: <LayoutDashboard size={18} /> },
-        { label: 'My Profile', href: '/profile', icon: <UserCircle size={18} /> },
-        { label: 'My Projects', href: '/employee/projects', icon: <Folder size={18} /> },
-        { label: 'Apply Leave', href: '/employee/apply-leave', icon: <CalendarPlus size={18} /> },
-        { label: 'My Team', href: '/employee/my-team', icon: <Users size={18} /> },
-        { label: 'My Leaves', href: '/employee/my-leaves', icon: <ClipboardList size={18} /> },
+        { label: 'Dashboard',      href: '/employee/dashboard',   icon: <LayoutDashboard size={18} /> },
+        { label: 'Team Monkstack', href: '/employee/my-team',     icon: <Users size={18} /> },
+        { label: 'My Projects',    href: '/employee/projects',    icon: <Folder size={18} /> },
+        { label: 'My Calendar',    href: '/employee/calendar',    icon: <CalendarDays size={18} /> },
+        { label: 'Apply Leave',    href: '/employee/apply-leave', icon: <CalendarPlus size={18} /> },
+        { label: 'My Leaves',      href: '/employee/my-leaves',   icon: <ClipboardList size={18} /> },
       ]
     case 'MANAGER':
       return [
-        { label: 'Dashboard', href: '/manager/dashboard', icon: <LayoutDashboard size={18} /> },
-        { label: 'My Profile', href: '/profile', icon: <UserCircle size={18} /> },
-        { label: 'Approvals', href: '/manager/approvals', icon: <CheckSquare size={18} />, badge: pendingCount },
-        { label: 'Employees', href: '/manager/employees', icon: <Users size={18} /> },
-        { label: 'Projects', href: '/manager/projects', icon: <FolderKanban size={18} /> },
+        { label: 'Dashboard',   href: '/manager/dashboard',   icon: <LayoutDashboard size={18} /> },
+        { label: 'Team Monkstack', href: '/manager/employees',   icon: <Users size={18} /> },
+        { label: 'My Calendar', href: '/manager/calendar',    icon: <CalendarDays size={18} /> },
+        { label: 'Ongoing Projects', href: '/manager/projects',    icon: <FolderKanban size={18} /> },
+        { label: 'Approvals',   href: '/manager/approvals',   icon: <CheckSquare size={18} />, badge: pendingCount },
+        { label: 'Apply Leave', href: '/manager/apply-leave', icon: <CalendarPlus size={18} /> },
+        { label: 'My Leaves',   href: '/manager/my-leaves',   icon: <ClipboardList size={18} /> },
       ]
     case 'HR':
       return [
-        { label: 'Dashboard', href: '/hr/dashboard', icon: <LayoutDashboard size={18} /> },
-        { label: 'My Profile', href: '/profile', icon: <UserCircle size={18} /> },
-        { label: 'Employees', href: '/hr/employees', icon: <UserCircle size={18} /> },
-        { label: 'Lifecycle', href: '/hr/lifecycle', icon: <RefreshCw size={18} /> },
-        { label: 'All Leaves', href: '/hr/leaves', icon: <ClipboardList size={18} /> },
-        { label: 'Reports', href: '/hr/reports', icon: <BarChart2 size={18} /> },
-        { label: 'Rules', href: '/hr/rules', icon: <Settings size={18} /> },
+        { label: 'Dashboard',      href: '/hr/dashboard',          icon: <LayoutDashboard size={18} /> },
+        { label: 'Team Monkstack', href: '/hr/employees',          icon: <Users size={18} /> },
+        { label: 'My Calendar',    href: '/hr/calendar',           icon: <CalendarDays size={18} /> },
+        { label: 'Onboarding',     href: '/hr/lifecycle/onboard',  icon: <UserCheck size={18} /> },
+        { label: 'Deboarding',     href: '/hr/lifecycle/offboard', icon: <UserX size={18} /> },
+        { label: 'Leave Approvals',href: '/hr/leaves',             icon: <ClipboardList size={18} /> },
+        { label: 'Apply Leave',    href: '/hr/apply-leave',        icon: <CalendarPlus size={18} /> },
+        { label: 'My Leaves',      href: '/hr/my-leaves',          icon: <ClipboardList size={18} /> },
+        { label: 'Reports',        href: '/hr/reports',            icon: <BarChart2 size={18} /> },
       ]
     case 'ADMIN':
       return [
-        { label: 'Dashboard', href: '/admin/dashboard', icon: <LayoutDashboard size={18} /> },
-        { label: 'My Profile', href: '/profile', icon: <UserCircle size={18} /> },
-        { label: 'Employees', href: '/admin/employees', icon: <UserCircle size={18} /> },
-        { label: 'Leaves', href: '/admin/leaves', icon: <ClipboardList size={18} /> },
-        { label: 'Projects', href: '/admin/projects', icon: <FolderKanban size={18} /> },
-        { label: 'Users', href: '/admin/users', icon: <Users size={18} /> },
-        { label: 'Audit Log', href: '/admin/audit', icon: <ScrollText size={18} /> },
-        { label: 'Settings', href: '/admin/settings', icon: <Settings size={18} /> },
+        { label: 'Dashboard',        href: '/admin/dashboard', icon: <LayoutDashboard size={18} /> },
+        { label: 'User Management',  href: '/admin/users',     icon: <Users size={18} /> },
+        { label: 'System Config',    href: '/admin/settings',  icon: <Settings size={18} /> },
+        { label: 'Projects Overview',href: '/admin/projects',  icon: <FolderKanban size={18} /> },
+        { label: 'Approvals',        href: '/admin/leaves',    icon: <CheckSquare size={18} /> },
+        { label: 'Reports',          href: '/admin/reports',   icon: <BarChart2 size={18} /> },
+        { label: 'Audit Log',        href: '/admin/audit',     icon: <ScrollText size={18} /> },
       ]
     default:
       return []
@@ -96,7 +100,10 @@ export function Sidebar({ user, collapsed, pendingCount = 0 }: SidebarProps) {
     <motion.div
       animate={{ width: collapsed ? 72 : 260 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
-      className="flex flex-col h-full bg-slate-900 overflow-hidden flex-shrink-0"
+      className={cn(
+        'flex flex-col h-full bg-slate-900 overflow-hidden flex-shrink-0',
+        user.role === 'ADMIN' && 'border-r-2 border-red-500'
+      )}
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-slate-800 flex-shrink-0">

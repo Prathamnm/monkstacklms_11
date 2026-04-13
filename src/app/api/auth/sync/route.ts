@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
-import { getUserGroupDisplayNamesByObjectId } from '@/lib/auth/graphClient'
+import { getUserGroupsByObjectId } from '@/lib/auth/graphClient'
 import { verifyIdTokenFromRequest } from '@/lib/auth/validateToken'
 import { ENTRA_GROUP_ROLE_MAP } from '@/constants/roles'
 
@@ -23,31 +23,41 @@ export async function POST(req: NextRequest) {
 
     // Role from Entra groups via app-only Graph (avoids heavy delegated scopes on the client)
     // Role priority — highest privilege wins if user is in multiple groups
-    const ROLE_PRIORITY: Array<{ groupName: string; role: 'EMPLOYEE' | 'MANAGER' | 'HR' | 'ADMIN' }> = [
-      { groupName: 'LMS_Admins', role: 'ADMIN' },
-      { groupName: 'LMS_HR', role: 'HR' },
-      { groupName: 'LMS_Managers', role: 'MANAGER' },
-      { groupName: 'LMS_Employees', role: 'EMPLOYEE' },
-    ]
+    // Pre-fetch existing user to avoid demoting them to 'EMPLOYEE' if Graph lookup fails
+    const existingUser = await prisma.employee.findUnique({
+      where: { entraObjectId },
+      select: { role: true }
+    })
 
-    let role: 'EMPLOYEE' | 'MANAGER' | 'HR' | 'ADMIN' = 'EMPLOYEE'
+    let role: 'EMPLOYEE' | 'MANAGER' | 'HR' | 'ADMIN' = (existingUser?.role as any) ?? 'EMPLOYEE'
 
     try {
-      const groups = await getUserGroupDisplayNamesByObjectId(entraObjectId)
+      const groups = await getUserGroupsByObjectId(entraObjectId)
       console.log('[sync] Entra groups for user', entraObjectId, ':', groups)
 
-      for (const { groupName, role: groupRole } of ROLE_PRIORITY) {
-        if (groups.includes(groupName)) {
-          role = groupRole
-          console.log('[sync] Resolved role:', role, 'from group:', groupName)
-          break // highest-priority match wins
-        }
-      }
+      const groupIds = groups.map(g => g.id)
+      const groupNames = groups.map(g => g.displayName)
+
+      // Sanitize env vars
+      const adminId = (process.env.ENTRA_GROUP_ID_LMS_ADMINS || '').trim()
+      const hrId = (process.env.ENTRA_GROUP_ID_LMS_HR || '').trim()
+      const managerId = (process.env.ENTRA_GROUP_ID_LMS_MANAGERS || '').trim()
+      const employeeId = (process.env.ENTRA_GROUP_ID_LMS_EMPLOYEES || '').trim()
+
+      // 1. Check by ID (Recommended/Robust)
+      if (adminId && groupIds.includes(adminId)) role = 'ADMIN'
+      else if (hrId && groupIds.includes(hrId)) role = 'HR'
+      else if (managerId && groupIds.includes(managerId)) role = 'MANAGER'
+      else if (employeeId && groupIds.includes(employeeId)) role = 'EMPLOYEE'
+      // 2. Fallback to Names (for convenience/testing)
+      else if (groupNames.some(n => n.toLowerCase() === 'lms_admins' || n.toLowerCase() === 'lms_admin')) role = 'ADMIN'
+      else if (groupNames.some(n => n.toLowerCase() === 'lms_hr')) role = 'HR'
+      else if (groupNames.some(n => n.toLowerCase() === 'lms_managers' || n.toLowerCase() === 'lms_manager')) role = 'MANAGER'
+      else if (groupNames.some(n => n.toLowerCase() === 'lms_employees' || n.toLowerCase() === 'lms_employee')) role = 'EMPLOYEE'
+
+      console.log('[sync] Resolved role:', role)
     } catch (groupErr) {
-      // Log the actual error — if this is a 403, admin consent is missing for GroupMember.Read.All
-      console.error('[sync] Failed to fetch group memberships. Role will default to EMPLOYEE.', groupErr)
-      console.error('[sync] ACTION REQUIRED: Grant admin consent for GroupMember.Read.All in Azure Portal')
-      console.error('[sync] Go to: Azure Portal → App Registrations → Your App → API Permissions → Grant admin consent')
+      console.error('[sync] Failed to fetch group memberships. Preserving existing role:', role, groupErr)
     }
 
     // Upsert employee in DB
@@ -57,7 +67,7 @@ export async function POST(req: NextRequest) {
         entraObjectId,
         email,
         displayName: displayName ?? email,
-        firstName: firstName ?? email.split('@')[0],
+        firstName: firstName ?? (displayName ? displayName.split(' ')[0] : email.split('@')[0]),
         lastName: lastName ?? '',
         jobTitle,
         role,
@@ -66,6 +76,8 @@ export async function POST(req: NextRequest) {
       update: {
         email,
         displayName: displayName ?? email,
+        firstName: firstName ?? (displayName ? displayName.split(' ')[0] : email.split('@')[0]),
+        lastName: lastName ?? '',
         jobTitle,
         role, // ← ALWAYS update role from latest Entra group membership
       },

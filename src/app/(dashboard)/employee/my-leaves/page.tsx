@@ -131,6 +131,10 @@ export default function MyLeavesPage() {
                   <div className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {leave.title && (
+                          <span className="text-slate-800 text-sm font-semibold">{leave.title}</span>
+                        )}
+                        {leave.title && <span className="text-slate-300 text-xs">·</span>}
                         <span className="text-slate-900 text-sm font-medium">
                           {formatDateRange(leave.startDate, leave.endDate)}
                         </span>
@@ -138,6 +142,9 @@ export default function MyLeavesPage() {
                         <span className="text-slate-500 text-xs">
                           {leave.totalDays} day{leave.totalDays !== 1 ? 's' : ''}
                         </span>
+                        {leave.isEmergency && (
+                          <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">Emergency</span>
+                        )}
                       </div>
                       <p className="text-slate-400 text-xs mt-0.5 truncate">{leave.reason}</p>
                     </div>

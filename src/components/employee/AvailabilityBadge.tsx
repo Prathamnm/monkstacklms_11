@@ -15,7 +15,11 @@ const statusConfig = {
 }
 
 export function AvailabilityBadge({ status, showLabel = true, className }: AvailabilityBadgeProps) {
-  const config = statusConfig[status]
+  const config = statusConfig[status as keyof typeof statusConfig] || { 
+    label: status || 'Unknown', 
+    dot: 'bg-slate-400', 
+    class: 'bg-slate-50 text-slate-600 border border-slate-200' 
+  }
 
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', config.class, className)}>

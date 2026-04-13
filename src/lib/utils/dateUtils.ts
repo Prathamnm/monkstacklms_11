@@ -1,9 +1,10 @@
 import { eachDayOfInterval, isWeekend, format, parseISO, differenceInCalendarDays, isAfter, isBefore, isEqual } from 'date-fns'
 
-export function countBusinessDays(startDate: Date, endDate: Date): number {
+export function countBusinessDays(startDate: Date, endDate: Date, publicHolidayDateStrings: string[] = []): number {
   if (isAfter(startDate, endDate)) return 0
+  const holidaySet = new Set(publicHolidayDateStrings.map((d) => new Date(d).toDateString()))
   const days = eachDayOfInterval({ start: startDate, end: endDate })
-  return days.filter((day) => !isWeekend(day)).length
+  return days.filter((day) => !isWeekend(day) && !holidaySet.has(day.toDateString())).length
 }
 
 export function computeTotalDays(

@@ -1,15 +1,70 @@
-import { isWeekend, parseISO, isBefore, isAfter, isEqual } from 'date-fns'
-import { countBusinessDays } from '@/lib/utils/dateUtils'
+import { isWeekend, parseISO, isBefore } from 'date-fns'
 
 export interface ValidationResult {
   valid: boolean
   errors: string[]
+  calculatedDays?: number
+}
+
+export interface LeaveValidationInput {
+  startDate: string
+  endDate: string
+  startHalfDay?: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF'
+  endHalfDay?: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF'
+  existingLeaves: Array<{ startDate: Date | string; endDate: Date | string; status: string }>
+  publicHolidayDates?: string[] // ISO date strings of public holidays
+}
+
+/**
+ * Count business days between two dates, skipping weekends and public holidays.
+ */
+export function calculateLeaveDays(
+  start: Date,
+  end: Date,
+  startHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF' = 'NONE',
+  endHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF' = 'NONE',
+  publicHolidayDates: string[] = []
+): number {
+  const holidaySet = new Set(publicHolidayDates.map((d) => new Date(d).toDateString()))
+
+  let count = 0
+  const cur = new Date(start)
+  cur.setHours(0, 0, 0, 0)
+  const endNorm = new Date(end)
+  endNorm.setHours(23, 59, 59, 999)
+
+  while (cur <= endNorm) {
+    if (!isWeekend(cur) && !holidaySet.has(cur.toDateString())) {
+      count += 1
+    }
+    cur.setDate(cur.getDate() + 1)
+  }
+
+  // Half-day adjustments
+  const startDateStr = start.toDateString()
+  const endDateStr = end.toDateString()
+
+  const startIsWorkday = !isWeekend(start) && !holidaySet.has(startDateStr)
+  const endIsWorkday = !isWeekend(end) && !holidaySet.has(endDateStr)
+  const isSameDay = startDateStr === endDateStr
+
+  if (startHalfDay !== 'NONE' && startIsWorkday) {
+    count -= 0.5
+  }
+  if (!isSameDay && endHalfDay !== 'NONE' && endIsWorkday) {
+    count -= 0.5
+  }
+
+  return Math.max(0.5, count)
 }
 
 export function validateLeaveDates(
   startDate: string,
   endDate: string,
-  existingLeaves: Array<{ startDate: Date | string; endDate: Date | string; status: string }>
+  existingLeaves: Array<{ startDate: Date | string; endDate: Date | string; status: string }>,
+  publicHolidayDates: string[] = [],
+  startHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF' = 'NONE',
+  endHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF' = 'NONE'
 ): ValidationResult {
   const errors: string[] = []
   const start = parseISO(startDate)
@@ -18,7 +73,7 @@ export function validateLeaveDates(
   today.setHours(0, 0, 0, 0)
 
   if (isBefore(start, today)) {
-    errors.push('Start date cannot be in the past')
+    errors.push('Leave cannot start in the past')
   }
 
   if (isBefore(end, start)) {
@@ -33,28 +88,25 @@ export function validateLeaveDates(
     errors.push('End date cannot be a weekend')
   }
 
-  const businessDays = countBusinessDays(start, end)
-  if (businessDays === 0) {
-    errors.push('Selected date range contains no business days')
-  }
-
-  // Check for overlaps
+  // Check overlap (only PENDING + APPROVED)
   const hasOverlap = existingLeaves.some((leave) => {
-    if (leave.status === 'CANCELLED' || leave.status === 'REJECTED' || leave.status === 'REVOKED') {
-      return false
-    }
-    const leaveStart =
-      typeof leave.startDate === 'string' ? parseISO(leave.startDate) : leave.startDate
+    if (['CANCELLED', 'REJECTED', 'REVOKED'].includes(leave.status)) return false
+    const leaveStart = typeof leave.startDate === 'string' ? parseISO(leave.startDate) : leave.startDate
     const leaveEnd = typeof leave.endDate === 'string' ? parseISO(leave.endDate) : leave.endDate
-
-    return !(isAfter(start, leaveEnd) || isBefore(end, leaveStart))
+    return !(start > leaveEnd || end < leaveStart)
   })
 
   if (hasOverlap) {
-    errors.push('This date range overlaps with an existing leave request')
+    errors.push('You already have a leave in this period')
   }
 
-  return { valid: errors.length === 0, errors }
+  const calculatedDays = calculateLeaveDays(start, end, startHalfDay, endHalfDay, publicHolidayDates)
+
+  if (calculatedDays <= 0) {
+    errors.push('Selected date range contains no working days')
+  }
+
+  return { valid: errors.length === 0, errors, calculatedDays }
 }
 
 export function validateBalance(
@@ -69,7 +121,7 @@ export function validateBalance(
 
   if (requestedDays > availableBalance) {
     errors.push(
-      `Insufficient balance. You have ${availableBalance} days available but requested ${requestedDays} days`
+      `Insufficient balance. You have ${availableBalance} days remaining.`
     )
   }
 

@@ -59,6 +59,10 @@ enum NotificationType {
   PROJECT_ASSIGNED
   PROJECT_REMOVED
   SYSTEM
+  HOLIDAY_CREATED
+  ANNOUNCEMENT_POSTED
+  ROLE_CHANGED
+  ACCOUNT_DEACTIVATED
 }
 
 enum AuditAction {
@@ -77,6 +81,23 @@ enum AuditAction {
   PROJECT_MEMBER_REMOVE
   RULES_UPDATE
   ACCRUAL_RUN
+  ROLE_CHANGE
+  HOLIDAY_CREATE
+  ANNOUNCEMENT_POST
+  ANNOUNCEMENT_DELETE
+  ADMIN_OVERRIDE
+  ACCOUNT_DEACTIVATE
+}
+
+enum HolidayType {
+  PUBLIC
+  FLOATER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
 }
 
 // ─── MODELS ───────────────────────────────────────────────────────────────────
@@ -89,9 +110,11 @@ model Employee {
   firstName         String
   lastName          String
   jobTitle          String?
-  department        String?
+
   phoneNumber       String?
   profilePictureUrl String?
+  designation       String?
+  emergencyContact  String?
   role              Role             @default(EMPLOYEE)
   employmentStatus  EmploymentStatus @default(ACTIVE)
   managerId         String?
@@ -111,21 +134,27 @@ model Employee {
   auditLogsPerformed    AuditLog[]        @relation("AuditPerformer")
   auditLogsTargeted     AuditLog[]        @relation("AuditTarget")
   leaveBalance          LeaveBalance?
+  announcements         Announcement[]
+  managedProjects       Project[]         @relation("ProjectManager")
 
   @@map("employees")
 }
 
 model Project {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   name        String
-  code        String   @unique
+  code        String        @unique
   description String?
-  color       String   @default("#6366f1")
-  isActive    Boolean  @default(true)
+  color       String        @default("#6366f1")
+  isActive    Boolean       @default(true)
   startDate   DateTime?
   endDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  deadline    DateTime?
+  managerId   String?
+  manager     Employee?     @relation("ProjectManager", fields: [managerId], references: [id])
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   members EmployeeProject[]
 
@@ -147,44 +176,46 @@ model EmployeeProject {
 }
 
 model LeaveRequest {
-  id              String      @id @default(cuid())
-  employeeId      String
-  employee        Employee    @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id])
-  startDate       DateTime
-  endDate         DateTime
-  startHalfDay    HalfDayType @default(NONE)
-  endHalfDay      HalfDayType @default(NONE)
-  totalDays       Float
-  reason          String
-  status          LeaveStatus @default(PENDING)
-  approverId      String?
-  approver        Employee?   @relation("ApproverLeaveRequests", fields: [approverId], references: [id])
-  approvedAt      DateTime?
-  rejectedAt      DateTime?
-  rejectionReason String?
-  revokedAt       DateTime?
-  revokedBy       String?
+  id               String      @id @default(cuid())
+  employeeId       String
+  employee         Employee    @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id])
+  title            String      @default("")
+  startDate        DateTime
+  endDate          DateTime
+  startHalfDay     HalfDayType @default(NONE)
+  endHalfDay       HalfDayType @default(NONE)
+  totalDays        Float
+  reason           String
+  isEmergency      Boolean     @default(false)
+  status           LeaveStatus @default(PENDING)
+  approverId       String?
+  approver         Employee?   @relation("ApproverLeaveRequests", fields: [approverId], references: [id])
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  rejectionReason  String?
+  revokedAt        DateTime?
+  revokedBy        String?
   revocationReason String?
-  cancelledAt     DateTime?
-  emailsSent      Json?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  cancelledAt      DateTime?
+  emailsSent       Json?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   @@map("leave_requests")
 }
 
 model LeaveBalance {
-  id                  String   @id @default(cuid())
-  employeeId          String   @unique
-  employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  year                Int
-  standardTotal       Float    @default(18)
-  standardAccrued     Float    @default(0)
-  standardUsed        Float    @default(0)
-  standardCarryForward Float   @default(0)
-  emergencyTotal      Float    @default(2)
-  emergencyUsed       Float    @default(0)
-  updatedAt           DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  employeeId           String   @unique
+  employee             Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  year                 Int
+  standardTotal        Float    @default(18)
+  standardAccrued      Float    @default(0)
+  standardUsed         Float    @default(0)
+  standardCarryForward Float    @default(0)
+  emergencyTotal       Float    @default(2)
+  emergencyUsed        Float    @default(0)
+  updatedAt            DateTime @updatedAt
 
   @@map("leave_balances")
 }
@@ -206,18 +237,18 @@ model LeaveLedgerEntry {
 }
 
 model AccrualRule {
-  id                    String   @id @default(cuid())
-  name                  String   @default("Default Accrual Rule")
-  standardLeavesPerYear Float    @default(18)
-  emergencyLeavesPerYear Float   @default(2)
-  accrualMethod         String   @default("MONTHLY")
-  daysPerMonth          Float    @default(1.5)
-  carryForwardEnabled   Boolean  @default(true)
-  carryForwardMaxDays   Float    @default(10)
-  isActive              Boolean  @default(true)
-  effectiveFrom         DateTime @default(now())
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  name                   String   @default("Default Accrual Rule")
+  standardLeavesPerYear  Float    @default(18)
+  emergencyLeavesPerYear Float    @default(2)
+  accrualMethod          String   @default("YEARLY_FLAT")
+  daysPerMonth           Float    @default(1.5)
+  carryForwardEnabled    Boolean  @default(true)
+  carryForwardMaxDays    Float    @default(10)
+  isActive               Boolean  @default(true)
+  effectiveFrom          DateTime @default(now())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   @@map("accrual_rules")
 }
@@ -263,4 +294,30 @@ model SystemSettings {
   updatedAt   DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+model PublicHoliday {
+  id        String      @id @default(cuid())
+  name      String
+  date      DateTime
+  type      HolidayType @default(PUBLIC)
+  notes     String?
+  createdBy String
+  createdAt DateTime    @default(now())
+
+  @@map("public_holidays")
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  content   String
+  postedBy  String
+  poster    Employee  @relation(fields: [postedBy], references: [id])
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  deletedBy String?
+
+  @@map("announcements")
 }

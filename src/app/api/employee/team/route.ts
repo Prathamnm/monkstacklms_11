@@ -66,7 +66,6 @@ export async function GET(req: NextRequest) {
         firstName: emp.firstName,
         lastName: emp.lastName,
         jobTitle: emp.jobTitle,
-        department: emp.department,
         profilePictureUrl: emp.profilePictureUrl,
         role: emp.role,
         employmentStatus: emp.employmentStatus,

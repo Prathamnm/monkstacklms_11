@@ -25,7 +25,7 @@ export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-slate-900 text-sm font-semibold truncate">{employee.displayName}</p>
-          <p className="text-slate-500 text-xs truncate">{employee.jobTitle ?? employee.department}</p>
+          <p className="text-slate-500 text-xs truncate">{employee.jobTitle}</p>
           {employee.role && (
             <span className="inline-flex mt-1 items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600">
               {employee.role}

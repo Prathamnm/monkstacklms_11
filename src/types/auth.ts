@@ -8,10 +8,14 @@ export interface CurrentUser {
   firstName: string
   lastName: string
   jobTitle?: string | null
-  department?: string | null
+
+  phoneNumber?: string | null
   profilePictureUrl?: string | null
+  emergencyContact?: string | null
+  designation?: string | null
   role: Role
   employmentStatus: string
+  joinDate?: string | Date | null
   managerId?: string | null
 }
 

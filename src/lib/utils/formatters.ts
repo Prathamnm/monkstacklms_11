@@ -32,3 +32,19 @@ export function pluralize(count: number, singular: string, plural?: string): str
   if (count === 1) return `${count} ${singular}`
   return `${count} ${plural ?? singular + 's'}`
 }
+
+/** 
+ * Robust first name extraction that filters out generic placeholders (hr1, manager1, etc.)
+ */
+export function getCleanFirstName(firstName?: string, displayName?: string): string {
+  const fName = firstName || ''
+  const dName = displayName || ''
+  
+  if (!fName || fName.toLowerCase().startsWith('hr') || fName.toLowerCase().startsWith('manager') || fName.toLowerCase().startsWith('employee') || fName.toLowerCase().startsWith('admin')) {
+    // If first name is a placeholder, extract from full display name
+    return dName.trim().split(/\s+/)[0] || 'User'
+  }
+  
+  return fName
+}
+

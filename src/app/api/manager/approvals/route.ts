@@ -15,9 +15,11 @@ export async function GET(req: NextRequest) {
 
     const teamIds = teamMembers.map((m) => m.id)
 
+    const useAllEmployees = token.role === 'ADMIN' || teamIds.length === 0
+
     const approvals = await prisma.leaveRequest.findMany({
       where: {
-        employeeId: { in: token.role === 'ADMIN' ? undefined : teamIds },
+        ...(useAllEmployees ? {} : { employeeId: { in: teamIds } }),
         status: 'PENDING',
       },
       include: {
@@ -26,7 +28,8 @@ export async function GET(req: NextRequest) {
             id: true,
             displayName: true,
             email: true,
-            department: true,
+
+            designation: true,
             jobTitle: true,
             profilePictureUrl: true,
           },

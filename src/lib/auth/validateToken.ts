@@ -145,11 +145,29 @@ function payloadToSyncClaims(payload: JWTPayload): SyncIdTokenClaims {
   if (!entraObjectId || !email) {
     throw new Error('UNAUTHORIZED')
   }
+  
   const displayName = (payload.name as string) ?? email.split('@')[0]
-  const firstName = (payload.given_name as string) ?? email.split('@')[0]
-  const lastName = (payload.family_name as string) ?? ''
+  
+  // Robust first/last name extraction
+  let firstName = payload.given_name as string | undefined
+  let lastName = payload.family_name as string | undefined
+  
+  if (!firstName || firstName.toLowerCase().startsWith('hr') || firstName.toLowerCase().startsWith('manager')) {
+    // If first name is missing or looks like a placeholder, extract from displayName
+    const parts = displayName.trim().split(/\s+/)
+    firstName = parts[0] ? parts[0] : email.split('@')[0]
+    lastName = parts.slice(1).join(' ') || ''
+  }
+
   const jobTitle = payload.job_title as string | undefined
-  return { entraObjectId, email, displayName, firstName, lastName, jobTitle }
+  return { 
+    entraObjectId, 
+    email, 
+    displayName, 
+    firstName: firstName || 'User', 
+    lastName: lastName || '', 
+    jobTitle 
+  }
 }
 
 /** Used by /api/auth/sync — accepts verified ID or Graph delegated token. */

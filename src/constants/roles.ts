@@ -15,10 +15,10 @@ export const ROLE_LABELS: Record<Role, string> = {
 }
 
 export const ROLE_COLORS: Record<Role, string> = {
-  EMPLOYEE: 'bg-slate-100 text-slate-700',
-  MANAGER: 'bg-blue-100 text-blue-700',
-  HR: 'bg-purple-100 text-purple-700',
-  ADMIN: 'bg-red-100 text-red-700',
+  EMPLOYEE: 'bg-slate-100 text-slate-700 border border-slate-300',
+  MANAGER:  'bg-blue-100 text-blue-800 border border-blue-300',
+  HR:       'bg-purple-100 text-purple-800 border border-purple-300',
+  ADMIN:    'bg-red-100 text-red-800 border border-red-300',
 }
 
 // Entra ID group names to role mapping

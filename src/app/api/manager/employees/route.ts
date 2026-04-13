@@ -9,17 +9,20 @@ export async function GET(req: NextRequest) {
     requireRole(token, ['MANAGER', 'ADMIN'])
 
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayEnd = new Date()
+    todayEnd.setHours(23, 59, 59, 999)
 
     const employees = await prisma.employee.findMany({
       where: {
-        managerId: token.role === 'ADMIN' ? undefined : token.userId,
+        id: { not: token.userId },
         employmentStatus: 'ACTIVE',
       },
       include: {
         leaveRequests: {
           where: {
             status: 'APPROVED',
-            startDate: { lte: today },
+            startDate: { lte: todayEnd },
             endDate: { gte: today },
           },
         },
@@ -50,7 +53,7 @@ export async function GET(req: NextRequest) {
         firstName: emp.firstName,
         lastName: emp.lastName,
         jobTitle: emp.jobTitle,
-        department: emp.department,
+        designation: emp.designation,
         profilePictureUrl: emp.profilePictureUrl,
         role: emp.role,
         employmentStatus: emp.employmentStatus,

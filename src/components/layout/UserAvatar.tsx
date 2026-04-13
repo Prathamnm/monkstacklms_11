@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { LogOut, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useMsal } from '@azure/msal-react'
-import { getInitials } from '@/lib/utils/formatters'
+import { getInitials, getCleanFirstName } from '@/lib/utils/formatters'
 import { ROLE_LABELS, ROLE_COLORS } from '@/constants/roles'
 import type { CurrentUser } from '@/types/auth'
 
@@ -55,7 +55,7 @@ export function UserAvatar({ user }: UserAvatarProps) {
           )}
         </div>
         <span className="text-sm font-medium text-slate-700 hidden sm:block max-w-[120px] truncate">
-          {user.firstName}
+          {getCleanFirstName(user.firstName, user.displayName)}
         </span>
       </button>
 
@@ -69,7 +69,7 @@ export function UserAvatar({ user }: UserAvatarProps) {
             className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50"
           >
             <div className="px-4 py-3 border-b border-slate-100">
-              <p className="text-slate-900 text-sm font-semibold truncate">{user.displayName}</p>
+              <p className="text-slate-900 text-sm font-semibold truncate">{getCleanFirstName(user.firstName, user.displayName)}</p>
               <p className="text-slate-500 text-xs truncate">{user.email}</p>
               <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded font-medium ${ROLE_COLORS[user.role]}`}>
                 {ROLE_LABELS[user.role]}

@@ -73,15 +73,18 @@ export async function getUserGroupMemberships(userAccessToken: string): Promise<
   return groups
 }
 
-/** App-only: read group display names for role mapping. Requires User.Read.All (application) + admin consent. */
-export async function getUserGroupDisplayNamesByObjectId(entraObjectId: string): Promise<string[]> {
+/** App-only: read group IDs and display names for role mapping. Requires User.Read.All (application) + admin consent. */
+export async function getUserGroupsByObjectId(entraObjectId: string): Promise<Array<{ id: string; displayName: string }>> {
   const appToken = await getAppAccessToken()
   const client = createGraphClient(appToken)
   const response = await client
     .api(
       `/users/${encodeURIComponent(entraObjectId)}/transitiveMemberOf/microsoft.graph.group`
     )
-    .select('displayName')
+    .select('id,displayName')
     .get()
-  return (response.value ?? []).map((g: { displayName?: string }) => g.displayName).filter(Boolean)
+  return (response.value ?? []).map((g: { id: string; displayName: string }) => ({
+    id: g.id,
+    displayName: g.displayName
+  }))
 }
