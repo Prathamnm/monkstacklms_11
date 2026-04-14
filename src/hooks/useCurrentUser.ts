@@ -24,11 +24,19 @@ export function useCurrentUser() {
 
       const res = await fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
       })
-      if (!res.ok) throw new Error('Failed to fetch current user')
+      if (!res.ok) {
+        throw new Error(`Failed to fetch current user (${res.status})`)
+      }
       return res.json()
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    // Keep auth/user data fresh to avoid stale role/session behavior.
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
     retry: 1,
   })
 }

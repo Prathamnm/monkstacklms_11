@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useMsal } from '@azure/msal-react'
 import { getInitials, getCleanFirstName } from '@/lib/utils/formatters'
 import { ROLE_LABELS, ROLE_COLORS } from '@/constants/roles'
+import { clearClientAuthState } from '@/lib/auth/clientSession'
 import type { CurrentUser } from '@/types/auth'
 
 interface UserAvatarProps {
@@ -32,6 +33,7 @@ export function UserAvatar({ user }: UserAvatarProps) {
 
   async function handleSignOut() {
     setIsOpen(false)
+    clearClientAuthState()
     await instance.logoutRedirect()
   }
 

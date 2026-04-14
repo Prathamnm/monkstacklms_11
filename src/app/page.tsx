@@ -6,10 +6,11 @@ import { useMsal } from '@azure/msal-react'
 import { InteractionStatus } from '@azure/msal-browser'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { getDashboardPath } from '@/lib/utils/roleUtils'
+import { clearClientAuthState } from '@/lib/auth/clientSession'
 
 export default function RootPage() {
   const router = useRouter()
-  const { inProgress } = useMsal()
+  const { inProgress, instance } = useMsal()
   const { data, isLoading, isError } = useCurrentUser()
 
   useEffect(() => {
@@ -25,7 +26,9 @@ export default function RootPage() {
       // it might mean the bypass email isn't in the DB.
       // But mainly we need to avoid the infinite loop if we are not technically "authenticated"
       if (isError) {
-        router.replace('/auth/callback')
+        clearClientAuthState()
+        instance.logoutRedirect().catch(() => undefined)
+        router.replace('/login')
         return
       }
       // If not authenticated by MSAL, go to login
@@ -38,7 +41,7 @@ export default function RootPage() {
       router.replace(path)
       return
     }
-  }, [inProgress, isLoading, data, isError, router])
+  }, [inProgress, isLoading, data, isError, router, instance])
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">

@@ -98,6 +98,7 @@ export default function HREmployeeDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hrEmployee', id] })
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] })
       setActiveTab('Work Details')
     }
   })

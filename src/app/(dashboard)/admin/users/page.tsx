@@ -62,6 +62,7 @@ export default function AdminUsersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] })
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] })
       setRoleChangeTarget(null); setNewRole(''); setActionError(null)
     },
     onError: (err: Error) => setActionError(err.message),

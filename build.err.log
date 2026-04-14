@@ -1,0 +1,17 @@
+
+> Build error occurred
+Error: spawn EPERM
+    at ChildProcess.spawn (node:internal/child_process:420:11)
+    at spawn (node:child_process:753:9)
+    at fork (node:child_process:171:10)
+    at ChildProcessWorker.initialize (C:\Users\Pratham\OneDrive\Desktop\monkstack\Moonshine-LMS-\node_modules\next\dist\compiled\jest-worker\index.js:1:10853)
+    at new ChildProcessWorker (C:\Users\Pratham\OneDrive\Desktop\monkstack\Moonshine-LMS-\node_modules\next\dist\compiled\jest-worker\index.js:1:10741)
+    at WorkerPool.createWorker (C:\Users\Pratham\OneDrive\Desktop\monkstack\Moonshine-LMS-\node_modules\next\dist\compiled\jest-worker\index.js:1:6314)
+    at new BaseWorkerPool (C:\Users\Pratham\OneDrive\Desktop\monkstack\Moonshine-LMS-\node_modules\next\dist\compiled\jest-worker\index.js:1:8173)
+    at new WorkerPool (C:\Users\Pratham\OneDrive\Desktop\monkstack\Moonshine-LMS-\node_modules\next\dist\compiled\jest-worker\index.js:1:6110)
+    at new Worker (C:\Users\Pratham\OneDrive\Desktop\monkstack\Moonshine-LMS-\node_modules\next\dist\compiled\jest-worker\index.js:1:23092)
+    at createWorker (C:\Users\Pratham\OneDrive\Desktop\monkstack\Moonshine-LMS-\node_modules\next\dist\lib\worker.js:34:28) {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'spawn'
+}

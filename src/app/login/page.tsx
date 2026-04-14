@@ -6,6 +6,7 @@ import { useMsal, useIsAuthenticated } from '@azure/msal-react'
 import { motion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
 import { loginRequest } from '@/lib/auth/msalConfig'
+import { clearClientAuthState } from '@/lib/auth/clientSession'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -21,6 +22,8 @@ export default function LoginPage() {
 
   async function handleLogin() {
     try {
+      // Force a fresh auth flow instead of trusting stale browser/session state.
+      clearClientAuthState()
       await instance.loginRedirect(loginRequest)
     } catch (err) {
       console.error('[Login] Error:', err)

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useMsal } from '@azure/msal-react'
 import { InteractionStatus } from '@azure/msal-browser'
 import { getDashboardPath } from '@/lib/utils/roleUtils'
+import { clearClientAuthState } from '@/lib/auth/clientSession'
 import toast from 'react-hot-toast'
 
 export default function AuthCallbackPage() {
@@ -48,6 +49,17 @@ export default function AuthCallbackPage() {
           throw new Error('No ID token in auth response')
         }
 
+        const tokenClaims = (response.idTokenClaims as Record<string, unknown> | undefined) ?? {}
+        const tokenTenantId = (typeof tokenClaims.tid === 'string' ? tokenClaims.tid : '').trim()
+        const tokenIdp = (typeof tokenClaims.idp === 'string' ? tokenClaims.idp : '').toLowerCase()
+        const allowedTenantId = (process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID ?? '').trim()
+        const isMicrosoftAccount =
+          tokenTenantId === '9188040d-6c67-4c5b-b112-36a304b66dad' || tokenIdp.includes('live.com')
+
+        if (!tokenTenantId || !allowedTenantId || tokenTenantId !== allowedTenantId || isMicrosoftAccount) {
+          throw new Error('Unauthorized tenant or account type')
+        }
+
         // Use oid claim from ID token as the authoritative Entra Object ID
         const entraObjectId =
           (response.idTokenClaims as Record<string, string> | undefined)?.oid ??
@@ -71,6 +83,7 @@ export default function AuthCallbackPage() {
             Authorization: `Bearer ${idTokenForVerification}`,
             'Content-Type': 'application/json',
           },
+          cache: 'no-store',
           body: JSON.stringify({
             entraObjectId,
             email,
@@ -95,6 +108,9 @@ export default function AuthCallbackPage() {
         router.replace(dashboardPath)
       } catch (err) {
         console.error('[AuthCallback] Error during auth callback:', err)
+        // Ensure no stale MSAL session remains after tenant/account rejection.
+        clearClientAuthState()
+        await instance.logoutRedirect().catch(() => undefined)
         toast.error('Authentication failed. Please try signing in again.')
         router.replace('/login')
       }

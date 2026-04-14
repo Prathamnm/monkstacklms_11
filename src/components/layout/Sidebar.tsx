@@ -23,6 +23,7 @@ import { useMsal } from '@azure/msal-react'
 import { cn } from '@/lib/utils/cn'
 import { getInitials } from '@/lib/utils/formatters'
 import { ROLE_LABELS, ROLE_COLORS } from '@/constants/roles'
+import { clearClientAuthState } from '@/lib/auth/clientSession'
 import type { CurrentUser } from '@/types/auth'
 
 interface NavItem {
@@ -93,6 +94,7 @@ export function Sidebar({ user, collapsed, pendingCount = 0 }: SidebarProps) {
   const navItems = getNavItems(user.role, pendingCount)
 
   async function handleSignOut() {
+    clearClientAuthState()
     await instance.logoutRedirect()
   }
 

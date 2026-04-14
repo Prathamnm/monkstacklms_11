@@ -3,6 +3,7 @@ import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
 import { logAudit } from '@/lib/audit/auditLogger'
 import { getAppAccessToken } from '@/lib/auth/graphClient'
+import type { Role } from '@prisma/client'
 
 export async function PATCH(
   req: NextRequest,
@@ -12,26 +13,38 @@ export async function PATCH(
     const token = await validateToken(req)
     requireRole(token, ['ADMIN'])
 
-    if (params.id === token.userId) {
-      return NextResponse.json({ error: 'Cannot change your own role' }, { status: 403 })
-    }
-
     const body = await req.json()
     const { role } = body
+    const nextRole = role as Role
 
-    if (!['EMPLOYEE', 'MANAGER', 'HR', 'ADMIN'].includes(role)) {
+    if (!['EMPLOYEE', 'MANAGER', 'HR', 'ADMIN'].includes(nextRole)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
 
-    const employee = await prisma.employee.findUnique({ where: { id: params.id } })
+    const rawIdentifier = decodeURIComponent((params.id ?? '').trim())
+    const employee = await prisma.employee.findFirst({
+      where: {
+        OR: [
+          { id: rawIdentifier },
+          { entraObjectId: rawIdentifier },
+          { email: { equals: rawIdentifier, mode: 'insensitive' } },
+        ],
+      },
+    })
+    console.log('[role-change] Lookup:', { rawIdentifier, foundEmployeeId: employee?.id ?? null })
+
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
+    if (employee.id === token.userId) {
+      return NextResponse.json({ error: 'Cannot change your own role' }, { status: 403 })
+    }
 
     const oldRole = employee.role
 
     await prisma.employee.update({
-      where: { id: params.id },
-      data: { role },
+      where: { id: employee.id },
+      data: { role: nextRole },
     })
+    console.log('[role-change] DB role updated:', { employeeId: employee.id, oldRole, nextRole })
 
     // Sync Entra groups (best-effort)
     try {
@@ -46,7 +59,7 @@ export async function PATCH(
         }
 
         const oldGroupId = roleGroupEnvMap[oldRole]
-        const newGroupId = roleGroupEnvMap[role]
+        const newGroupId = roleGroupEnvMap[nextRole]
 
         if (oldGroupId) {
           await fetch(`https://graph.microsoft.com/v1.0/groups/${oldGroupId}/members/${employee.entraObjectId}/$ref`, {
@@ -72,19 +85,19 @@ export async function PATCH(
       data: {
         type: 'ROLE_CHANGED',
         title: 'Your Role Has Been Updated',
-        message: `Your role has been changed from ${oldRole} to ${role}. Please log out and back in.`,
-        recipientId: params.id,
+        message: `Your role has been changed from ${oldRole} to ${nextRole}. Please log out and back in.`,
+        recipientId: employee.id,
         senderId: token.userId,
       },
     })
 
-    await logAudit('ROLE_CHANGE', token.userId, params.id, {
+    await logAudit('ROLE_CHANGE', token.userId, employee.id, {
       before: { role: oldRole },
-      after: { role },
+      after: { role: nextRole },
       params: {},
     }, req)
 
-    return NextResponse.json({ success: true, role })
+    return NextResponse.json({ success: true, role: nextRole })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown'
     if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

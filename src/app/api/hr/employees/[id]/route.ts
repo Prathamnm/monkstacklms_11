@@ -72,6 +72,7 @@ export async function PATCH(
 
     const body = await req.json()
     const { designation, phoneNumber, emergencyContact, managerId, role, employmentStatus } = body
+    const nextRole = role as Role
 
     const employeeId = params.id
     const prevEmployee = await prisma.employee.findUnique({ where: { id: employeeId } })
@@ -84,18 +85,18 @@ export async function PATCH(
         phoneNumber,
         emergencyContact,
         managerId: managerId || null,
-        role: role as Role,
+        role: nextRole,
         employmentStatus,
       },
     })
 
-    if (prevEmployee.role !== role) {
+    if (prevEmployee.role !== nextRole) {
       // Role changed
       await prisma.notification.create({
         data: {
           type: 'ROLE_CHANGED',
           title: 'Your Role Has Changed',
-          message: `Your permission role has been changed from ${prevEmployee.role} to ${role}.`,
+          message: `Your permission role has been changed from ${prevEmployee.role} to ${nextRole}.`,
           recipientId: employeeId,
           senderId: token.userId,
         },
@@ -103,7 +104,7 @@ export async function PATCH(
       
       await logAudit('ROLE_CHANGE', token.userId, employeeId, {
         before: { role: prevEmployee.role },
-        after: { role },
+        after: { role: nextRole },
         params: {},
       }, req)
 
@@ -111,7 +112,7 @@ export async function PATCH(
       const emailObj = roleChangedTemplate({
         employeeName: updatedEmployee.displayName,
         oldRole: prevEmployee.role,
-        newRole: role,
+        newRole: nextRole,
         effectiveDate: new Date().toLocaleDateString()
       })
       await sendMail({

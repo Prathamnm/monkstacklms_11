@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const PUBLIC_ROUTES = ['/login', '/auth/callback', '/unauthorized']
-const API_PUBLIC_ROUTES = ['/api/auth/sync', '/api/auth/me']
 
 // NOTE: Full role-based route enforcement for page routes is handled client-side
 // in (dashboard)/layout.tsx using MSAL auth state (tokens are not accessible
@@ -25,11 +24,6 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/icons') ||
     pathname.includes('.')
   ) {
-    return NextResponse.next()
-  }
-
-  // Allow public API routes (no auth required)
-  if (API_PUBLIC_ROUTES.some((r) => pathname.startsWith(r))) {
     return NextResponse.next()
   }
 

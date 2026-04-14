@@ -23,6 +23,15 @@ function resolveFallbackTenantId(): string | null {
   )
 }
 
+function resolveAllowedTenantId(): string {
+  const tenantId = resolveFallbackTenantId()
+  if (!tenantId) {
+    console.error('[auth] Missing allowed tenant ID (AZURE_AD_TENANT_ID or NEXT_PUBLIC_AZURE_AD_TENANT_ID).')
+    throw new Error('UNAUTHORIZED')
+  }
+  return tenantId
+}
+
 const jwksByTenant = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
 
 function jwksForTenant(tenantId: string) {
@@ -60,6 +69,54 @@ const GRAPH_ACCESS_TOKEN_AUDIENCES = [
   '00000003-0000-0000-c000-000000000000',
 ] as const
 
+const CONSUMER_TENANT_ID = '9188040d-6c67-4c5b-b112-36a304b66dad'
+
+function enforceTenantAndIdentityType(payload: JWTPayload, allowedTenantId: string): void {
+  const tokenTid = typeof payload.tid === 'string' ? payload.tid : ''
+  const idp = typeof payload.idp === 'string' ? payload.idp.toLowerCase() : ''
+  const iss = typeof payload.iss === 'string' ? payload.iss.toLowerCase() : ''
+
+  if (!tokenTid) {
+    console.error('[auth] decision=rejected reason=missing_tid', {
+      tokenTid,
+      expectedTenantId: allowedTenantId,
+      tokenIss: iss,
+    })
+    throw new Error('UNAUTHORIZED')
+  }
+
+  if (tokenTid !== allowedTenantId) {
+    console.error('[auth] decision=rejected reason=tenant_mismatch', {
+      tokenTid,
+      expectedTenantId: allowedTenantId,
+      tokenIss: iss,
+    })
+    throw new Error('UNAUTHORIZED')
+  }
+
+  const isMicrosoftAccount =
+    tokenTid === CONSUMER_TENANT_ID ||
+    idp.includes('live.com') ||
+    iss.includes('/consumers/')
+
+  if (isMicrosoftAccount) {
+    console.error('[auth] decision=rejected reason=microsoft_account', {
+      tokenTid,
+      expectedTenantId: allowedTenantId,
+      idp,
+      iss,
+    })
+    throw new Error('UNAUTHORIZED')
+  }
+
+  console.log('[auth] decision=allowed reason=tenant_and_identity_verified', {
+    tokenTid,
+    expectedTenantId: allowedTenantId,
+    tokenIss: iss,
+    tokenIdp: idp || 'n/a',
+  })
+}
+
 /**
  * Verify Entra-issued JWT using signing keys for the token's tenant (`tid`).
  * Accepts ID tokens (aud = client id) and Graph access tokens (aud = Graph).
@@ -75,6 +132,7 @@ export async function verifyMicrosoftJwt(token: string): Promise<JWTPayload> {
 
   const iss = decoded.iss
   const tid = (decoded.tid as string) || resolveFallbackTenantId()
+  const allowedTenantId = resolveAllowedTenantId()
 
   if (!iss || typeof iss !== 'string' || !tid) {
     console.error('[auth] Missing issuer or tenant ID in token. iss:', iss, 'tid:', tid)
@@ -101,6 +159,8 @@ export async function verifyMicrosoftJwt(token: string): Promise<JWTPayload> {
       audience: [clientId, `api://${clientId}`, ...GRAPH_ACCESS_TOKEN_AUDIENCES],
       clockTolerance: 120,
     })
+
+    enforceTenantAndIdentityType(payload, allowedTenantId)
 
     return payload
   } catch (verifyErr) {
