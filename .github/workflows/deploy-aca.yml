@@ -11,22 +11,25 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
+      # ✅ FIXED: Use client secret login (NOT OIDC)
+      - name: Azure Login
+        uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
 
-      - name: Build and push image to ACR
+      # ✅ Build + Push + Deploy
+      - name: Build and deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}
@@ -37,11 +40,13 @@ jobs:
           resourceGroup: ${{ vars.ACA_RESOURCE_GROUP }}
           imageToBuild: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
+      # ✅ Configure secrets + env vars
       - name: Configure ACA secrets and env vars
         uses: azure/cli@v2
         with:
           inlineScript: |
             az extension add --name containerapp --upgrade
+
             az containerapp secret set \
               --name "${{ vars.ACA_APP_NAME }}" \
               --resource-group "${{ vars.ACA_RESOURCE_GROUP }}" \
