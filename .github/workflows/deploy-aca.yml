@@ -1,0 +1,72 @@
+name: Deploy Azure Container Apps
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: moonshine-lms
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push image to ACR
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          registryUrl: ${{ secrets.ACR_LOGIN_SERVER }}
+          registryUsername: ${{ secrets.ACR_USERNAME }}
+          registryPassword: ${{ secrets.ACR_PASSWORD }}
+          containerAppName: ${{ vars.ACA_APP_NAME }}
+          resourceGroup: ${{ vars.ACA_RESOURCE_GROUP }}
+          imageToBuild: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Configure ACA secrets and env vars
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az extension add --name containerapp --upgrade
+            az containerapp secret set \
+              --name "${{ vars.ACA_APP_NAME }}" \
+              --resource-group "${{ vars.ACA_RESOURCE_GROUP }}" \
+              --secrets \
+                database-url="${{ secrets.DATABASE_URL }}" \
+                nextauth-secret="${{ secrets.NEXTAUTH_SECRET }}" \
+                azure-ad-client-secret="${{ secrets.AZURE_AD_CLIENT_SECRET }}" \
+                acs-connection-string="${{ secrets.ACS_CONNECTION_STRING }}"
+
+            az containerapp update \
+              --name "${{ vars.ACA_APP_NAME }}" \
+              --resource-group "${{ vars.ACA_RESOURCE_GROUP }}" \
+              --set-env-vars \
+                NODE_ENV=production \
+                PORT=3000 \
+                NEXTAUTH_URL="${{ vars.NEXTAUTH_URL }}" \
+                NEXT_PUBLIC_AZURE_AD_CLIENT_ID="${{ vars.NEXT_PUBLIC_AZURE_AD_CLIENT_ID }}" \
+                NEXT_PUBLIC_AZURE_AD_TENANT_ID="${{ vars.NEXT_PUBLIC_AZURE_AD_TENANT_ID }}" \
+                NEXT_PUBLIC_AZURE_AD_REDIRECT_URI="${{ vars.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI }}" \
+                AZURE_AD_CLIENT_ID="${{ vars.AZURE_AD_CLIENT_ID }}" \
+                AZURE_AD_TENANT_ID="${{ vars.AZURE_AD_TENANT_ID }}" \
+                ACS_SENDER_ADDRESS="${{ vars.ACS_SENDER_ADDRESS }}" \
+                ACS_DRY_RUN=false \
+                APPLICATIONINSIGHTS_CONNECTION_STRING="${{ vars.APPLICATIONINSIGHTS_CONNECTION_STRING }}" \
+                DATABASE_URL=secretref:database-url \
+                NEXTAUTH_SECRET=secretref:nextauth-secret \
+                AZURE_AD_CLIENT_SECRET=secretref:azure-ad-client-secret \
+                ACS_CONNECTION_STRING=secretref:acs-connection-string

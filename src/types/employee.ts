@@ -5,18 +5,21 @@ export type AvailabilityStatus = 'AVAILABLE' | 'ON_LEAVE' | 'HALF_DAY_AM' | 'HAL
 export interface Employee {
   id: string
   entraObjectId: string
-  email: string
+  workEmail: string
+  notificationEmail?: string | null
   displayName: string
   firstName: string
   lastName: string
   jobTitle?: string | null
-  designation?: string | null
   phoneNumber?: string | null
+  emergencyName?: string | null
+  emergencyRelation?: string | null
+  emergencyPhone?: string | null
   profilePictureUrl?: string | null
   role: Role
   employmentStatus: EmploymentStatus
   managerId?: string | null
-  manager?: Pick<Employee, 'id' | 'displayName' | 'email'> | null
+  manager?: Pick<Employee, 'id' | 'displayName' | 'workEmail'> | null
   joinDate: string
   terminationDate?: string | null
   createdAt: string
@@ -27,7 +30,6 @@ export interface EmployeeWithAvailability extends Employee {
   availabilityStatus: AvailabilityStatus
   currentLeaveEnd?: string | null
   managerName?: string | null
-  projects?: { id: string; name: string; code: string; color: string }[]
 }
 
 export interface LeaveBalanceSummary {
@@ -36,9 +38,12 @@ export interface LeaveBalanceSummary {
   standardAccrued: number
   standardUsed: number
   standardCarryForward: number
+  floaterTotal: number
+  floaterUsed: number
   emergencyTotal: number
   emergencyUsed: number
   availableStandard: number
+  availableFloater: number
   availableEmergency: number
   pendingDays: number
   effectiveAvailable: number

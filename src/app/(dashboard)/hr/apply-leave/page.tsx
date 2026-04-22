@@ -96,7 +96,7 @@ export default function HRApplyLeavePage() {
   const disabledDays = [{ dayOfWeek: [0, 6] }]
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 lg:p-6 space-y-4">
       <PageHeader
         title="Apply for Leave"
         description="Select dates and submit your leave request"

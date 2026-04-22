@@ -83,10 +83,14 @@ export function LeaveBalanceCard() {
         </div>
       </div>
 
-      <div className="flex gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 pt-2 border-t border-slate-100">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-red-500" />
-          Emergency: {balance.emergencyTotal - balance.emergencyUsed}/{balance.emergencyTotal}
+          Emergency: {balance.availableEmergency}/{balance.emergencyTotal}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-green-500" />
+          Floater: {balance.availableFloater}/{balance.floaterTotal}
         </span>
         {balance.standardCarryForward > 0 && (
           <span className="flex items-center gap-1">

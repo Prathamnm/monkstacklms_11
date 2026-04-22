@@ -1,5 +1,5 @@
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'REVOKED'
-export type HalfDayType = 'NONE' | 'FIRST_HALF' | 'SECOND_HALF'
+export type HalfDayType = 'NONE' | 'HALF_DAY'
 
 export interface LeaveRequest {
   id: string

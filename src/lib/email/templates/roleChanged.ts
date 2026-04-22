@@ -1,20 +1,30 @@
+import { wrapEmailBody, detailRow, detailCard } from './shared'
+
 export function roleChangedTemplate(data: {
   employeeName: string
   oldRole: string
   newRole: string
   effectiveDate: string
-}): { subject: string; body: string } {
+}): { subject: string; htmlBody: string } {
+  const rows = [
+    detailRow('Previous Role', data.oldRole),
+    detailRow('New Role',      data.newRole),
+    detailRow('Effective',     data.effectiveDate),
+  ].join('\n')
+
+  const htmlBody = wrapEmailBody({
+    preheader:  'Your role in Monkstack HRM has been updated',
+    badgeText:  '🔄 Role Updated',
+    badgeColor: 'blue',
+    headline:   'Your access role has been updated',
+    bodyHtml:   `<p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
+                   Hi ${data.employeeName}, your role in the Monkstack HRM system has been changed. 
+                   Please log out and log back in for the new permissions to take effect.
+                 </p>${detailCard(rows)}`,
+  })
+
   return {
-    subject: 'Your Role Has Been Updated — Effective Immediately',
-    body: `
-<p>Dear ${data.employeeName},</p>
-<p>Your role in the Monkstack HR system has been updated:</p>
-<p><strong>Previous Role:</strong> ${data.oldRole}<br/>
-<strong>New Role:</strong> ${data.newRole}<br/>
-<strong>Effective Date:</strong> ${data.effectiveDate}</p>
-<p><strong>Action Required:</strong> Please log out of the HR portal and log back in for the changes to take effect. Your dashboard and permissions will update accordingly.</p>
-<p>If you believe this change was made in error, please contact the HR Team immediately.</p>
-<p>HR Team</p>
-    `.trim(),
+    subject: `[Monkstack HRM] Your role has been updated to ${data.newRole}`,
+    htmlBody,
   }
 }

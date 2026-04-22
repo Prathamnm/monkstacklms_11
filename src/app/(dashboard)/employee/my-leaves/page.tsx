@@ -82,7 +82,7 @@ export default function MyLeavesPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 lg:p-6 space-y-4">
       <PageHeader title="My Leaves" description="Your leave history and balance" />
 
       <div className="space-y-6">

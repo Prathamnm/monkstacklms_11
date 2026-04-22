@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
 import { logAudit } from '@/lib/audit/auditLogger'
-import { calculateProratedLeaves, calculateProratedEmergencyLeaves } from '@/lib/leave/prorateService'
+import { calculateProratedLeaves, calculateProratedFloaterLeaves, calculateProratedEmergencyLeaves } from '@/lib/leave/prorateService'
 
 /**
  * POST /api/admin/recalculate-leave-balance
@@ -47,16 +47,27 @@ export async function POST(req: NextRequest) {
 
       if (!currentBalance) continue
 
-      const proratedStandard = calculateProratedLeaves(employee.joinDate, 18, year)
+      const proratedStandard  = calculateProratedLeaves(employee.joinDate, 18, year)
+      const proratedFloater   = calculateProratedFloaterLeaves(employee.joinDate, 2, year)
       const proratedEmergency = calculateProratedEmergencyLeaves(employee.joinDate, 2, year)
 
       // Only update if different or if force is true
-      if (force || currentBalance.standardTotal !== proratedStandard) {
+      if (
+        force ||
+        currentBalance.standardTotal !== proratedStandard ||
+        currentBalance.standardCarryForward !== 0 ||
+        currentBalance.floaterTotal !== proratedFloater ||
+        currentBalance.emergencyTotal !== proratedEmergency
+      ) {
         await prisma.leaveBalance.update({
           where: { employeeId: employee.id },
           data: {
-            standardTotal: proratedStandard,
-            emergencyTotal: proratedEmergency,
+            year,
+            standardTotal:    proratedStandard,
+            standardAccrued:  proratedStandard,
+            floaterTotal:     proratedFloater,
+            emergencyTotal:   proratedEmergency,
+            // Do NOT reset standardUsed, floaterUsed, emergencyUsed, standardCarryForward
           },
         })
 
@@ -68,8 +79,16 @@ export async function POST(req: NextRequest) {
         })
 
         await logAudit('BALANCE_ADJUST', token.userId, employee.id, {
-          before: { standardTotal: currentBalance.standardTotal, emergencyTotal: currentBalance.emergencyTotal },
-          after: { standardTotal: proratedStandard, emergencyTotal: proratedEmergency },
+          before: { 
+            standardTotal: currentBalance.standardTotal, 
+            floaterTotal: currentBalance.floaterTotal,
+            emergencyTotal: currentBalance.emergencyTotal 
+          },
+          after: { 
+            standardTotal: proratedStandard, 
+            floaterTotal: proratedFloater,
+            emergencyTotal: proratedEmergency 
+          },
           params: { reason: 'Recalculated leaves based on joining date' },
         }, req)
       }

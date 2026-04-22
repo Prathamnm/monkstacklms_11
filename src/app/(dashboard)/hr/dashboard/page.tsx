@@ -144,16 +144,13 @@ export default function HRDashboardPage() {
     { label: 'Available Today', value: `${stats.availablePercent}%`, color: 'bg-teal-500' },
   ]
 
-
-
   return (
     <motion.div
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="p-6 lg:p-8 space-y-6"
+      className="p-4 lg:p-6 space-y-4"
     >
-      {/* Welcome Card */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -167,7 +164,7 @@ export default function HRDashboardPage() {
             </div>
             <div>
               <p className="text-lg font-semibold text-slate-900">Welcome back, {firstName} 👋</p>
-              <p className="text-sm text-slate-500">{user?.designation ?? user?.jobTitle ?? 'HR'}</p>
+              <p className="text-sm text-slate-500">{user?.jobTitle ?? 'HR'}</p>
               {user && (
                 <span className={cn('text-xs px-2 py-0.5 rounded font-medium mt-1 inline-block', ROLE_COLORS[user.role])}>
                   {ROLE_LABELS[user.role]}
@@ -179,12 +176,10 @@ export default function HRDashboardPage() {
         </div>
       </div>
 
-      {/* Stats */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {statItems.map((s) => <StatCard key={s.label} {...s} />)}
       </motion.div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
           className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
@@ -224,19 +219,15 @@ export default function HRDashboardPage() {
         </motion.div>
       </div>
 
-      {/* Quick actions */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
         <h2 className="text-slate-900 font-semibold text-base mb-4">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
           <button onClick={() => router.push('/hr/leaves')} className="btn-primary">Review Leave Approvals</button>
           <button onClick={() => router.push('/hr/employees')} className="btn-secondary">Team Monkstack</button>
-          <button onClick={() => router.push('/hr/lifecycle/onboard')} className="btn-secondary">Onboard Employee</button>
-          <button onClick={() => router.push('/hr/lifecycle/offboard')} className="btn-secondary">Offboard Employee</button>
           <button onClick={() => router.push('/hr/apply-leave')} className="btn-secondary">Apply Leave</button>
         </div>
       </div>
 
-      {/* Announcements */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-slate-900 font-semibold text-base">Announcements</h2>

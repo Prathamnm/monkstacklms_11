@@ -66,7 +66,7 @@ export default function HRLeaveDetailPage() {
   if (!leave) return null
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 lg:p-6 space-y-4">
       <button
         onClick={() => router.back()}
         className="flex items-center gap-2 text-slate-500 hover:text-slate-900 text-sm mb-6 transition-colors"

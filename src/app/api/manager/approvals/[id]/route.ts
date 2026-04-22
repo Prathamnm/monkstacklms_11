@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
 import { postUsage } from '@/lib/leave/ledgerService'
+import { formatDateRange } from '@/lib/utils/dateUtils'
+import { sendMail } from '@/lib/email/acsMailer'
+import { buildLeaveStatusUpdateEmail } from '@/lib/email/templates/leaveStatusUpdate'
+import { buildLeaveApprovedBroadcastEmail } from '@/lib/email/templates/leaveApprovedBroadcast'
+import { getNotificationEmail } from '@/lib/email/getNotificationEmail'
 import { notifyLeaveApproved, notifyLeaveRejected } from '@/lib/notifications/notificationService'
 import { logAudit } from '@/lib/audit/auditLogger'
-import { formatDateRange } from '@/lib/utils/dateUtils'
 
 export async function PATCH(
   req: NextRequest,
@@ -25,7 +29,7 @@ export async function PATCH(
     const leave = await prisma.leaveRequest.findUnique({
       where: { id },
       include: {
-        employee: { select: { id: true, displayName: true, managerId: true } },
+        employee: { select: { id: true, displayName: true, workEmail: true, notificationEmail: true, managerId: true } },
       },
     })
 
@@ -62,6 +66,69 @@ export async function PATCH(
       })
 
       await notifyLeaveApproved(leave.employeeId, token.userId, id, dates)
+
+      // 3. Send emails
+      const appBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+
+      // Fetch additional data for emails
+      const [approverProfile, broadcastRecipients] = await Promise.all([
+        prisma.employee.findUnique({
+          where: { id: token.userId },
+          select: { displayName: true },
+        }),
+        // Broadcast: all team members (managerId === approver) + all HR + Admin
+        prisma.employee.findMany({
+          where: {
+            employmentStatus: 'ACTIVE',
+            OR: [
+              { managerId: token.userId },
+              { role: { in: ['HR', 'ADMIN'] } }
+            ]
+          },
+          select: { workEmail: true, notificationEmail: true, role: true, displayName: true, jobTitle: true }
+        })
+      ])
+
+      const employeeRef = leave.employee
+      const employeeAddress = getNotificationEmail(employeeRef)
+
+      // A. Personal confirmation to employee
+      const { subject: empSub, htmlBody: empBody } = buildLeaveStatusUpdateEmail({
+        employeeName:    employeeRef.displayName,
+        startDate:       leave.startDate,
+        endDate:         leave.endDate,
+        totalDays:       leave.totalDays,
+        status:          'APPROVED',
+        reason:          leave.reason,
+        approverComment: reason || null,
+        appBaseUrl,
+        leaveId:         id,
+        recipientRole:   'EMPLOYEE',
+      })
+      await sendMail({ to: [employeeAddress], subject: empSub, htmlBody: empBody }).catch(console.error)
+
+      // B. Broadcast to team + HR + Admin
+      const fmtDate = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      const startStr = fmtDate(leave.startDate)
+      const endStr   = fmtDate(leave.endDate)
+
+      for (const recipient of broadcastRecipients) {
+        const recipientAddress = getNotificationEmail(recipient)
+        if (recipientAddress === employeeAddress) continue // skip self
+
+        const { subject, htmlBody } = buildLeaveApprovedBroadcastEmail({
+          employeeName: employeeRef.displayName,
+          jobTitle:     (employeeRef as any).jobTitle ?? null,
+          startDate:    startStr,
+          endDate:      endStr,
+          totalDays:    leave.totalDays,
+          approverName: approverProfile?.displayName ?? 'Manager',
+          appBaseUrl,
+          recipientRole: recipient.role as any,
+        })
+        await sendMail({ to: [recipientAddress], subject, htmlBody }).catch(console.error)
+      }
+
       await logAudit('LEAVE_APPROVE', token.userId, leave.employeeId, {
         before: { status: 'PENDING' },
         after: { status: 'APPROVED' },
@@ -84,6 +151,25 @@ export async function PATCH(
       })
 
       await notifyLeaveRejected(leave.employeeId, token.userId, id, dates)
+
+      // Send email
+      const employeeRef = leave.employee
+      const employeeAddress = getNotificationEmail(employeeRef)
+      const appBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+
+      const { subject: rejSubject, htmlBody: rejBody } = buildLeaveStatusUpdateEmail({
+        employeeName:    employeeRef.displayName,
+        startDate:       leave.startDate,
+        endDate:         leave.endDate,
+        totalDays:       leave.totalDays,
+        status:          'REJECTED',
+        reason:          leave.reason,
+        approverComment: reason,
+        appBaseUrl,
+        leaveId:         id,
+        recipientRole:   'EMPLOYEE',
+      })
+      await sendMail({ to: [employeeAddress], subject: rejSubject, htmlBody: rejBody }).catch(console.error)
       await logAudit('LEAVE_REJECT', token.userId, leave.employeeId, {
         before: { status: 'PENDING' },
         after: { status: 'REJECTED' },

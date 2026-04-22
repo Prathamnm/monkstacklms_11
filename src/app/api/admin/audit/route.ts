@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
+import { AuditAction } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,10 +14,10 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') ?? '50')
 
     const logs = await prisma.auditLog.findMany({
-      where: action ? { action: action as 'LEAVE_APPLY' | 'LEAVE_APPROVE' | 'LEAVE_REJECT' | 'LEAVE_CANCEL' | 'LEAVE_REVOKE' | 'BALANCE_ADJUST' | 'EMPLOYEE_ONBOARD' | 'EMPLOYEE_OFFBOARD' | 'EMPLOYEE_UPDATE' | 'PROJECT_CREATE' | 'PROJECT_UPDATE' | 'PROJECT_MEMBER_ADD' | 'PROJECT_MEMBER_REMOVE' | 'RULES_UPDATE' | 'ACCRUAL_RUN' } : {},
+      where: action ? { action: action as AuditAction } : {},
       include: {
-        performer: { select: { id: true, displayName: true, email: true } },
-        target: { select: { id: true, displayName: true, email: true } },
+        target: { select: { id: true, displayName: true, workEmail: true } },
+        performer: { select: { id: true, displayName: true, workEmail: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: pageSize,

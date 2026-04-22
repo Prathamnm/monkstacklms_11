@@ -4,6 +4,9 @@ import { prisma } from '@/lib/db/prisma'
 import { logAudit } from '@/lib/audit/auditLogger'
 import { getAppAccessToken } from '@/lib/auth/graphClient'
 import type { Role } from '@prisma/client'
+import { sendMail } from '@/lib/email/acsMailer'
+import { wrapEmailBody, detailRow, detailCard } from '@/lib/email/templates/shared'
+import { getNotificationEmail } from '@/lib/email/getNotificationEmail'
 
 export async function PATCH(
   req: NextRequest,
@@ -21,17 +24,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
 
-    const rawIdentifier = decodeURIComponent((params.id ?? '').trim())
+    const { id: rawIdentifier } = params
     const employee = await prisma.employee.findFirst({
       where: {
         OR: [
           { id: rawIdentifier },
           { entraObjectId: rawIdentifier },
-          { email: { equals: rawIdentifier, mode: 'insensitive' } },
+          { workEmail: { equals: rawIdentifier, mode: 'insensitive' } },
         ],
       },
     })
-    console.log('[role-change] Lookup:', { rawIdentifier, foundEmployeeId: employee?.id ?? null })
 
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
     if (employee.id === token.userId) {
@@ -39,16 +41,11 @@ export async function PATCH(
     }
 
     const oldRole = employee.role
+    if (oldRole === nextRole) return NextResponse.json({ success: true, role: nextRole })
 
-    await prisma.employee.update({
-      where: { id: employee.id },
-      data: { role: nextRole },
-    })
-    console.log('[role-change] DB role updated:', { employeeId: employee.id, oldRole, nextRole })
-
-    // Sync Entra groups (best-effort)
-    try {
-      if (employee.entraObjectId && !employee.entraObjectId.startsWith('pending-')) {
+    // Part 7.1: Sync Entra groups FIRST
+    if (employee.entraObjectId && !employee.entraObjectId.startsWith('pending-')) {
+      try {
         const accessToken = await getAppAccessToken()
 
         const roleGroupEnvMap: Record<string, string | undefined> = {
@@ -61,23 +58,37 @@ export async function PATCH(
         const oldGroupId = roleGroupEnvMap[oldRole]
         const newGroupId = roleGroupEnvMap[nextRole]
 
+        // 1. Remove from old group
         if (oldGroupId) {
-          await fetch(`https://graph.microsoft.com/v1.0/groups/${oldGroupId}/members/${employee.entraObjectId}/$ref`, {
+          const resDelete = await fetch(`https://graph.microsoft.com/v1.0/groups/${oldGroupId}/members/${employee.entraObjectId}/$ref`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${accessToken}` },
           })
+          if (!resDelete.ok && resDelete.status !== 404) {
+            const errBody = await resDelete.text()
+            throw new Error(`Failed to remove from old group: ${errBody}`)
+          }
         }
 
+        // 2. Add to new group
         if (newGroupId) {
-          await fetch(`https://graph.microsoft.com/v1.0/groups/${newGroupId}/members/$ref`, {
+          const resPost = await fetch(`https://graph.microsoft.com/v1.0/groups/${newGroupId}/members/$ref`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${employee.entraObjectId}` }),
           })
+          if (!resPost.ok && resPost.status !== 409) { // 409 means already a member
+            const errBody = await resPost.text()
+            throw new Error(`Failed to add to new group: ${errBody}`)
+          }
         }
+      } catch (graphErr: any) {
+        console.error('[role-change] Entra sync error (FATAL):', graphErr)
+        return NextResponse.json({ 
+          error: 'Failed to sync with Azure Entra ID. Security role was not updated in database. Please ensure groups are correctly configured in .env', 
+          details: graphErr.message 
+        }, { status: 500 })
       }
-    } catch (graphErr) {
-      console.error('[role-change] Entra sync error (non-fatal):', graphErr)
     }
 
     // Notify employee
@@ -85,7 +96,7 @@ export async function PATCH(
       data: {
         type: 'ROLE_CHANGED',
         title: 'Your Role Has Been Updated',
-        message: `Your role has been changed from ${oldRole} to ${nextRole}. Please log out and back in.`,
+        message: `Your role has been changed from ${oldRole} to ${nextRole}. Please log out and back in to see the changes.`,
         recipientId: employee.id,
         senderId: token.userId,
       },
@@ -97,11 +108,40 @@ export async function PATCH(
       params: {},
     }, req)
 
-    return NextResponse.json({ success: true, role: nextRole })
+    // Send Email
+    const appBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+    const rows = [
+      detailRow('Previous Role', oldRole),
+      detailRow('New Role',      nextRole),
+      detailRow('Effective',     'Immediately — please log out and log back in'),
+    ].join('\n')
+
+    const htmlBody = wrapEmailBody({
+      preheader:  'Your role in Monkstack HRM has been updated',
+      badgeText:  '🔄 Role Updated',
+      badgeColor: 'blue',
+      headline:   'Your access role has been updated',
+      bodyHtml:   `<p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px;">
+                     Your role in the Monkstack HRM system has been changed. 
+                     Please log out and log back in for the new permissions to take effect.
+                     If you believe this is an error, contact HR immediately.
+                   </p>${detailCard(rows)}`,
+      buttons: [{ label: 'Go to Login', url: `${appBaseUrl}/login` }],
+    })
+    const subject = `[Monkstack HRM] Your role has been updated to ${nextRole}`
+
+    await sendMail({ to: [getNotificationEmail(employee)], subject, htmlBody }).catch(console.error)
+
+    return NextResponse.json({
+      success: true,
+      message: `Role update submitted to Azure. ${employee.displayName} will see the change on their next login.`,
+      pendingRole: nextRole,
+    })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown'
     if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     if (message === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    console.error('[role-change] Error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

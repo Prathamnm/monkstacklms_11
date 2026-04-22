@@ -14,8 +14,8 @@ interface LeaveFormData {
   title: string
   startDate: string
   endDate: string
-  startHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF'
-  endHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF'
+  startHalfDay: 'NONE' | 'HALF_DAY'
+  endHalfDay: 'NONE' | 'HALF_DAY'
   reason: string
   isEmergency: boolean
 }
@@ -192,8 +192,8 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
         <HalfDaySelector
           startHalfDay={form.startHalfDay}
           endHalfDay={form.endHalfDay}
-          onStartHalfDayChange={(v) => setForm({ ...form, startHalfDay: v })}
-          onEndHalfDayChange={(v) => setForm({ ...form, endHalfDay: v })}
+          onStartHalfDayChange={(v) => setForm({ ...form, startHalfDay: v as 'NONE' | 'HALF_DAY' })}
+          onEndHalfDayChange={(v) => setForm({ ...form, endHalfDay: v as 'NONE' | 'HALF_DAY' })}
           isSingleDay={!form.endDate || form.startDate === form.endDate}
         />
       )}

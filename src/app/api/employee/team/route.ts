@@ -7,25 +7,23 @@ export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
 
-    // Find all projects this employee is on
-    const myProjectIds = await prisma.employeeProject.findMany({
-      where: { employeeId: token.userId, isActive: true },
-      select: { projectId: true },
+    // Find the current user to get their managerId
+    const currentUser = await prisma.employee.findUnique({
+      where: { id: token.userId },
+      select: { managerId: true }
     })
 
-    if (!myProjectIds.length) return NextResponse.json([])
+    if (!currentUser) return NextResponse.json([])
 
-    // Find all teammates (employees in the same projects, excluding self)
+    // Find all teammates (employees with the same manager, or subordinates if the user is a manager)
+    // For now, let's define teammates as people with the same managerId
     const teammates = await prisma.employee.findMany({
       where: {
-        id: { not: token.userId },
+        OR: [
+          { managerId: currentUser.managerId, id: { not: token.userId } },
+          { managerId: token.userId }
+        ],
         employmentStatus: 'ACTIVE',
-        projectMemberships: {
-          some: {
-            projectId: { in: myProjectIds.map((p) => p.projectId) },
-            isActive: true,
-          },
-        },
       },
       include: {
         leaveRequests: {
@@ -34,10 +32,6 @@ export async function GET(req: NextRequest) {
             startDate: { lte: new Date() },
             endDate: { gte: new Date() },
           },
-        },
-        projectMemberships: {
-          where: { isActive: true },
-          include: { project: { select: { id: true, name: true, code: true, color: true } } },
         },
       },
     })
@@ -61,7 +55,9 @@ export async function GET(req: NextRequest) {
       return {
         id: emp.id,
         entraObjectId: emp.entraObjectId,
-        email: emp.email,
+        email: emp.workEmail,
+        workEmail: emp.workEmail,
+        notificationEmail: emp.notificationEmail,
         displayName: emp.displayName,
         firstName: emp.firstName,
         lastName: emp.lastName,
@@ -75,7 +71,7 @@ export async function GET(req: NextRequest) {
         updatedAt: emp.updatedAt.toISOString(),
         availabilityStatus,
         currentLeaveEnd: currentLeave?.endDate.toISOString() ?? null,
-        projects: emp.projectMemberships.map((pm) => pm.project),
+        projects: [], // Projects model removed from system
       }
     })
 

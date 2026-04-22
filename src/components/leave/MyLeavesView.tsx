@@ -42,7 +42,7 @@ export function MyLeavesView({ role }: MyLeavesViewProps) {
     },
   })
 
-  const { data: contactEmails = [], isLoading: contactLoading } = useQuery<{ email: string; displayName: string }[]>({
+  const { data: contactEmails = [] } = useQuery<{ email: string; displayName: string }[]>({
     queryKey: ['contactEmails', role],
     queryFn: async () => {
       const token = await getAccessToken(instance)
@@ -57,10 +57,13 @@ export function MyLeavesView({ role }: MyLeavesViewProps) {
     mutationFn: async (leaveId: string) => {
       const token = await getAccessToken(instance)
       const res = await fetch(`/api/leave/cancel/${leaveId}`, {
-        method: 'DELETE',
+        method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error('Failed to cancel leave')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Failed to cancel leave')
+      }
       return res.json()
     },
     onSuccess: () => {

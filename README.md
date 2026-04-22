@@ -81,6 +81,30 @@ src/
 └── constants/             # App constants
 ```
 
-## Azure Deployment
+## Azure Container Apps Deployment
 
-See the Azure App Service deployment guide. Uses `output: 'standalone'` for Docker-based deployment.
+This project is container-ready for Azure Container Apps with:
+- Next.js standalone output
+- Prisma client generation in image build
+- startup support for `prisma migrate deploy`
+- health endpoints for probes:
+  - `/api/health/live`
+  - `/api/health/ready`
+
+### Recommended architecture
+- Azure Container Apps for app runtime
+- Azure Database for PostgreSQL Flexible Server for database
+- Azure Container Registry (ACR) for image storage
+
+### Deployment options
+- CI/CD: [`.github/workflows/deploy-aca.yml`](.github/workflows/deploy-aca.yml)
+- Manual CLI: [`scripts/deploy-aca.ps1`](scripts/deploy-aca.ps1)
+
+### Deployment docs
+- [`docs/deploy/azure-container-apps.md`](docs/deploy/azure-container-apps.md)
+- [`docs/deploy/azure-ops-checklist.md`](docs/deploy/azure-ops-checklist.md)
+
+### Production notes
+- Use `DATABASE_URL` from Azure PostgreSQL Flexible Server and include `sslmode=require`.
+- Configure secrets in Container Apps secret store, not in image.
+- Keep `NEXTAUTH_URL` and Entra redirect URI aligned with the deployed ACA FQDN.

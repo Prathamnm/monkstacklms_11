@@ -15,15 +15,15 @@ export const ROLE_LABELS: Record<Role, string> = {
 }
 
 export const ROLE_COLORS: Record<Role, string> = {
-  EMPLOYEE: 'bg-slate-100 text-slate-700 border border-slate-300',
-  MANAGER:  'bg-blue-100 text-blue-800 border border-blue-300',
-  HR:       'bg-purple-100 text-purple-800 border border-purple-300',
-  ADMIN:    'bg-red-100 text-red-800 border border-red-300',
+  EMPLOYEE: 'bg-slate-500 text-white',
+  MANAGER:  'bg-blue-600 text-white',
+  HR:       'bg-purple-600 text-white',
+  ADMIN:    'bg-red-600 text-white',
 }
 
 // Entra ID group names to role mapping
 export const ENTRA_GROUP_ROLE_MAP: Record<string, Role> = {
-  LMS_Admins: 'ADMIN',
+  LMS_Admins: 'HR',
   LMS_HR: 'HR',
   LMS_Managers: 'MANAGER',
   LMS_Employees: 'EMPLOYEE',

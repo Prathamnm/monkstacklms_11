@@ -122,7 +122,7 @@ export default function EmployeeCalendarPage() {
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="p-6 lg:p-8 space-y-6"
+      className="p-4 lg:p-6 space-y-4"
     >
       <PageHeader title="My Calendar" description="View your leave schedule and public holidays." />
 

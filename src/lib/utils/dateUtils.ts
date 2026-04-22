@@ -15,13 +15,13 @@ export function computeTotalDays(
 ): number {
   let businessDays = countBusinessDays(startDate, endDate)
 
-  if (startHalfDay !== 'NONE') businessDays -= 0.5
+  if (startHalfDay === 'HALF_DAY') businessDays -= 0.5
 
-  if (endHalfDay !== 'NONE' && !isEqual(startDate, endDate)) {
+  if (endHalfDay === 'HALF_DAY' && !isEqual(startDate, endDate)) {
     businessDays -= 0.5
   }
 
-  return Math.max(0, businessDays)
+  return Math.max(0.5, businessDays)
 }
 
 export function formatDateRange(startDate: string, endDate: string): string {
@@ -78,10 +78,8 @@ export function getAvailabilityForDate(
     ? parseISO(approvedLeave.endDate)
     : approvedLeave.endDate
 
-  if (isEqual(date, start) && approvedLeave.startHalfDay === 'FIRST_HALF') return 'HALF_DAY_AM'
-  if (isEqual(date, start) && approvedLeave.startHalfDay === 'SECOND_HALF') return 'HALF_DAY_PM'
-  if (isEqual(date, end) && approvedLeave.endHalfDay === 'FIRST_HALF') return 'HALF_DAY_AM'
-  if (isEqual(date, end) && approvedLeave.endHalfDay === 'SECOND_HALF') return 'HALF_DAY_PM'
+  if (isEqual(date, start) && approvedLeave.startHalfDay === 'HALF_DAY') return 'HALF_DAY_AM'
+  if (isEqual(date, end) && approvedLeave.endHalfDay === 'HALF_DAY') return 'HALF_DAY_PM'
 
   return 'ON_LEAVE'
 }

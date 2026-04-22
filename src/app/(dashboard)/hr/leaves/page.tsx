@@ -40,7 +40,7 @@ export default function HRLeavesPage() {
   )
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 lg:p-6 space-y-4">
       <PageHeader
         title="All Leaves"
         description="View and manage all leave requests across the organization"
@@ -119,7 +119,20 @@ export default function HRLeavesPage() {
                     {format(parseISO(leave.createdAt), 'MMM d, yyyy')}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <span className="text-blue-600 text-xs font-medium">View →</span>
+                    <div className="flex items-center justify-end gap-3">
+                      {leave.status === 'APPROVED' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/hr/leaves/${leave.id}`)
+                          }}
+                          className="text-red-600 hover:text-red-700 text-xs font-medium"
+                        >
+                          Revoke
+                        </button>
+                      )}
+                      <span className="text-blue-600 text-xs font-medium">View →</span>
+                    </div>
                   </td>
                 </tr>
               ))}

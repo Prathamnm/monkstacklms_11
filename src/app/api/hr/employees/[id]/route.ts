@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
 import { Role } from '@prisma/client'
-import { getAppAccessToken, createGraphClient } from '@/lib/auth/graphClient'
-import { logAudit } from '@/lib/audit/auditLogger'
-import { sendMail } from '@/lib/email/graphMailer'
-import { roleChangedTemplate } from '@/lib/email/templates/roleChanged'
-
 import { getAvailabilityForDate } from '@/lib/utils/dateUtils'
+import { logAudit } from '@/lib/audit/auditLogger'
 
 export async function GET(
   req: NextRequest,
@@ -17,7 +13,7 @@ export async function GET(
     const token = await validateToken(req)
     requireRole(token, ['HR', 'ADMIN'])
 
-    const { id } = await Promise.resolve(params)
+    const { id } = params
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -71,8 +67,15 @@ export async function PATCH(
     requireRole(token, ['HR', 'ADMIN'])
 
     const body = await req.json()
-    const { designation, phoneNumber, emergencyContact, managerId, role, employmentStatus } = body
-    const nextRole = role as Role
+    const {
+      emergencyName,
+      emergencyRelation,
+      emergencyPhone,
+      employmentStatus,
+      notificationEmail,
+    } = body
+    // Azure-synced fields (jobTitle, managerId, phoneNumber, firstName, lastName, displayName) 
+    // are NOT accepted here.
 
     const employeeId = params.id
     const prevEmployee = await prisma.employee.findUnique({ where: { id: employeeId } })
@@ -81,77 +84,26 @@ export async function PATCH(
     const updatedEmployee = await prisma.employee.update({
       where: { id: employeeId },
       data: {
-        designation,
-        phoneNumber,
-        emergencyContact,
-        managerId: managerId || null,
-        role: nextRole,
-        employmentStatus,
+        emergencyName:     emergencyName     ?? undefined,
+        emergencyRelation: emergencyRelation ?? undefined,
+        emergencyPhone:    emergencyPhone    ?? undefined,
+        employmentStatus:  employmentStatus  ?? undefined,
+        notificationEmail: notificationEmail !== undefined ? notificationEmail : undefined,
       },
     })
 
-    if (prevEmployee.role !== nextRole) {
-      // Role changed
-      await prisma.notification.create({
-        data: {
-          type: 'ROLE_CHANGED',
-          title: 'Your Role Has Changed',
-          message: `Your permission role has been changed from ${prevEmployee.role} to ${nextRole}.`,
-          recipientId: employeeId,
-          senderId: token.userId,
-        },
-      })
-      
-      await logAudit('ROLE_CHANGE', token.userId, employeeId, {
-        before: { role: prevEmployee.role },
-        after: { role: nextRole },
-        params: {},
-      }, req)
-
-      // Send email
-      const emailObj = roleChangedTemplate({
-        employeeName: updatedEmployee.displayName,
-        oldRole: prevEmployee.role,
-        newRole: nextRole,
-        effectiveDate: new Date().toLocaleDateString()
-      })
-      await sendMail({
-        to: [updatedEmployee.email],
-        subject: emailObj.subject,
-        htmlBody: emailObj.body
-      }).catch(console.error)
-
-      // Sync Entra Groups
-      try {
-        if (updatedEmployee.entraObjectId && !updatedEmployee.entraObjectId.startsWith('pending-')) {
-          const appToken = await getAppAccessToken()
-          const client = createGraphClient(appToken)
-          // Look up Entra groups
-          const groups = await client.api('/groups').filter("startsWith(displayName,'LMS_')").get()
-          const lmsGroups = groups.value || []
-          
-          const oldGroupName = `LMS_${prevEmployee.role}`
-          const newGroupName = `LMS_${role}`
-          const oldGroup = lmsGroups.find((g: any) => g.displayName === oldGroupName)
-          const newGroup = lmsGroups.find((g: any) => g.displayName === newGroupName)
-
-          if (oldGroup) {
-            await client.api(`/groups/${oldGroup.id}/members/${updatedEmployee.entraObjectId}/$ref`).delete()
-          }
-          if (newGroup) {
-            await client.api(`/groups/${newGroup.id}/members/$ref`).post({
-              '@odata.id': `https://graph.microsoft.com/v1.0/directoryObjects/${updatedEmployee.entraObjectId}`
-            })
-          }
-        }
-      } catch (err) {
-        console.error('Error syncing Entra roles:', err)
-      }
-    } else {
-      await logAudit('EMPLOYEE_UPDATE', token.userId, employeeId, {
-        before: {}, after: { designation, phoneNumber }, params: {}
-      }, req)
-    }
+    await logAudit('EMPLOYEE_UPDATE', token.userId, employeeId, {
+      before: {
+        emergencyName:     prevEmployee.emergencyName,
+        emergencyRelation: prevEmployee.emergencyRelation,
+        emergencyPhone:    prevEmployee.emergencyPhone,
+        employmentStatus:  prevEmployee.employmentStatus,
+      },
+      after: {
+        emergencyName, emergencyRelation, emergencyPhone, employmentStatus, notificationEmail,
+      },
+      params: { reason: 'HR update of non-synced fields' }
+    }, req)
 
     return NextResponse.json(updatedEmployee)
   } catch (err: unknown) {

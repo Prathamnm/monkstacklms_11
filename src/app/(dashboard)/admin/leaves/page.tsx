@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
@@ -9,16 +8,12 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { formatDateRange, timeAgo } from '@/lib/utils/dateUtils'
 import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
 import { motion, AnimatePresence } from 'framer-motion'
-import { differenceInHours } from 'date-fns'
+import { useState } from 'react'
 import type { LeaveRequest } from '@/types/leave'
-
-const TABS = ['Escalated Cases', 'All Leaves'] as const
-type Tab = typeof TABS[number]
 
 export default function AdminLeavesPage() {
   const { instance } = useMsal()
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<Tab>('Escalated Cases')
   const [overrideTarget, setOverrideTarget] = useState<{ id: string; action: 'approve' | 'reject'; name: string } | null>(null)
   const [overrideReason, setOverrideReason] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -33,20 +28,11 @@ export default function AdminLeavesPage() {
     },
   })
 
-  // Escalated: status PENDING and created > 72 hours ago
-  const escalated = leaves.filter(l => {
-    if (l.status !== 'PENDING') return false
-    const hours = differenceInHours(new Date(), new Date(l.createdAt))
-    return hours > 72
-  })
-
-  const displayLeaves = activeTab === 'Escalated Cases' ? escalated : leaves
-
   const overrideMutation = useMutation({
     mutationFn: async () => {
       if (!overrideTarget) throw new Error('No target')
       if (!overrideReason.trim()) throw new Error('Reason is mandatory for admin overrides')
-      
+
       const token = await getAccessToken(instance)
       const res = await fetch(`/api/admin/leaves/${overrideTarget.id}/override`, {
         method: 'PATCH',
@@ -66,59 +52,42 @@ export default function AdminLeavesPage() {
   })
 
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-6 lg:p-8 space-y-6">
-      <PageHeader title="Leave Approvals" description="Admin override capabilities for escalated or stuck leave requests." />
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-4 lg:p-6 space-y-4">
+      <PageHeader title="Leave Approvals" description="Admin override capabilities for all leave requests." />
 
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="flex border-b border-slate-200 px-4">
-          {TABS.map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-all ${
-                activeTab === tab ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}>
-              {tab}
-              {tab === 'Escalated Cases' && escalated.length > 0 && (
-                <span className="ml-1.5 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">{escalated.length}</span>
-              )}
-            </button>
-          ))}
-        </div>
-
         {isLoading ? (
           <p className="p-6 text-sm text-slate-500">Loading leaves...</p>
-        ) : displayLeaves.length === 0 ? (
-          <EmptyState icon="📋" title={`No ${activeTab.toLowerCase()}`} description={activeTab === 'Escalated Cases' ? 'All pending requests are within SLAs.' : 'No leaves found.'} />
+        ) : leaves.length === 0 ? (
+          <EmptyState icon="📋" title="No leave requests" description="No leaves found." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs text-slate-400 uppercase tracking-wider">
-                  <th className="px-5 py-4 font-medium">Employee</th>
-                  <th className="px-5 py-4 font-medium">Period</th>
-                  <th className="px-5 py-4 font-medium">Status</th>
-                  <th className="px-5 py-4 font-medium">Submitted</th>
-                  <th className="px-5 py-4 font-medium">Actions</th>
+                  <th className="px-5 py-3 font-medium">Employee</th>
+                  <th className="px-5 py-3 font-medium">Period</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Submitted</th>
+                  <th className="px-5 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {displayLeaves.map(leave => (
+                {leaves.map(leave => (
                   <tr key={leave.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3">
                       <p className="font-medium text-slate-900">{leave.employee?.displayName ?? 'Unknown'}</p>
                       <p className="text-xs text-slate-500 truncate max-w-[200px]">{leave.reason}</p>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3">
                       <p className="font-medium text-slate-900">{formatDateRange(leave.startDate, leave.endDate)}</p>
                       <p className="text-xs text-slate-500">{leave.totalDays} day(s)</p>
                     </td>
-                    <td className="px-5 py-4"><LeaveStatusBadge status={leave.status} /></td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3"><LeaveStatusBadge status={leave.status} /></td>
+                    <td className="px-5 py-3">
                       <p className="text-slate-900 font-medium">{timeAgo(leave.createdAt)}</p>
-                      <p className="text-xs text-slate-500">
-                         {differenceInHours(new Date(), new Date(leave.createdAt))} hrs ago
-                      </p>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3">
                       {leave.status === 'PENDING' && (
                         <div className="flex items-center gap-2">
                           <button onClick={() => setOverrideTarget({ id: leave.id, action: 'approve', name: leave.employee?.displayName ?? '' })}
@@ -149,10 +118,10 @@ export default function AdminLeavesPage() {
                 Force {overrideTarget.action === 'approve' ? 'Approve' : 'Reject'}
               </h3>
               <p className="text-sm text-slate-500 mb-4">
-                You are about to administratively override the leave request for {overrideTarget.name}. 
+                You are about to administratively override the leave request for {overrideTarget.name}.
                 <span className="font-semibold text-red-600 block mt-1">This action requires a mandatory justification.</span>
               </p>
-              
+
               <textarea
                 value={overrideReason}
                 onChange={e => setOverrideReason(e.target.value)}
@@ -164,7 +133,7 @@ export default function AdminLeavesPage() {
               {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
 
               <div className="flex gap-3 justify-end">
-                <button onClick={() => { setOverrideTarget(null); setOverrideReason(''); setError(null) }} 
+                <button onClick={() => { setOverrideTarget(null); setOverrideReason(''); setError(null) }}
                   className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                   Cancel
                 </button>
@@ -182,7 +151,6 @@ export default function AdminLeavesPage() {
           </div>
         )}
       </AnimatePresence>
-
     </motion.div>
   )
 }

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
 import { logAudit } from '@/lib/audit/auditLogger'
+import { sendMail } from '@/lib/email/acsMailer'
+import { buildLeaveStatusUpdateEmail } from '@/lib/email/templates/leaveStatusUpdate'
+import { getNotificationEmail } from '@/lib/email/getNotificationEmail'
 
 export async function PATCH(
   req: NextRequest,
@@ -25,7 +28,7 @@ export async function PATCH(
     const leave = await prisma.leaveRequest.findUnique({
       where: { id: params.id },
       include: {
-        employee: { select: { id: true, displayName: true, email: true, managerId: true } },
+        employee: { select: { id: true, displayName: true, workEmail: true, notificationEmail: true, managerId: true } },
       },
     })
 
@@ -45,28 +48,34 @@ export async function PATCH(
       },
     })
 
-    // Create ledger entry if approving
+    // Create ledger entry if approving and not already existing
     if (action === 'approve') {
-      await prisma.leaveLedgerEntry.create({
-        data: {
-          employeeId: leave.employeeId,
-          type: 'USAGE',
-          days: leave.totalDays,
-          reason: `Admin override approval: ${reason}`,
-          referenceId: leave.id,
-          performedBy: token.userId,
-          year: now.getFullYear(),
-        },
+      const existingEntry = await prisma.leaveLedgerEntry.findFirst({
+        where: { referenceId: leave.id, type: 'USAGE' }
       })
 
-      await prisma.leaveBalance.update({
-        where: { employeeId: leave.employeeId },
-        data: {
-          ...(leave.isEmergency
-            ? { emergencyUsed: { increment: leave.totalDays } }
-            : { standardUsed: { increment: leave.totalDays } }),
-        },
-      })
+      if (!existingEntry) {
+        await prisma.leaveLedgerEntry.create({
+          data: {
+            employeeId: leave.employeeId,
+            type: 'USAGE',
+            days: leave.totalDays,
+            reason: `Admin override approval: ${reason}`,
+            referenceId: leave.id,
+            performedBy: token.userId,
+            year: now.getFullYear(),
+          },
+        })
+
+        await prisma.leaveBalance.update({
+          where: { employeeId: leave.employeeId },
+          data: {
+            ...(leave.isEmergency
+              ? { emergencyUsed: { increment: leave.totalDays } }
+              : { standardUsed: { increment: leave.totalDays } }),
+          },
+        })
+      }
     }
 
     // Notify employee
@@ -93,6 +102,46 @@ export async function PATCH(
           referenceId: leave.id,
         },
       })
+    }
+
+    const appBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+    const employeeAddress = getNotificationEmail(leave.employee)
+
+    const { subject: empSubject, htmlBody: empBody } = buildLeaveStatusUpdateEmail({
+      employeeName:    leave.employee.displayName,
+      startDate:       leave.startDate,
+      endDate:         leave.endDate,
+      totalDays:       leave.totalDays,
+      status:          newStatus as 'APPROVED' | 'REJECTED',
+      reason:          leave.reason,
+      approverComment: `[Admin Override] ${reason}`,
+      appBaseUrl,
+      leaveId:         leave.id,
+      recipientRole:   'EMPLOYEE',
+    })
+    await sendMail({ to: [employeeAddress], subject: empSubject, htmlBody: empBody }).catch(console.error)
+
+    if (leave.employee.managerId) {
+      const manager = await prisma.employee.findUnique({
+        where: { id: leave.employee.managerId },
+        select: { workEmail: true, notificationEmail: true },
+      })
+      if (manager) {
+        const managerAddress = getNotificationEmail(manager)
+        const { subject: mgrSubject, htmlBody: mgrBody } = buildLeaveStatusUpdateEmail({
+          employeeName:    leave.employee.displayName,
+          startDate:       leave.startDate,
+          endDate:         leave.endDate,
+          totalDays:       leave.totalDays,
+          status:          newStatus as 'APPROVED' | 'REJECTED',
+          reason:          leave.reason,
+          approverComment: `[Admin Override] ${reason}`,
+          appBaseUrl,
+          leaveId:         leave.id,
+          recipientRole:   'MANAGER',
+        })
+        await sendMail({ to: [managerAddress], subject: mgrSubject, htmlBody: mgrBody }).catch(console.error)
+      }
     }
 
     await logAudit('ADMIN_OVERRIDE', token.userId, leave.employeeId, {

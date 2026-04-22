@@ -26,6 +26,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Holiday date must be today or in the future' }, { status: 400 })
     }
 
+    const year = holidayDate.getFullYear()
+    const yearStart = new Date(year, 0, 1)
+    const yearEnd = new Date(year, 11, 31, 23, 59, 59)
+
+    const existingHolidays = await prisma.publicHoliday.findMany({
+      where: {
+        date: { gte: yearStart, lte: yearEnd }
+      }
+    })
+
+    if (existingHolidays.length >= 18) {
+      return NextResponse.json({ error: `Maximum limit of 18 holidays reached for ${year}` }, { status: 422 })
+    }
+
+    if (type === 'FLOATER') {
+      const floaterCount = existingHolidays.filter(h => h.type === 'FLOATER').length
+      if (floaterCount >= 2) {
+        return NextResponse.json({ error: `Maximum limit of 2 floater holidays reached for ${year}` }, { status: 422 })
+      }
+    }
+
     const holiday = await prisma.publicHoliday.create({
       data: {
         name,

@@ -1,42 +1,18 @@
 import { ROUTES } from '@/constants/routes'
-import type { Role } from '@/types/auth'
+import { Role } from '@prisma/client'
 
 export function canApproveLeave(role: Role): boolean {
-  return role === 'MANAGER' || role === 'ADMIN'
+  return role === 'MANAGER'
 }
 
 export function canRevokeLeave(role: Role): boolean {
-  return role === 'HR' || role === 'ADMIN'
-}
-
-export function canManageEmployees(role: Role): boolean {
-  return role === 'HR' || role === 'ADMIN'
-}
-
-export function canManageProjects(role: Role): boolean {
-  return role === 'MANAGER' || role === 'ADMIN'
-}
-
-export function canViewAuditLog(role: Role): boolean {
-  return role === 'ADMIN'
-}
-
-export function canExportReports(role: Role): boolean {
-  return role === 'HR' || role === 'ADMIN'
-}
-
-export function canConfigureRules(role: Role): boolean {
-  return role === 'HR' || role === 'ADMIN'
-}
-
-export function canManageSystemSettings(role: Role): boolean {
-  return role === 'ADMIN'
+  return role === 'HR'
 }
 
 export function getDashboardPath(role: Role): string {
   switch (role) {
     case 'ADMIN':
-      return ROUTES.ADMIN.DASHBOARD
+      return ROUTES.HR.DASHBOARD
     case 'HR':
       return ROUTES.HR.DASHBOARD
     case 'MANAGER':
@@ -45,4 +21,26 @@ export function getDashboardPath(role: Role): string {
     default:
       return ROUTES.EMPLOYEE.DASHBOARD
   }
+}
+
+// Support the old name as well if needed, but the layout uses getDashboardPath
+export const getDashboardRoute = getDashboardPath
+
+export function canAccessProjectRoute(role: Role, pathname: string): boolean {
+  // Projects feature has been removed, so we allow access to paths 
+  // that were previously project-locked, or just return true 
+  // if they are on their allowed role prefix.
+  return true 
+}
+
+export function canAccessAdminRoute(role: Role): boolean {
+  return false
+}
+
+export function canAccessHRRoute(role: Role): boolean {
+  return role === 'HR'
+}
+
+export function canAccessManagerRoute(role: Role): boolean {
+  return role === 'MANAGER'
 }

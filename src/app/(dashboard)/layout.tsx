@@ -7,7 +7,7 @@ import { InteractionStatus } from '@azure/msal-browser'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { PageSkeleton } from '@/components/shared/LoadingSkeleton'
-import { getDashboardPath } from '@/lib/utils/roleUtils'
+import { canAccessProjectRoute, getDashboardPath } from '@/lib/utils/roleUtils'
 
 export default function DashboardGroupLayout({
   children,
@@ -40,13 +40,15 @@ export default function DashboardGroupLayout({
       EMPLOYEE: ['/employee', '/profile'],
       MANAGER: ['/manager', '/profile'],
       HR: ['/hr', '/profile'],
-      ADMIN: ['/admin', '/hr', '/manager', '/employee', '/profile'], // Admin can access all
+      ADMIN: ['/hr', '/profile'],
     }
 
     const allowedPrefixes = rolePrefixMap[role] ?? []
     const isOnAllowedPath = allowedPrefixes.some((prefix) => pathname.startsWith(prefix))
 
-    if (!isOnAllowedPath) {
+    const canAccessPath = isOnAllowedPath && canAccessProjectRoute(role, pathname)
+
+    if (!canAccessPath) {
       router.replace(correctDashboard)
     }
   }, [inProgress, isLoading, data, isError, router, pathname])

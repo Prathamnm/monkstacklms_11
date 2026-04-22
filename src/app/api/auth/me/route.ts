@@ -12,20 +12,23 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         entraObjectId: true,
-        email: true,
+        workEmail: true,
         displayName: true,
         firstName: true,
         lastName: true,
         jobTitle: true,
-        designation: true,
-
         phoneNumber: true,
-        emergencyContact: true,
+        emergencyName: true,
+        emergencyRelation: true,
+        emergencyPhone: true,
         profilePictureUrl: true,
         role: true,
         employmentStatus: true,
         managerId: true,
         joinDate: true,
+        manager: {
+          select: { id: true, displayName: true },
+        },
       },
     })
 
@@ -38,13 +41,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       user: {
         ...employee,
+        notificationEmail: null,
+        email: employee.workEmail, // Backward compatibility for UI
         joinDate: employee.joinDate.toISOString(),
       },
       balance,
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    if (message === 'UNAUTHORIZED' || message === 'USER_NOT_SYNCED') {
+    if (
+      message === 'UNAUTHORIZED' ||
+      message === 'USER_NOT_SYNCED' ||
+      message === 'USER_REMOVED_FROM_TENANT'
+    ) {
       return NextResponse.json(
         { error: 'Unauthorized', code: message },
         { status: 401 }

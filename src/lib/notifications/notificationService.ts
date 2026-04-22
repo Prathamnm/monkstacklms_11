@@ -7,11 +7,11 @@ type NotificationType =
   | 'LEAVE_CANCELLED'
   | 'LEAVE_REVOKED'
   | 'BALANCE_ADJUSTED'
-  | 'EMPLOYEE_ONBOARDED'
-  | 'EMPLOYEE_OFFBOARDED'
-  | 'PROJECT_ASSIGNED'
-  | 'PROJECT_REMOVED'
   | 'SYSTEM'
+  | 'HOLIDAY_CREATED'
+  | 'ANNOUNCEMENT_POSTED'
+  | 'ROLE_CHANGED'
+  | 'ACCOUNT_DEACTIVATED'
 
 interface CreateNotificationParams {
   type: NotificationType

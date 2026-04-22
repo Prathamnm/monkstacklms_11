@@ -3,7 +3,7 @@ FROM node:20-alpine AS base
 # Install dependencies only when needed
 # libc6-compat is needed for Prisma/OpenSSL in alpine
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -29,22 +29,24 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV PORT 3000
+ENV HOSTNAME 0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Set correct permissions
-COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+COPY --chown=nextjs:nodejs ./scripts/container-start.sh ./container-start.sh
+RUN chmod +x ./container-start.sh
 
 USER nextjs
 
 EXPOSE 3000
-ENV PORT 3000
 
 # server.js is created by next build from the standalone output
-CMD HOSTNAME="0.0.0.0" node server.js
+CMD ["./container-start.sh"]

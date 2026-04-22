@@ -11,7 +11,6 @@ import type { SystemSetting } from '@/types/api'
 
 const DEFAULT_SETTINGS = {
   company_name: 'Moonshine',
-  timezone: 'UTC',
   min_advance_days: '1',
   working_days: 'MON,TUE,WED,THU,FRI',
   sender_email: 'no-reply@moonshine.onmicrosoft.com',
@@ -62,7 +61,7 @@ export default function AdminSettingsPage() {
   const update = (key: string, value: string) => setSettings((prev) => ({ ...prev, [key]: value }))
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 lg:p-6">
       <PageHeader title="System Settings" description="Configure global system preferences" />
 
       <div className="max-w-xl bg-white rounded-xl border border-slate-200 p-6 space-y-5">
@@ -74,15 +73,7 @@ export default function AdminSettingsPage() {
             className="input w-full"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Default Timezone</label>
-          <input
-            value={settings.timezone}
-            onChange={(e) => update('timezone', e.target.value)}
-            className="input w-full"
-            placeholder="e.g. UTC, America/New_York"
-          />
-        </div>
+
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Minimum Advance Notice (days)</label>
           <input

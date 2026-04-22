@@ -9,11 +9,16 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const statusFilter = searchParams.get('status')
+    const statuses = statusFilter
+      ? statusFilter.split(',').map((s) => s.trim()).filter(Boolean) as Array<'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'REVOKED'>
+      : null
     const employeeId = searchParams.get('employeeId')
 
     const leaves = await prisma.leaveRequest.findMany({
       where: {
-        ...(statusFilter ? { status: statusFilter as 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'REVOKED' } : {}),
+        ...(statuses && statuses.length > 0
+          ? { status: { in: statuses } }
+          : {}),
         ...(employeeId ? { employeeId } : {}),
       },
       include: {
@@ -21,14 +26,14 @@ export async function GET(req: NextRequest) {
           select: {
             id: true,
             displayName: true,
-            email: true,
+            workEmail: true,
 
             jobTitle: true,
             profilePictureUrl: true,
           },
         },
         approver: {
-          select: { id: true, displayName: true, email: true },
+          select: { id: true, displayName: true, workEmail: true },
         },
       },
       orderBy: { createdAt: 'desc' },

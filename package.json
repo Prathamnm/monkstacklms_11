@@ -16,6 +16,7 @@
     "db:cleanup-test": "ts-node --project tsconfig.json scripts/cleanup-test-users.ts"
   },
   "dependencies": {
+    "@azure/communication-email": "^1.1.0",
     "@azure/msal-browser": "^3.27.0",
     "@azure/msal-react": "^2.1.1",
     "@microsoft/microsoft-graph-client": "^3.0.7",

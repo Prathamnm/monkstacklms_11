@@ -4,7 +4,6 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMsal, useIsAuthenticated } from '@azure/msal-react'
 import { motion } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
 import { loginRequest } from '@/lib/auth/msalConfig'
 import { clearClientAuthState } from '@/lib/auth/clientSession'
 import toast from 'react-hot-toast'
@@ -70,21 +69,12 @@ export default function LoginPage() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-xl px-8 py-12 text-center"
       >
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="mx-auto mb-12 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 text-white/70 transition-colors hover:border-white/20 hover:text-white"
-          aria-label="Go back"
-        >
-          <ArrowLeft className="h-6 w-6" strokeWidth={2} />
-        </button>
-
         <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl">
           Welcome to Monkstack
         </h1>
         <p className="mt-6 text-base leading-relaxed text-slate-400 sm:text-lg">
           Sign in with your Microsoft work account to open{' '}
-          <span className="text-sky-400/90 font-medium">Monkstack HRM</span>
+          <span className="text-sky-400/90 font-medium">Monkstack LMS</span>
         </p>
 
         <div className="mt-12">

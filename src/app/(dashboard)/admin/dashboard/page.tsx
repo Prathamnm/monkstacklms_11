@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
-import { Settings, Users, ScrollText, Play, BarChart2, CheckSquare } from 'lucide-react'
+import { Users, ScrollText, Play } from 'lucide-react'
 import { format } from 'date-fns'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
@@ -113,53 +113,40 @@ export default function AdminDashboardPage() {
   const user = userData?.user
   const firstName = getCleanFirstName(user?.firstName, user?.displayName)
 
-  const quickActions = [
-    { label: 'Users', icon: <Users size={20} />, color: 'bg-blue-100 text-blue-600', href: '/admin/users' },
-    { label: 'Approvals', icon: <CheckSquare size={20} />, color: 'bg-emerald-100 text-emerald-600', href: '/admin/approvals' },
-    { label: 'Audit', icon: <ScrollText size={20} />, color: 'bg-amber-100 text-amber-600', href: '/admin/audit' },
-    { label: 'Settings', icon: <Settings size={20} />, color: 'bg-slate-100 text-slate-600', href: '/admin/settings' },
-    { label: 'Reports', icon: <BarChart2 size={20} />, color: 'bg-purple-100 text-purple-600', href: '/admin/reports' },
-  ]
-
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }} className="p-6 lg:p-8 space-y-6">
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }} className="p-4 lg:p-6 space-y-4">
 
-      {/* Welcome Card */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+      {/* Welcome Card — Task 2a */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 text-xl font-bold overflow-hidden flex-shrink-0">
             {user?.profilePictureUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.profilePictureUrl} alt={user.displayName} className="w-full h-full object-cover" />
             ) : (
-              getInitials(user?.displayName ?? 'HR')
+              getInitials(user?.displayName ?? 'Admin')
             )}
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-lg font-semibold text-slate-900">Welcome back, {firstName} 👋</p>
-            <p className="text-sm text-slate-500">Full system access and configuration</p>
+            <p className="text-sm text-slate-500">{user?.jobTitle ?? 'System Administrator'}</p>
             {user && (
-              <span
-                className={cn(
-                  'text-xs px-2 py-0.5 rounded font-medium mt-1 inline-block',
-                  ROLE_COLORS[user.role as Role]
-                )}
-              >
+              <span className={cn('text-xs px-2 py-0.5 rounded font-medium mt-1 inline-block', ROLE_COLORS[user.role as Role])}>
                 {ROLE_LABELS[user.role as Role]}
               </span>
             )}
           </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-sm text-slate-400">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
+          </div>
         </div>
-        <p className="text-sm text-slate-400 mt-3">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
       </div>
 
-      {/* System Overview stats */}
-      <motion.div variants={containerVariants} initial="initial" animate="animate" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* System Overview stats — Task 2b: only 2 cards */}
+      <motion.div variants={containerVariants} initial="initial" animate="animate" className="grid grid-cols-2 gap-4">
         {[
           { label: 'Active Employees', value: systemStats?.activeEmployees ?? '—' },
           { label: 'Pending Approvals', value: systemStats?.pendingApprovals ?? '—' },
-          { label: 'System Status', value: '✅' },
-          { label: 'Environment', value: process.env.NODE_ENV ?? 'production' },
         ].map((s) => (
           <motion.div key={s.label} variants={itemVariants} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
             <p className="text-3xl font-bold text-slate-900">{s.value}</p>
@@ -168,19 +155,10 @@ export default function AdminDashboardPage() {
         ))}
       </motion.div>
 
-      {/* Quick Actions */}
-      <motion.div variants={containerVariants} initial="initial" animate="animate" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {quickActions.map((action) => (
-          <motion.div key={action.label} variants={itemVariants} onClick={() => router.push(action.href)}
-            className="bg-white rounded-xl border border-slate-200 p-5 cursor-pointer hover:shadow-md transition-all">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${action.color}`}>{action.icon}</div>
-            <h3 className="text-slate-900 font-semibold text-sm">{action.label}</h3>
-          </motion.div>
-        ))}
-      </motion.div>
+      {/* Quick Actions removed — Task 2c */}
 
       {/* Recent Audit Log */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-slate-900 font-semibold text-sm">Recent Audit Events</h2>
           <button onClick={() => router.push('/admin/audit')} className="text-xs text-blue-600 hover:underline">View all</button>
@@ -210,7 +188,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Last Accrual Run */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
         <h2 className="text-slate-900 font-semibold text-sm mb-3">Leave Accrual</h2>
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-600">
@@ -226,7 +204,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Announcements (with delete) */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-slate-900 font-semibold text-sm">Announcements</h2>
           <button onClick={() => setAnnouncementForm({ ...announcementForm, open: !announcementForm.open })}

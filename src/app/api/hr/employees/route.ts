@@ -23,10 +23,6 @@ export async function GET(req: NextRequest) {
         leaveRequests: {
           where: { status: 'APPROVED', startDate: { lte: todayEnd }, endDate: { gte: today } },
         },
-        projectMemberships: {
-          where: { isActive: true },
-          include: { project: { select: { id: true, name: true, code: true, color: true } } },
-        },
       },
       orderBy: { firstName: 'asc' },
     })
@@ -46,13 +42,17 @@ export async function GET(req: NextRequest) {
       return {
         id: emp.id,
         entraObjectId: emp.entraObjectId,
-        email: emp.email,
+        email: emp.workEmail,
+        workEmail: emp.workEmail,
+        notificationEmail: emp.notificationEmail,
         displayName: emp.displayName,
         firstName: emp.firstName,
         lastName: emp.lastName,
         jobTitle: emp.jobTitle,
-        designation: emp.designation,
         phoneNumber: emp.phoneNumber,
+        emergencyName: (emp as any).emergencyName,
+        emergencyRelation: (emp as any).emergencyRelation,
+        emergencyPhone: (emp as any).emergencyPhone,
         profilePictureUrl: emp.profilePictureUrl,
         role: emp.role,
         employmentStatus: emp.employmentStatus,
@@ -63,7 +63,6 @@ export async function GET(req: NextRequest) {
         createdAt: emp.createdAt.toISOString(),
         updatedAt: emp.updatedAt.toISOString(),
         availabilityStatus,
-        projects: emp.projectMemberships.map((pm) => pm.project),
       }
     })
 

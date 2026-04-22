@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
       where: { employeeId: token.userId },
       include: {
         approver: {
-          select: { id: true, displayName: true, email: true },
+          select: { id: true, displayName: true, workEmail: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       leaves.map((l) => ({
         ...l,
+        approver: l.approver ? { ...l.approver, email: (l.approver as any).workEmail } : null,
         startDate: l.startDate.toISOString(),
         endDate: l.endDate.toISOString(),
         approvedAt: l.approvedAt?.toISOString() ?? null,

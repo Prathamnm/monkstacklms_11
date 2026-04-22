@@ -30,6 +30,13 @@ export function middleware(request: NextRequest) {
   // For protected API routes: require Bearer token header (format check only;
   // full JWT validation happens inside each API route handler via validateToken())
   if (pathname.startsWith('/api/')) {
+    if (
+      pathname === '/api/admin/users/sync' &&
+      request.headers.get('x-sync-secret')
+    ) {
+      return NextResponse.next()
+    }
+
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(

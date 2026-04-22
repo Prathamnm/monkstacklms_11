@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { DayPicker, DateRange } from 'react-day-picker'
 import { useMsal } from '@azure/msal-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { format, isWeekend, parseISO, isEqual } from 'date-fns'
+import { format, isEqual } from 'date-fns'
 import { AlertTriangle, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
@@ -23,6 +23,7 @@ export default function ApplyLeavePage() {
   const [startHalfDay, setStartHalfDay] = useState<HalfDayType>('NONE')
   const [endHalfDay, setEndHalfDay] = useState<HalfDayType>('NONE')
   const [reason, setReason] = useState('')
+  const [isEmergency, setIsEmergency] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
 
   const isSingleDay = range?.from && range?.to
@@ -54,6 +55,7 @@ export default function ApplyLeavePage() {
           startHalfDay,
           endHalfDay: isSingleDay ? 'NONE' : endHalfDay,
           reason,
+          isEmergency,
         }),
       })
       if (!res.ok) {
@@ -68,6 +70,7 @@ export default function ApplyLeavePage() {
       setStartHalfDay('NONE')
       setEndHalfDay('NONE')
       setReason('')
+      setIsEmergency(false)
       setErrors([])
       queryClient.invalidateQueries({ queryKey: ['leaveBalance'] })
       queryClient.invalidateQueries({ queryKey: ['myLeaves'] })
@@ -93,7 +96,7 @@ export default function ApplyLeavePage() {
   const disabledDays = [{ dayOfWeek: [0, 6] }]
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 lg:p-6 space-y-4">
       <PageHeader
         title="Apply for Leave"
         description="Select dates and submit your leave request"
@@ -184,6 +187,21 @@ export default function ApplyLeavePage() {
                 className="input w-full resize-none"
               />
               <p className="text-slate-400 text-xs mt-1 text-right">{reason.length}/500</p>
+            </div>
+
+            {/* Emergency Toggle */}
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-lg p-3">
+              <input 
+                type="checkbox" 
+                id="isEmergency" 
+                checked={isEmergency} 
+                onChange={(e) => setIsEmergency(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+              />
+              <label htmlFor="isEmergency" className="text-sm font-medium text-amber-900 cursor-pointer flex items-center gap-1.5">
+                <AlertTriangle size={14} className="text-amber-600" />
+                This is an Emergency Leave
+              </label>
             </div>
 
             {/* Errors */}

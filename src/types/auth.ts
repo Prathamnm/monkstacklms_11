@@ -11,8 +11,9 @@ export interface CurrentUser {
 
   phoneNumber?: string | null
   profilePictureUrl?: string | null
-  emergencyContact?: string | null
-  designation?: string | null
+  emergencyName?: string | null
+  emergencyRelation?: string | null
+  emergencyPhone?: string | null
   role: Role
   employmentStatus: string
   joinDate?: string | Date | null

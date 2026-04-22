@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     const teamIds = teamMembers.map((m) => m.id)
 
-    const useAllEmployees = token.role === 'ADMIN' || teamIds.length === 0
+    const useAllEmployees = token.role === 'ADMIN'
 
     const approvals = await prisma.leaveRequest.findMany({
       where: {
@@ -27,9 +27,7 @@ export async function GET(req: NextRequest) {
           select: {
             id: true,
             displayName: true,
-            email: true,
-
-            designation: true,
+            workEmail: true,
             jobTitle: true,
             profilePictureUrl: true,
           },

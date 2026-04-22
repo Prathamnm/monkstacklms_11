@@ -88,3 +88,41 @@ export async function getUserGroupsByObjectId(entraObjectId: string): Promise<Ar
     displayName: g.displayName
   }))
 }
+
+/**
+ * Fetch extended profile fields for a user that are not available in the ID token.
+ * Requires User.Read.All (application permission) with admin consent.
+ * Returns null for any field not set in Azure.
+ */
+export async function getUserExtendedProfile(entraObjectId: string): Promise<{
+  mobilePhone:       string | null
+  employeeHireDate:  string | null  // ISO date string e.g. "2024-01-15T00:00:00Z"
+  jobTitle:          string | null
+  mail:              string | null
+  managerObjectId:   string | null  // entraObjectId of the manager
+}> {
+  const appToken = await getAppAccessToken()
+  const client = createGraphClient(appToken)
+
+  // Fetch user profile fields
+  const userRes = await client
+    .api(`/users/${encodeURIComponent(entraObjectId)}`)
+    .select('mobilePhone,employeeHireDate,jobTitle,mail')
+    .get()
+    .catch(() => null)
+
+  // Fetch manager (separate endpoint — returns 404 if no manager set)
+  const managerRes = await client
+    .api(`/users/${encodeURIComponent(entraObjectId)}/manager`)
+    .select('id')
+    .get()
+    .catch(() => null)   // 404 = no manager, not an error
+
+  return {
+    mobilePhone:      userRes?.mobilePhone      ?? null,
+    employeeHireDate: userRes?.employeeHireDate  ?? null,
+    jobTitle:         userRes?.jobTitle          ?? null,
+    mail:             userRes?.mail              ?? null,
+    managerObjectId:  managerRes?.id             ?? null,
+  }
+}

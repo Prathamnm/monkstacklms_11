@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { AvailabilityBadge } from '@/components/employee/AvailabilityBadge'
-import { ProjectTag } from '@/components/employee/ProjectTag'
 import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
 import { TableSkeleton } from '@/components/shared/LoadingSkeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -46,7 +45,7 @@ function EmployeeDetailPanel({ id }: { id: string }) {
       <div className="flex border-b border-slate-200 px-6 pt-2 bg-white/50">
         {['Personal Details', 'Work Details', 'Leave Log'].map((tab) => (
           <button key={tab} onClick={() => setActiveTab(tab as any)}
-            className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-all ${
               activeTab === tab ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}>
             {tab}
@@ -58,14 +57,30 @@ function EmployeeDetailPanel({ id }: { id: string }) {
         {activeTab === 'Personal Details' && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1 font-semibold">Phone Number</p><p className="text-sm font-medium text-slate-900">{data.phoneNumber || '—'}</p></div>
-            <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1 font-semibold">Emergency Contact</p><p className="text-sm font-medium text-slate-900">{data.emergencyContact || '—'}</p></div>
             <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1 font-semibold">Join Date</p><p className="text-sm font-medium text-slate-900">{data.joinDate ? format(parseISO(data.joinDate), 'MMM d, yyyy') : '—'}</p></div>
+            <div className="col-span-2">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-2 font-semibold">Emergency Contact</p>
+              <div className="grid grid-cols-3 gap-3 bg-slate-50 rounded-xl p-3">
+                <div>
+                  <p className="text-[10px] text-slate-400 mb-0.5">Name</p>
+                  <p className="text-sm font-medium text-slate-900">{data.emergencyName || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 mb-0.5">Relation</p>
+                  <p className="text-sm font-medium text-slate-900">{data.emergencyRelation || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 mb-0.5">Phone</p>
+                  <p className="text-sm font-medium text-slate-900">{data.emergencyPhone || '—'}</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {activeTab === 'Work Details' && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1 font-semibold">Designation</p><p className="text-sm font-medium text-slate-900">{data.designation || '—'}</p></div>
+            <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1 font-semibold">Job Title</p><p className="text-sm font-medium text-slate-900">{data.jobTitle || '—'}</p></div>
             <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1 font-semibold">Reporting Manager</p><p className="text-sm font-medium text-slate-900">{manager?.displayName || 'Unassigned'}</p></div>
             <div><p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1 font-semibold">Role Access</p>
                <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${ROLE_COLORS[data.role as keyof typeof ROLE_COLORS]}`}>{ROLE_LABELS[data.role as keyof typeof ROLE_LABELS]}</span>
@@ -79,26 +94,47 @@ function EmployeeDetailPanel({ id }: { id: string }) {
         {activeTab === 'Leave Log' && (
           <div className="space-y-6">
             {balance ? (
-              <div className="flex gap-8 bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-fit">
-                <div><p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Standard Remaining</p><p className="text-xl font-bold text-slate-900">{balance.standardTotal + balance.standardCarryForward - balance.standardUsed}</p></div>
-                <div><p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Emergency Remaining</p><p className="text-xl font-bold text-slate-900">{balance.emergencyTotal - balance.emergencyUsed}</p></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Standard Remaining</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {balance.standardTotal + balance.standardCarryForward - balance.standardUsed}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Used: {balance.standardUsed} / {balance.standardTotal + balance.standardCarryForward}
+                  </p>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Emergency Policy</p>
+                  <p className="text-2xl font-bold text-slate-900">2 Days Max</p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Counted inside standard leave
+                  </p>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Total Remaining</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {balance.standardTotal + balance.standardCarryForward - balance.standardUsed}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">From standard quota</p>
+                </div>
               </div>
             ) : (
-              <p className="text-xs text-amber-600 bg-amber-50 inline-block px-3 py-1.5 rounded-lg border border-amber-200">Balance not initialized</p>
+              <p className="text-sm text-amber-700 bg-amber-50 inline-block px-3 py-2 rounded-lg border border-amber-200">Balance not initialized for this employee yet</p>
             )}
 
             {leaves && leaves.length > 0 ? (
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                <table className="w-full text-left text-[15px]">
+                  <thead className="bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     <tr><th className="p-3">Period</th><th className="p-3">Days</th><th className="p-3">Reason</th><th className="p-3">Status</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {leaves.map((l: LeaveRequest) => (
                       <tr key={l.id}>
                         <td className="p-3 font-medium text-slate-700">{formatDateRange(l.startDate, l.endDate)}</td>
-                        <td className="p-3 text-slate-600">{l.totalDays}</td>
-                        <td className="p-3 text-slate-500 truncate max-w-[200px]">{l.reason}</td>
+                        <td className="p-3 text-slate-700">{l.totalDays}</td>
+                        <td className="p-3 text-slate-600 truncate max-w-[220px]">{l.reason}</td>
                         <td className="p-3"><LeaveStatusBadge status={l.status} /></td>
                       </tr>
                     ))}
@@ -106,7 +142,7 @@ function EmployeeDetailPanel({ id }: { id: string }) {
                 </table>
               </div>
             ) : (
-              <p className="text-xs text-slate-500">No leave requests found.</p>
+              <p className="text-sm text-slate-500">No leave requests found.</p>
             )}
           </div>
         )}
@@ -133,18 +169,18 @@ export default function ManagerEmployeesPage() {
   const filtered = employees.filter(
     (e) =>
       e.displayName.toLowerCase().includes(search.toLowerCase()) ||
-      e.email.toLowerCase().includes(search.toLowerCase()) ||
-      (e.designation ?? '').toLowerCase().includes(search.toLowerCase())
+      (e.workEmail || '').toLowerCase().includes(search.toLowerCase()) ||
+      e.role.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-6 lg:p-8 space-y-6">
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-4 lg:p-6 space-y-4">
       <PageHeader title="Team Monkstack" description="All active team members and their records." badge={employees.length} />
 
       {/* Search */}
       <div className="relative w-full">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search team members..." className="w-full rounded-xl border border-slate-200 pl-9 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search team members..." className="w-full rounded-xl border border-slate-200 pl-9 py-3 text-[15px] focus:outline-none focus:ring-1 focus:ring-blue-400" />
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
@@ -154,12 +190,12 @@ export default function ManagerEmployeesPage() {
           <EmptyState icon="👤" title="No employees found" description="Adjust your search query." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-[15px]">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="px-5 py-4">Employee</th>
-                  <th className="px-5 py-4">Status Today</th>
-                  <th className="px-5 py-4">Projects</th>
+                  <th className="px-5 py-3">Employee</th>
+                  <th className="px-5 py-3">Role</th>
+                  <th className="px-5 py-3">Status Today</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -174,25 +210,29 @@ export default function ManagerEmployeesPage() {
                           <div>
                             <p className="text-slate-900 font-medium group-hover:text-blue-600 transition-colors">{employee.displayName}</p>
                             <p className="text-slate-500 text-[11px]">
-                              <a href={`mailto:${employee.email}`} className="hover:text-blue-600 hover:underline transition-colors" onClick={e => e.stopPropagation()}>
-                                {employee.email}
+                              <a 
+                                href={`mailto:${employee.workEmail}`}
+                                className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                {employee.workEmail}
                               </a>
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4"><AvailabilityBadge status={employee.availabilityStatus} /></td>
                       <td className="px-5 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {employee.projects?.slice(0, 3).map(p => <ProjectTag key={p.id} name={p.name} code={p.code} color={p.color} />)}
-                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${ROLE_COLORS[employee.role]}`}>
+                          {ROLE_LABELS[employee.role]}
+                        </span>
                       </td>
+                      <td className="px-5 py-4"><AvailabilityBadge status={employee.availabilityStatus} /></td>
                     </tr>
                     <AnimatePresence>
                       {expandedId === employee.id && (
                         <tr>
-                          <td colSpan={4} className="p-0">
+                          <td colSpan={3} className="p-0">
                             <EmployeeDetailPanel id={employee.id} />
                           </td>
                         </tr>

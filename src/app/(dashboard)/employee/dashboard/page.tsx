@@ -34,17 +34,6 @@ export default function EmployeeDashboardPage() {
   const { instance } = useMsal()
   const { data: currentUserData, isLoading: isUserLoading } = useCurrentUser()
 
-  const { data: projects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['employeeProjects'],
-    queryFn: async () => {
-      const token = await getAccessToken(instance)
-      const res = await fetch('/api/employee/projects', { headers: { Authorization: `Bearer ${token}` } })
-      if (!res.ok) throw new Error('Failed to fetch projects')
-      return res.json()
-    },
-    enabled: !isUserLoading,
-  })
-
   const { data: leaves = [], isLoading: leavesLoading } = useQuery({
     queryKey: ['employeeLeaves'],
     queryFn: async () => {
@@ -67,7 +56,7 @@ export default function EmployeeDashboardPage() {
     enabled: !isUserLoading,
   })
 
-  const isLoading = isUserLoading || projectsLoading || leavesLoading
+  const isLoading = isUserLoading || leavesLoading
   const user = currentUserData?.user
   const balance = currentUserData?.balance
 
@@ -78,7 +67,7 @@ export default function EmployeeDashboardPage() {
   if (isLoading || !user) return <PageSkeleton />
 
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-6 lg:p-8 space-y-6">
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-4 lg:p-6 space-y-4">
 
       {/* Welcome */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
@@ -94,7 +83,7 @@ export default function EmployeeDashboardPage() {
             </div>
             <div>
               <p className="text-lg font-semibold text-slate-900">Welcome back, {firstName} 👋</p>
-              <p className="text-sm text-slate-500">{user.designation ?? user.jobTitle ?? 'Team member'}</p>
+              <p className="text-sm text-slate-500">{user.jobTitle ?? 'Team member'}</p>
               <span className={cn('text-xs px-2 py-0.5 rounded font-medium mt-1 inline-block', ROLE_COLORS[user.role])}>
                 {ROLE_LABELS[user.role]}
               </span>
@@ -106,7 +95,7 @@ export default function EmployeeDashboardPage() {
 
       {/* Stat cards */}
       <motion.div variants={container} initial="initial" animate="animate" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard value={projects.length} label="Active projects" />
+        <SummaryCard value={leaves.length} label="Total leave requests" />
         <SummaryCard value={pendingLeaves} label="Pending leave requests" />
         <motion.div variants={item} className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm sm:col-span-2 xl:col-span-2">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500 mb-2">Leave Balance</p>
@@ -127,7 +116,6 @@ export default function EmployeeDashboardPage() {
       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
         <h2 className="text-sm font-semibold text-slate-900 mb-3">Quick actions</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          <button onClick={() => router.push('/employee/projects')} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Browse assigned projects</button>
           <button onClick={() => router.push('/employee/my-leaves')} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Review leave history</button>
           <button onClick={() => router.push('/employee/my-team')} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Check team availability</button>
           <button onClick={() => router.push('/employee/apply-leave')} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 transition">Apply for Leave</button>

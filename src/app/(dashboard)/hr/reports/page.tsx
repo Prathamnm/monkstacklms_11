@@ -23,11 +23,6 @@ const REPORT_TYPES = [
     title: 'Employee Directory',
     description: 'All employees with contact info, manager, projects, join date',
   },
-  {
-    id: 'attendance-overview',
-    title: 'Attendance Overview',
-    description: 'Who was on leave each day — useful for payroll',
-  },
 ]
 
 export default function HRReportsPage() {
@@ -62,7 +57,7 @@ export default function HRReportsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 lg:p-6 space-y-4">
       <PageHeader title="Reports" description="Export HR reports for analysis and compliance" />
 
       {/* Date range filter */}

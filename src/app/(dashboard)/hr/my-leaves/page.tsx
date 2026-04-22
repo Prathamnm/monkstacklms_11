@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 
 export default function HRMyLeavesPage() {
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-6 lg:p-8 space-y-6">
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-4 lg:p-6 space-y-4">
       <PageHeader title="My Leaves" description="View and manage your leave requests." />
       <MyLeavesView role="HR" />
     </motion.div>

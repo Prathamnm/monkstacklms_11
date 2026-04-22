@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
 import { logAudit } from '@/lib/audit/auditLogger'
-import { countBusinessDays } from '@/lib/utils/dateUtils'
+import { countBusinessDays, formatDateRange } from '@/lib/utils/dateUtils'
 import { parseISO } from 'date-fns'
+import { createNotifications } from '@/lib/notifications/notificationService'
+import { sendMail } from '@/lib/email/acsMailer'
+import { buildManagerOnLeaveEmail } from '@/lib/email/templates/managerOnLeave'
+import { getNotificationEmail } from '@/lib/email/getNotificationEmail'
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,6 +16,9 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const { title, startDate, endDate, startHalfDay = 'NONE', endHalfDay = 'NONE', reason, isEmergency = false } = body
+
+    const normalizedStartHalfDay = startHalfDay === 'NONE' ? 'NONE' : 'HALF_DAY'
+    const normalizedEndHalfDay = endHalfDay === 'NONE' ? 'NONE' : 'HALF_DAY'
 
     if (!title || !startDate || !endDate || !reason) {
       return NextResponse.json({ error: 'title, startDate, endDate, and reason are required' }, { status: 400 })
@@ -50,8 +57,8 @@ export async function POST(req: NextRequest) {
     let totalDays = countBusinessDays(start, end, holidayDates)
 
     // Apply half-day adjustments
-    if (startHalfDay !== 'NONE') totalDays -= 0.5
-    if (endHalfDay !== 'NONE' && end.toDateString() !== start.toDateString()) totalDays -= 0.5
+    if (normalizedStartHalfDay !== 'NONE') totalDays -= 0.5
+    if (normalizedEndHalfDay !== 'NONE' && end.toDateString() !== start.toDateString()) totalDays -= 0.5
     totalDays = Math.max(0.5, totalDays)
 
     // Check balance
@@ -59,9 +66,15 @@ export async function POST(req: NextRequest) {
     if (!balance) return NextResponse.json({ error: 'No leave balance found' }, { status: 400 })
 
     if (isEmergency) {
-      const availableEmergency = balance.emergencyTotal - balance.emergencyUsed
-      if (totalDays > availableEmergency) {
-        return NextResponse.json({ error: `Insufficient emergency balance. You have ${availableEmergency} days remaining.` }, { status: 400 })
+      if (totalDays > 2) {
+        return NextResponse.json(
+          { error: 'Emergency leave can be applied for a maximum of 2 consecutive days.' },
+          { status: 400 }
+        )
+      }
+      const availableStandard = balance.standardTotal + balance.standardCarryForward - balance.standardUsed
+      if (totalDays > availableStandard) {
+        return NextResponse.json({ error: `Insufficient balance. You have ${availableStandard} days remaining.` }, { status: 400 })
       }
     } else {
       const availableStandard = balance.standardTotal + balance.standardCarryForward - balance.standardUsed
@@ -79,8 +92,8 @@ export async function POST(req: NextRequest) {
         title,
         startDate: start,
         endDate: end,
-        startHalfDay,
-        endHalfDay,
+        startHalfDay: normalizedStartHalfDay,
+        endHalfDay: normalizedEndHalfDay,
         totalDays,
         reason,
         isEmergency,
@@ -89,6 +102,61 @@ export async function POST(req: NextRequest) {
         approvedAt: now,
       },
     })
+
+    // Fetch manager's profile + all recipients (Direct Reports + HR/Admin)
+    const [managerProfile, emailRecipients] = await Promise.all([
+      prisma.employee.findUnique({
+        where: { id: token.userId },
+        select: { displayName: true, workEmail: true, notificationEmail: true, jobTitle: true },
+      }),
+      prisma.employee.findMany({
+        where: {
+          employmentStatus: 'ACTIVE',
+          OR: [
+            { managerId: token.userId },           // direct reports
+            { role: { in: ['HR', 'ADMIN'] } },    // HR and Admin
+          ],
+        },
+        select: { id: true, workEmail: true, notificationEmail: true, role: true },
+      }),
+    ])
+
+    const dateLabel = formatDateRange(startDate, endDate)
+    const appBaseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+
+    // 1. Email Notifications
+    const recipientEmails = Array.from(new Set(
+      emailRecipients
+        .map(r => getNotificationEmail(r))
+        .filter(e => e !== getNotificationEmail(managerProfile as any))
+    ))
+
+    if (recipientEmails.length > 0) {
+      const fmtDate = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      const { subject, htmlBody } = buildManagerOnLeaveEmail({
+        managerName: managerProfile?.displayName ?? 'Your manager',
+        jobTitle:    managerProfile?.jobTitle    ?? null,
+        startDate:   fmtDate(start),
+        endDate:     fmtDate(end),
+        totalDays:   leave.totalDays,
+        appBaseUrl,
+      })
+      await sendMail({ to: recipientEmails, subject, htmlBody }).catch(console.error)
+    }
+
+    // 2. In-app Notifications
+    if (emailRecipients.length > 0) {
+      await createNotifications(
+        emailRecipients.map((recipient) => ({
+          type: 'LEAVE_APPLIED',
+          title: 'Manager Leave Notice',
+          message: `${managerProfile?.displayName ?? 'A manager'} is on leave for ${dateLabel} (auto-approved).`,
+          recipientId: recipient.id,
+          senderId: token.userId,
+          referenceId: leave.id,
+        }))
+      )
+    }
 
     // Create ledger entry
     await prisma.leaveLedgerEntry.create({
@@ -104,17 +172,10 @@ export async function POST(req: NextRequest) {
     })
 
     // Update balance
-    if (isEmergency) {
-      await prisma.leaveBalance.update({
-        where: { employeeId: token.userId },
-        data: { emergencyUsed: { increment: totalDays } },
-      })
-    } else {
-      await prisma.leaveBalance.update({
-        where: { employeeId: token.userId },
-        data: { standardUsed: { increment: totalDays } },
-      })
-    }
+    await prisma.leaveBalance.update({
+      where: { employeeId: token.userId },
+      data: { standardUsed: { increment: totalDays } },
+    })
 
     await logAudit('LEAVE_APPROVE', token.userId, token.userId, {
       before: {},

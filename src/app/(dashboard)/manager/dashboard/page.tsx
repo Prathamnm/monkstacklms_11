@@ -149,7 +149,7 @@ export default function ManagerDashboardPage() {
   ]
 
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-6 lg:p-8 space-y-6">
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-4 lg:p-6 space-y-4">
 
       {/* Welcome */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
@@ -165,7 +165,7 @@ export default function ManagerDashboardPage() {
             </div>
             <div>
               <p className="text-lg font-semibold text-slate-900">Welcome back, {firstName} 👋</p>
-              <p className="text-sm text-slate-500">{user?.designation ?? user?.jobTitle ?? 'Manager'}</p>
+              <p className="text-sm text-slate-500">{user?.jobTitle ?? 'Manager'}</p>
               {user && (
                 <span className={cn('text-xs px-2 py-0.5 rounded font-medium mt-1 inline-block', ROLE_COLORS[user.role])}>
                   {ROLE_LABELS[user.role]}
@@ -196,7 +196,7 @@ export default function ManagerDashboardPage() {
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Leave Balance</p>
           <div className="flex gap-8">
             <div><p className="text-2xl font-semibold text-slate-900">{balance.availableStandard}</p><p className="text-xs text-slate-500 mt-1">Standard remaining</p></div>
-            <div><p className="text-2xl font-semibold text-slate-900">{balance.availableEmergency}</p><p className="text-xs text-slate-500 mt-1">Emergency remaining</p></div>
+            <div><p className="text-2xl font-semibold text-slate-900">2 days</p><p className="text-xs text-slate-500 mt-1">Emergency max per request</p></div>
           </div>
         </div>
       )}
@@ -237,7 +237,6 @@ export default function ManagerDashboardPage() {
             <CheckSquare size={16} /> Review Approvals
             {(stats?.pendingApprovals ?? 0) > 0 && <span className="bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full">{stats?.pendingApprovals}</span>}
           </button>
-          <button onClick={() => router.push('/manager/projects')} className="btn-secondary flex items-center gap-2">View Projects</button>
           <button onClick={() => router.push('/manager/employees')} className="btn-secondary flex items-center gap-2">My Team</button>
           <button onClick={() => router.push('/manager/apply-leave')} className="btn-secondary flex items-center gap-2">Apply Leave</button>
         </div>

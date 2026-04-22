@@ -37,11 +37,11 @@ export default function TeamMonkstackPage() {
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
-      className="p-6 lg:p-8 space-y-6"
+      className="p-4 lg:p-6 space-y-4"
     >
       <PageHeader
         title="Team Monkstack"
-        description="Everyone at Monkstack — search by name, role, or designation"
+        description="Everyone at Monkstack - search by name, role, or email"
         badge={employees.length}
       />
 
@@ -52,7 +52,7 @@ export default function TeamMonkstackPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, role or designation..."
+            placeholder="Search by name, role or email..."
             className="w-full rounded-xl border border-slate-200 pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white shadow-sm"
           />
         </div>
@@ -70,7 +70,6 @@ export default function TeamMonkstackPage() {
                 <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <th className="px-5 py-4">Name</th>
                   <th className="px-5 py-4">Role</th>
-                  <th className="px-5 py-4">Designation</th>
                   <th className="px-5 py-4">Status</th>
                   <th className="px-5 py-4">Email</th>
                 </tr>
@@ -82,8 +81,6 @@ export default function TeamMonkstackPage() {
                     displayName: string
                     email: string
                     role: keyof typeof ROLE_LABELS
-                    designation?: string | null
-                    jobTitle?: string | null
                     profilePictureUrl?: string | null
                     availabilityStatus: string
                   }) => (
@@ -98,7 +95,10 @@ export default function TeamMonkstackPage() {
                               getInitials(emp.displayName)
                             )}
                           </div>
-                          <p className="text-slate-900 font-medium">{emp.displayName}</p>
+                          <div>
+                            <p className="text-slate-900 font-medium">{emp.displayName}</p>
+                            <p className="text-slate-500 text-[11px]">{(emp as any).jobTitle || 'Team Member'}</p>
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-4">
@@ -111,7 +111,6 @@ export default function TeamMonkstackPage() {
                           {ROLE_LABELS[emp.role as keyof typeof ROLE_LABELS]}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-slate-600">{emp.designation ?? emp.jobTitle ?? '—'}</td>
                       <td className="px-5 py-4">
                         <AvailabilityBadge status={emp.availabilityStatus as 'AVAILABLE' | 'ON_LEAVE' | 'HALF_DAY_AM' | 'HALF_DAY_PM'} />
                       </td>

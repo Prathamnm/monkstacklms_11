@@ -19,14 +19,14 @@ export async function GET(
           select: {
             id: true,
             displayName: true,
-            email: true,
+            workEmail: true,
 
             jobTitle: true,
             profilePictureUrl: true,
           },
         },
         approver: {
-          select: { id: true, displayName: true, email: true },
+          select: { id: true, displayName: true, workEmail: true },
         },
       },
     })

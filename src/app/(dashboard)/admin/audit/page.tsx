@@ -18,14 +18,6 @@ const ACTION_LABELS: Record<string, string> = {
   LEAVE_CANCEL: 'Leave Cancelled',
   LEAVE_REVOKE: 'Leave Revoked',
   BALANCE_ADJUST: 'Balance Adjusted',
-  EMPLOYEE_ONBOARD: 'Employee Onboarded',
-  EMPLOYEE_OFFBOARD: 'Employee Offboarded',
-  EMPLOYEE_UPDATE: 'Employee Updated',
-  PROJECT_CREATE: 'Project Created',
-  PROJECT_UPDATE: 'Project Updated',
-  PROJECT_MEMBER_ADD: 'Member Added',
-  PROJECT_MEMBER_REMOVE: 'Member Removed',
-  RULES_UPDATE: 'Rules Updated',
   ACCRUAL_RUN: 'Accrual Run',
 }
 
@@ -33,8 +25,6 @@ const ACTION_COLORS: Record<string, string> = {
   LEAVE_APPROVE: 'bg-green-50 text-green-700',
   LEAVE_REJECT: 'bg-red-50 text-red-700',
   LEAVE_REVOKE: 'bg-purple-50 text-purple-700',
-  EMPLOYEE_ONBOARD: 'bg-blue-50 text-blue-700',
-  EMPLOYEE_OFFBOARD: 'bg-red-50 text-red-700',
   ACCRUAL_RUN: 'bg-teal-50 text-teal-700',
 }
 
@@ -57,7 +47,7 @@ export default function AdminAuditPage() {
   })
 
   return (
-    <div className="p-6 lg:p-8">
+    <div className="p-4 lg:p-6 space-y-4">
       <PageHeader title="Audit Log" description="Complete audit trail of all system actions" badge={logs.length} />
 
       <div className="mb-4">

@@ -6,6 +6,9 @@ export interface LeaveBalanceSummary {
   standardUsed: number
   standardCarryForward: number
   availableStandard: number
+  floaterTotal: number
+  floaterUsed: number
+  availableFloater: number
   emergencyTotal: number
   emergencyUsed: number
   availableEmergency: number
@@ -42,6 +45,9 @@ export async function getLeaveBalance(
       standardUsed: 0,
       standardCarryForward: 0,
       availableStandard: 18,
+      floaterTotal: 2,
+      floaterUsed: 0,
+      availableFloater: 2,
       emergencyTotal: 2,
       emergencyUsed: 0,
       availableEmergency: 2,
@@ -51,6 +57,7 @@ export async function getLeaveBalance(
   }
 
   const availableStandard = balance.standardTotal + balance.standardCarryForward - balance.standardUsed
+  const availableFloater  = (balance.floaterTotal ?? 2) - (balance.floaterUsed ?? 0)
   const availableEmergency = balance.emergencyTotal - balance.emergencyUsed
 
   return {
@@ -59,6 +66,9 @@ export async function getLeaveBalance(
     standardUsed: balance.standardUsed,
     standardCarryForward: balance.standardCarryForward,
     availableStandard,
+    floaterTotal:    balance.floaterTotal  ?? 2,
+    floaterUsed:     balance.floaterUsed   ?? 0,
+    availableFloater,
     emergencyTotal: balance.emergencyTotal,
     emergencyUsed: balance.emergencyUsed,
     availableEmergency,

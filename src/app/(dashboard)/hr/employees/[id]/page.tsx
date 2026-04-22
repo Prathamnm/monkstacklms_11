@@ -21,12 +21,13 @@ const TABS = ['Personal Details', 'Work Details', 'Leave Log', 'Update Details']
 type Tab = typeof TABS[number]
 
 interface EmployeeDetail {
-  employee: EmployeeWithAvailability & { 
-    phoneNumber?: string | null, 
-    emergencyContact?: string | null, 
-    designation?: string | null,
-    manager?: { id: string; displayName: string } | null,
-    managerId?: string | null,
+  employee: EmployeeWithAvailability & {
+    phoneNumber?:       string | null
+    emergencyName?:     string | null
+    emergencyRelation?: string | null
+    emergencyPhone?:    string | null
+    manager?:           { id: string; displayName: string } | null
+    managerId?:         string | null
   }
   leaves: LeaveRequest[]
   balance: any
@@ -39,14 +40,14 @@ export default function HREmployeeDetailPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<Tab>('Personal Details')
 
-  const { data: managers = [] } = useQuery({
-    queryKey: ['availableManagers'],
+  const { data: allEmployees = [] } = useQuery({
+    queryKey: ['allEmployeesForManagerDropdown'],
     queryFn: async () => {
       const token = await getAccessToken(instance)
-      const res = await fetch('/api/hr/employees?role=MANAGER,ADMIN', { headers: { Authorization: `Bearer ${token}` } })
-      if (!res.ok) return []
+      const res = await fetch('/api/hr/employees', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch employees')
       return res.json()
-    }
+    },
   })
 
   const { data, isLoading } = useQuery<EmployeeDetail>({
@@ -59,28 +60,31 @@ export default function HREmployeeDetailPage() {
       ])
       const employee = await empRes.json()
       const leaves = await leavesRes.json()
-      return { 
-        employee, 
-        leaves: Array.isArray(leaves) ? leaves : [], 
-        balance: employee.leaveBalance 
+      return {
+        employee,
+        leaves: Array.isArray(leaves) ? leaves : [],
+        balance: employee.leaveBalance
       }
     },
   })
 
   // Edit form state
   const [editForm, setEditForm] = useState({
-    designation: '', phoneNumber: '', emergencyContact: '', managerId: '', role: '', employmentStatus: ''
+    emergencyName:     '',
+    emergencyRelation: '',
+    emergencyPhone:    '',
+    notificationEmail: '',
+    employmentStatus:  '',
   })
-  
+
   useEffect(() => {
     if (data?.employee) {
       setEditForm({
-        designation: data.employee.designation ?? '',
-        phoneNumber: data.employee.phoneNumber ?? '',
-        emergencyContact: data.employee.emergencyContact ?? '',
-        managerId: data.employee.managerId ?? '',
-        role: data.employee.role ?? '',
-        employmentStatus: data.employee.employmentStatus ?? '',
+        emergencyName:     data.employee.emergencyName     ?? '',
+        emergencyRelation: data.employee.emergencyRelation ?? '',
+        emergencyPhone:    data.employee.emergencyPhone    ?? '',
+        notificationEmail: data.employee.notificationEmail ?? '',
+        employmentStatus:  data.employee.employmentStatus  ?? 'ACTIVE',
       })
     }
   }, [data?.employee?.id])
@@ -98,8 +102,7 @@ export default function HREmployeeDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hrEmployee', id] })
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] })
-      setActiveTab('Work Details')
+      setActiveTab('Personal Details')
     }
   })
 
@@ -109,7 +112,7 @@ export default function HREmployeeDetailPage() {
   const { employee, leaves, balance } = data
 
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-6 lg:p-8">
+    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="p-4 lg:p-6">
       <button onClick={() => router.push('/hr/employees')} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 text-sm mb-6 transition-colors">
         <ArrowLeft size={16} /> Back to Team Monkstack
       </button>
@@ -135,20 +138,7 @@ export default function HREmployeeDetailPage() {
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
         <div className="flex border-b border-slate-200 px-4 bg-slate-50">
           {TABS.map(tab => (
-            <button key={tab} onClick={() => {
-              setActiveTab(tab)
-              // Reset edit form when entering update tab
-              if (tab === 'Update Details') {
-                setEditForm({
-                  designation: employee.designation ?? '',
-                  phoneNumber: employee.phoneNumber ?? '',
-                  emergencyContact: employee.emergencyContact ?? '',
-                  managerId: employee.managerId ?? '',
-                  role: employee.role,
-                  employmentStatus: employee.employmentStatus
-                })
-              }
-            }}
+            <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-5 py-4 text-sm font-medium border-b-2 transition-all ${
                 activeTab === tab ? 'border-purple-600 text-purple-600 bg-white' : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}>
@@ -164,11 +154,31 @@ export default function HREmployeeDetailPage() {
                 <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">Personal Identity</h3>
                 <div className="grid grid-cols-2 gap-y-6">
                   <div><p className="text-xs text-slate-400 mb-1">Full Name</p><p className="font-medium text-slate-900">{employee.displayName}</p></div>
-                  <div><p className="text-xs text-slate-400 mb-1">Email</p><p className="font-medium text-slate-900">{employee.email}</p></div>
+                  <div><p className="text-xs text-slate-400 mb-1">Work Email</p><a href={`mailto:${employee.workEmail}`} className="text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium" onClick={e => e.stopPropagation()}>{employee.workEmail}</a></div>
+                  <div><p className="text-xs text-slate-400 mb-1">Job Title</p><p className="font-medium text-slate-900">{employee.jobTitle || '—'}</p></div>
                   <div><p className="text-xs text-slate-400 mb-1">Phone Number</p><p className="font-medium text-slate-900">{employee.phoneNumber || '—'}</p></div>
-                  <div><p className="text-xs text-slate-400 mb-1">Emergency Contact</p><p className="font-medium text-slate-900">{employee.emergencyContact || '—'}</p></div>
                   <div><p className="text-xs text-slate-400 mb-1">Join Date</p><p className="font-medium text-slate-900">{format(parseISO(employee.joinDate), 'MMM d, yyyy')}</p></div>
+                  <div><p className="text-xs text-slate-400 mb-1">Notification Email</p><p className="font-medium text-slate-900">{employee.notificationEmail || '—'}</p></div>
                   <div><p className="text-xs text-slate-400 mb-1">Entra Object ID</p><p className="font-mono text-xs text-slate-500">{employee.entraObjectId}</p></div>
+
+                  {/* Emergency Contact — full-width 3-column card */}
+                  <div className="col-span-2 mt-2">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Emergency Contact</p>
+                    <div className="grid grid-cols-3 gap-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1">Name</p>
+                        <p className="font-medium text-slate-900">{employee.emergencyName || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1">Relation</p>
+                        <p className="font-medium text-slate-900">{employee.emergencyRelation || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1">Phone</p>
+                        <p className="font-medium text-slate-900">{employee.emergencyPhone || '—'}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -181,7 +191,7 @@ export default function HREmployeeDetailPage() {
                     <span className={`inline-block text-xs px-2 py-0.5 rounded font-medium ${ROLE_COLORS[employee.role]}`}>{ROLE_LABELS[employee.role]}</span>
                   </div>
                   <div><p className="text-xs text-slate-400 mb-1">Reporting Manager</p><p className="font-medium text-slate-900">{employee.manager?.displayName || 'Unassigned'}</p></div>
-                  <div><p className="text-xs text-slate-400 mb-1">Designation</p><p className="font-medium text-slate-900">{employee.designation || '—'}</p></div>
+                  <div><p className="text-xs text-slate-400 mb-1">Job Title</p><p className="font-medium text-slate-900">{employee.jobTitle || '—'}</p></div>
                   <div><p className="text-xs text-slate-400 mb-1">Employment Status</p>
                     <span className={`inline-block text-xs font-medium px-2 py-1 rounded-full ${employee.employmentStatus==='ACTIVE'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-600'}`}>{employee.employmentStatus}</span>
                   </div>
@@ -191,26 +201,24 @@ export default function HREmployeeDetailPage() {
 
             {activeTab === 'Leave Log' && (
               <motion.div key="l-log" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-                
-                {/* Balance Summary Card inside Tab */}
                 {balance ? (
-                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <div><p className="text-xs text-slate-500 mb-1">Available Standard</p><p className="text-2xl font-bold text-slate-900">{balance.standardTotal + balance.standardCarryForward - balance.standardUsed}</p></div>
-                    <div><p className="text-xs text-slate-500 mb-1">Available Emergency</p><p className="text-2xl font-bold text-slate-900">{balance.emergencyTotal - balance.emergencyUsed}</p></div>
+                  <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div><p className="text-xs text-slate-500 mb-1">Standard Remaining</p><p className="text-2xl font-bold text-slate-900">{balance.standardTotal + balance.standardCarryForward - balance.standardUsed}</p></div>
+                    <div><p className="text-xs text-slate-500 mb-1">Floater Remaining</p><p className="text-2xl font-bold text-slate-900">{ (balance.floaterTotal ?? 2) - (balance.floaterUsed ?? 0) }</p></div>
+                    <div><p className="text-xs text-slate-500 mb-1">Emergency Remaining</p><p className="text-2xl font-bold text-slate-900">{balance.emergencyTotal - balance.emergencyUsed}</p></div>
                   </div>
                 ) : (
                   <div className="bg-amber-50 text-amber-800 text-sm p-4 rounded-2xl">Leave balance not initialized</div>
                 )}
-
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 mb-3 uppercase tracking-wider">Leave History</h3>
                   {leaves.length === 0 ? (
                     <div className="text-sm text-slate-500 text-center py-6 border border-dashed border-slate-200 rounded-xl">No leave requests found.</div>
                   ) : (
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
-                      <table className="w-full text-left text-sm">
+                    <div className="border border-slate-200 rounded-xl overflow-hidden text-sm">
+                      <table className="w-full text-left">
                         <thead className="bg-slate-50 border-b border-slate-100 text-xs text-slate-500">
-                          <tr><th className="p-3 font-medium">Period</th><th className="p-3 font-medium">Days</th><th className="p-3 font-medium">Status</th></tr>
+                          <tr><th className="p-3">Period</th><th className="p-3">Days</th><th className="p-3">Status</th></tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                           {leaves.map(l => (
@@ -229,57 +237,81 @@ export default function HREmployeeDetailPage() {
             )}
 
             {activeTab === 'Update Details' && (
-              <motion.div key="u-details" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-2xl">
-                <div className="grid grid-cols-2 gap-5 mb-6">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 mb-1 block">Designation</label>
-                    <input className="w-full input" value={editForm.designation} onChange={e => setEditForm({...editForm, designation: e.target.value})} placeholder="e.g. Senior Software Engineer" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 mb-1 block">Phone Number</label>
-                    <input className="w-full input" value={editForm.phoneNumber} onChange={e => setEditForm({...editForm, phoneNumber: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 mb-1 block">Emergency Contact</label>
-                    <input className="w-full input" value={editForm.emergencyContact} onChange={e => setEditForm({...editForm, emergencyContact: e.target.value})} />
-                  </div>
-                  
-                  <div className="col-span-2 pt-4 border-t border-slate-100">
-                    <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">Access & Hierarchy</h3>
-                  </div>
+              <motion.div key="u-details" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-xl">
+                {/* Azure read-only notice */}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 text-sm text-blue-800 mb-6">
+                  <span className="flex-shrink-0 mt-0.5">ℹ️</span>
+                  <span>
+                    Name, job title, phone, manager, and join date are managed in <strong>Azure Entra ID</strong>
+                    and updated automatically on login. Only emergency contact, employment status, and notification email can be edited here.
+                  </span>
+                </div>
 
-                  <div>
-                     <label className="text-xs font-semibold text-slate-700 mb-1 block">Reporting Manager</label>
-                     <select className="w-full input" value={editForm.managerId} onChange={e => setEditForm({...editForm, managerId: e.target.value})}>
-                       <option value="">Unassigned</option>
-                       {managers.filter((m: any) => m.id !== employee.id).map((m: any) => <option key={m.id} value={m.id}>{m.displayName}</option>)}
-                     </select>
+                {/* Emergency Contact */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">Emergency Contact</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1 block">Contact Name</label>
+                      <input className="w-full input" placeholder="e.g. Jane Doe"
+                        value={editForm.emergencyName}
+                        onChange={e => setEditForm({ ...editForm, emergencyName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1 block">Relation</label>
+                      <input className="w-full input" placeholder="e.g. Spouse"
+                        value={editForm.emergencyRelation}
+                        onChange={e => setEditForm({ ...editForm, emergencyRelation: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 mb-1 block">Contact Phone</label>
+                      <input className="w-full input" placeholder="+91-XXXXXXXXXX"
+                        value={editForm.emergencyPhone}
+                        onChange={e => setEditForm({ ...editForm, emergencyPhone: e.target.value })} />
+                    </div>
                   </div>
-                  <div>
-                     <label className="text-xs font-semibold text-slate-700 mb-1 block">System Role</label>
-                     <select className="w-full input" value={editForm.role} onChange={e => setEditForm({...editForm, role: e.target.value})}>
-                       <option value="EMPLOYEE">Employee</option>
-                       <option value="MANAGER">Manager</option>
-                       <option value="HR">HR</option>
-                       <option value="ADMIN">Admin</option>
-                     </select>
-                  </div>
-                  <div>
-                     <label className="text-xs font-semibold text-slate-700 mb-1 block">Employment Status</label>
-                     <select className="w-full input" disabled={employee.employmentStatus === 'TERMINATED'} value={editForm.employmentStatus} onChange={e => setEditForm({...editForm, employmentStatus: e.target.value})}>
-                       <option value="ACTIVE">Active</option>
-                       <option value="INACTIVE">Inactive</option>
-                       <option value="TERMINATED">Terminated</option>
-                     </select>
-                     {employee.employmentStatus === 'TERMINATED' && <p className="text-xs text-red-500 mt-1">Status cannot be changed from TERMINATED here. Use reactivate.</p>}
+                </div>
+                {/* Notification Preference */}
+                <div className="mb-6 pt-5 border-t border-slate-100">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">LMS Notification Channel</h3>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-700 mb-1 block">Notification Email (Optional)</label>
+                    <input
+                      className="w-full input max-w-lg"
+                      type="email"
+                      placeholder="e.g. personal.email@gmail.com"
+                      value={editForm.notificationEmail}
+                      onChange={e => setEditForm({ ...editForm, notificationEmail: e.target.value })}
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      If set, all LMS alerts will go to this address. Defaults to work email if empty.
+                    </p>
                   </div>
                 </div>
 
+                {/* Employment Status */}
+                <div className="mb-6 pt-5 border-t border-slate-100">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">Employment Status</h3>
+                  <select
+                    className="w-full input max-w-xs"
+                    value={editForm.employmentStatus}
+                    disabled={employee.employmentStatus === 'TERMINATED'}
+                    onChange={e => setEditForm({ ...editForm, employmentStatus: e.target.value })}
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="TERMINATED">Terminated</option>
+                  </select>
+                  {employee.employmentStatus === 'TERMINATED' && (
+                    <p className="text-xs text-red-600 mt-2">Terminated status cannot be changed.</p>
+                  )}
+                </div>
+
                 <div className="flex gap-3">
-                  <button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending} 
-                    className="btn-primary">
+                  <button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending} className="btn-primary">
                     {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                   </button>
+                  <button onClick={() => setActiveTab('Personal Details')} className="btn-secondary">Cancel</button>
                 </div>
               </motion.div>
             )}

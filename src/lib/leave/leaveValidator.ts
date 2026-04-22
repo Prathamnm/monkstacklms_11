@@ -9,8 +9,8 @@ export interface ValidationResult {
 export interface LeaveValidationInput {
   startDate: string
   endDate: string
-  startHalfDay?: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF'
-  endHalfDay?: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF'
+  startHalfDay?: 'NONE' | 'HALF_DAY'
+  endHalfDay?: 'NONE' | 'HALF_DAY'
   existingLeaves: Array<{ startDate: Date | string; endDate: Date | string; status: string }>
   publicHolidayDates?: string[] // ISO date strings of public holidays
 }
@@ -21,8 +21,8 @@ export interface LeaveValidationInput {
 export function calculateLeaveDays(
   start: Date,
   end: Date,
-  startHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF' = 'NONE',
-  endHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF' = 'NONE',
+  startHalfDay: 'NONE' | 'HALF_DAY' = 'NONE',
+  endHalfDay: 'NONE' | 'HALF_DAY' = 'NONE',
   publicHolidayDates: string[] = []
 ): number {
   const holidaySet = new Set(publicHolidayDates.map((d) => new Date(d).toDateString()))
@@ -48,10 +48,10 @@ export function calculateLeaveDays(
   const endIsWorkday = !isWeekend(end) && !holidaySet.has(endDateStr)
   const isSameDay = startDateStr === endDateStr
 
-  if (startHalfDay !== 'NONE' && startIsWorkday) {
+  if (startHalfDay === 'HALF_DAY' && startIsWorkday) {
     count -= 0.5
   }
-  if (!isSameDay && endHalfDay !== 'NONE' && endIsWorkday) {
+  if (!isSameDay && endHalfDay === 'HALF_DAY' && endIsWorkday) {
     count -= 0.5
   }
 
@@ -63,8 +63,8 @@ export function validateLeaveDates(
   endDate: string,
   existingLeaves: Array<{ startDate: Date | string; endDate: Date | string; status: string }>,
   publicHolidayDates: string[] = [],
-  startHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF' = 'NONE',
-  endHalfDay: 'NONE' | 'FIRST_HALF' | 'SECOND_HALF' = 'NONE'
+  startHalfDay: 'NONE' | 'HALF_DAY' = 'NONE',
+  endHalfDay: 'NONE' | 'HALF_DAY' = 'NONE'
 ): ValidationResult {
   const errors: string[] = []
   const start = parseISO(startDate)

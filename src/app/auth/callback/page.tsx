@@ -20,6 +20,7 @@ export default function AuthCallbackPage() {
     }
 
     if (handled.current) return
+    handled.current = true
 
     async function handleCallback() {
       try {
@@ -39,8 +40,6 @@ export default function AuthCallbackPage() {
           }
           return
         }
-
-        handled.current = true
 
         // Use the ID token for verification (contains user identity claims)
         // Access tokens may not have all identity claims and will fail verification
@@ -95,7 +94,10 @@ export default function AuthCallbackPage() {
 
         if (!syncRes.ok) {
           const errorBody = await syncRes.json().catch(() => ({}))
-          throw new Error(`Sync failed: ${errorBody.error ?? syncRes.status}`)
+          const errorCode = typeof errorBody.code === 'string' ? errorBody.code : `HTTP_${syncRes.status}`
+          const errorMessage =
+            typeof errorBody.error === 'string' ? errorBody.error : String(syncRes.status)
+          throw new Error(`SYNC_FAILED:${errorCode}:${errorMessage}`)
         }
 
         const { role } = await syncRes.json()
@@ -108,10 +110,23 @@ export default function AuthCallbackPage() {
         router.replace(dashboardPath)
       } catch (err) {
         console.error('[AuthCallback] Error during auth callback:', err)
-        // Ensure no stale MSAL session remains after tenant/account rejection.
-        clearClientAuthState()
-        await instance.logoutRedirect().catch(() => undefined)
-        toast.error('Authentication failed. Please try signing in again.')
+        const message = err instanceof Error ? err.message : String(err)
+        const shouldForceLogout =
+          message.includes('Unauthorized tenant or account type') ||
+          message.includes('SYNC_FAILED:UNAUTHORIZED') ||
+          message.includes('SYNC_FAILED:USER_REMOVED_FROM_TENANT')
+
+        if (shouldForceLogout) {
+          // Ensure no stale MSAL session remains after tenant/account rejection.
+          clearClientAuthState()
+          // Do not await this redirect; when it fails it can keep this page in a spinner state.
+          instance.logoutRedirect().catch(() => undefined)
+          toast.error('Authentication failed. Please sign in with an authorized account.')
+        } else if (message.startsWith('SYNC_FAILED:')) {
+          toast.error('Sign-in completed, but server sync failed. Please check database connection and retry.')
+        } else {
+          toast.error('Authentication failed. Please try signing in again.')
+        }
         router.replace('/login')
       }
     }

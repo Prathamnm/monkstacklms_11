@@ -1,6 +1,5 @@
 import { getInitials } from '@/lib/utils/formatters'
 import { AvailabilityBadge } from './AvailabilityBadge'
-import { ProjectTag } from './ProjectTag'
 import type { EmployeeWithAvailability } from '@/types/employee'
 
 interface EmployeeCardProps {
@@ -36,13 +35,6 @@ export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {
       <div className="mt-3">
         <AvailabilityBadge status={employee.availabilityStatus} />
       </div>
-      {employee.projects && employee.projects.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {employee.projects.slice(0, 3).map((p) => (
-            <ProjectTag key={p.id} name={p.name} code={p.code} color={p.color} />
-          ))}
-        </div>
-      )}
     </div>
   )
 }

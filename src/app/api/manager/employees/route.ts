@@ -26,10 +26,6 @@ export async function GET(req: NextRequest) {
             endDate: { gte: today },
           },
         },
-        projectMemberships: {
-          where: { isActive: true },
-          include: { project: { select: { id: true, name: true, code: true, color: true } } },
-        },
       },
     })
 
@@ -48,12 +44,13 @@ export async function GET(req: NextRequest) {
       return {
         id: emp.id,
         entraObjectId: emp.entraObjectId,
-        email: emp.email,
+        email: emp.workEmail,
+        workEmail: emp.workEmail,
+        notificationEmail: emp.notificationEmail,
         displayName: emp.displayName,
         firstName: emp.firstName,
         lastName: emp.lastName,
         jobTitle: emp.jobTitle,
-        designation: emp.designation,
         profilePictureUrl: emp.profilePictureUrl,
         role: emp.role,
         employmentStatus: emp.employmentStatus,
@@ -62,7 +59,6 @@ export async function GET(req: NextRequest) {
         createdAt: emp.createdAt.toISOString(),
         updatedAt: emp.updatedAt.toISOString(),
         availabilityStatus,
-        projects: emp.projectMemberships.map((pm) => pm.project),
       }
     })
 

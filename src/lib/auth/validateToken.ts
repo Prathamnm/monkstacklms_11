@@ -2,6 +2,7 @@ import { decodeJwt, jwtVerify, createRemoteJWKSet, type JWTPayload } from 'jose'
 import type { NextRequest } from 'next/server'
 import type { TokenPayload } from '@/types/auth'
 import { prisma } from '@/lib/db/prisma'
+import { removeEmployeeAndDependencies, userExistsInAzureTenant } from '@/lib/auth/azureTenantSync'
 
 /** Server-side app id (must match the SPA registration). */
 function resolveClientId(): string {
@@ -278,28 +279,43 @@ export async function validateToken(req: NextRequest): Promise<TokenPayload> {
       throw new Error('UNAUTHORIZED')
     }
 
+    const normalizedEmail = email?.trim().toLowerCase()
     const employee = await prisma.employee.findFirst({
       where: {
         OR: [
           { entraObjectId },
-          ...(email ? [{ email: { equals: email, mode: 'insensitive' as const } }] : []),
+          ...(normalizedEmail ? [{ workEmail: { equals: normalizedEmail } }] : []),
         ],
       },
-      select: { id: true, role: true, email: true, entraObjectId: true },
+      select: { id: true, role: true, workEmail: true, entraObjectId: true },
     })
 
     if (!employee) {
       throw new Error('USER_NOT_SYNCED')
     }
 
+    const existsInAzure = await userExistsInAzureTenant({
+      entraObjectId: employee.entraObjectId,
+      email: employee.workEmail,
+    })
+    if (!existsInAzure) {
+      await removeEmployeeAndDependencies(employee.id)
+      throw new Error('USER_REMOVED_FROM_TENANT')
+    }
+
     return {
       userId: employee.id,
       role: employee.role as TokenPayload['role'],
-      email: employee.email,
+      email: employee.workEmail || '',
       entraObjectId: employee.entraObjectId,
     }
   } catch (err) {
-    if (err instanceof Error && (err.message === 'UNAUTHORIZED' || err.message === 'USER_NOT_SYNCED')) {
+    if (
+      err instanceof Error &&
+      (err.message === 'UNAUTHORIZED' ||
+        err.message === 'USER_NOT_SYNCED' ||
+        err.message === 'USER_REMOVED_FROM_TENANT')
+    ) {
       throw err
     }
     if (process.env.NODE_ENV === 'development') {

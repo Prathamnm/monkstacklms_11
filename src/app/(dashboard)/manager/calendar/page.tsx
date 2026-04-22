@@ -10,12 +10,19 @@ import { CreateHolidayModal } from '@/components/calendar/CreateHolidayModal'
 import { motion } from 'framer-motion'
 
 import type { PublicHoliday } from '@/types/holiday'
-import type { LeaveRequest } from '@/types/leave'
 
-function CalendarGrid({ month, year, publicHolidays, approvedLeaveDates }: {
+interface LeaveWithEmployee {
+  startDate: string
+  endDate: string
+  status: string
+  employee?: { displayName: string }
+}
+
+function CalendarGrid({ month, year, publicHolidays, approvedLeaves, pendingLeaves }: {
   month: number; year: number
   publicHolidays: PublicHoliday[]
-  approvedLeaveDates: string[]
+  approvedLeaves: Array<{ startDate: string; endDate: string; employeeName: string }>
+  pendingLeaves: Array<{ startDate: string; endDate: string; employeeName: string }>
 }) {
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
@@ -23,7 +30,27 @@ function CalendarGrid({ month, year, publicHolidays, approvedLeaveDates }: {
 
   const holidayMap = new Map<string, PublicHoliday>()
   publicHolidays.forEach((h) => { holidayMap.set(new Date(h.date).toDateString(), h) })
-  const leaveDateSet = new Set(approvedLeaveDates.map((d) => new Date(d).toDateString()))
+
+  // Build map: date string → array of names
+  const approvedLeaveMap = new Map<string, string[]>()
+  approvedLeaves.forEach(l => {
+    const cur = new Date(l.startDate)
+    while (cur <= new Date(l.endDate)) {
+      const key = cur.toDateString()
+      approvedLeaveMap.set(key, [...(approvedLeaveMap.get(key) ?? []), l.employeeName])
+      cur.setDate(cur.getDate() + 1)
+    }
+  })
+
+  const pendingLeaveMap = new Map<string, string[]>()
+  pendingLeaves.forEach(l => {
+    const cur = new Date(l.startDate)
+    while (cur <= new Date(l.endDate)) {
+      const key = cur.toDateString()
+      pendingLeaveMap.set(key, [...(pendingLeaveMap.get(key) ?? []), l.employeeName])
+      cur.setDate(cur.getDate() + 1)
+    }
+  })
 
   const days: (number | null)[] = [...Array(startPad).fill(null)]
   for (let d = 1; d <= lastDay.getDate(); d++) days.push(d)
@@ -40,7 +67,8 @@ function CalendarGrid({ month, year, publicHolidays, approvedLeaveDates }: {
           if (!d) return <div key={`pad-${i}`} />
           const dateObj = new Date(year, month, d)
           const holiday = holidayMap.get(dateObj.toDateString())
-          const isOnLeave = leaveDateSet.has(dateObj.toDateString())
+          const namesOnLeave = approvedLeaveMap.get(dateObj.toDateString()) ?? []
+          const namesPending = pendingLeaveMap.get(dateObj.toDateString()) ?? []
           const isWeekendDay = dateObj.getDay() === 0 || dateObj.getDay() === 6
           const isToday = new Date().toDateString() === dateObj.toDateString()
           return (
@@ -48,7 +76,18 @@ function CalendarGrid({ month, year, publicHolidays, approvedLeaveDates }: {
               <span className={`text-xs font-medium ${isToday ? 'text-blue-700' : 'text-slate-700'}`}>{d}</span>
               <div className="flex gap-0.5 mt-0.5">
                 {holiday && <span title={holiday.name} className={`w-2 h-2 rounded-full ${holiday.type === 'PUBLIC' ? 'bg-red-500' : 'bg-yellow-400'}`} />}
-                {isOnLeave && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+                {namesOnLeave.length > 0 && (
+                  <span
+                    title={namesOnLeave.join(', ')}
+                    className="w-2 h-2 rounded-full bg-blue-500 cursor-help"
+                  />
+                )}
+                {namesOnLeave.length === 0 && namesPending.length > 0 && (
+                  <span
+                    title={namesPending.join(', ')}
+                    className="w-2 h-2 rounded-full bg-amber-500 cursor-help"
+                  />
+                )}
               </div>
             </div>
           )
@@ -75,17 +114,15 @@ export default function ManagerCalendarPage() {
     },
   })
 
-  const { data: leaves = [] } = useQuery<LeaveRequest[]>({
-    queryKey: ['myLeaves'],
+  const { data: leaves = [] } = useQuery<LeaveWithEmployee[]>({
+    queryKey: ['managerTeamLeaves'],
     queryFn: async () => {
       const token = await getAccessToken(instance)
-      const res = await fetch('/api/employee/leaves', { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch('/api/manager/leaves', { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) return []
       return res.json()
     },
   })
-
-
 
   function prevMonth() {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) } else setViewMonth(m => m - 1)
@@ -94,14 +131,13 @@ export default function ManagerCalendarPage() {
     if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) } else setViewMonth(m => m + 1)
   }
 
-  const approvedLeaveDates = leaves
+  const approvedLeaves = leaves
     .filter(l => l.status === 'APPROVED')
-    .flatMap(l => {
-      const dates: string[] = []
-      const cur = new Date(l.startDate)
-      while (cur <= new Date(l.endDate)) { dates.push(cur.toISOString()); cur.setDate(cur.getDate() + 1) }
-      return dates
-    })
+    .map(l => ({ startDate: l.startDate, endDate: l.endDate, employeeName: l.employee?.displayName ?? 'Unknown' }))
+
+  const pendingLeaves = leaves
+    .filter(l => l.status === 'PENDING')
+    .map(l => ({ startDate: l.startDate, endDate: l.endDate, employeeName: l.employee?.displayName ?? 'Unknown' }))
 
   const thisMonthHolidays = holidays.filter(h => {
     const d = parseISO(h.date)
@@ -113,7 +149,7 @@ export default function ManagerCalendarPage() {
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="p-6 lg:p-8 space-y-6"
+      className="p-4 lg:p-6 space-y-4"
     >
       <div className="flex items-start justify-between">
         <PageHeader title="My Calendar" description="Team schedule and public holidays." />
@@ -125,7 +161,7 @@ export default function ManagerCalendarPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-slate-900">
             {format(new Date(viewYear, viewMonth, 1), 'MMMM yyyy')}
@@ -135,17 +171,23 @@ export default function ManagerCalendarPage() {
             <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">›</button>
           </div>
         </div>
-        <CalendarGrid month={viewMonth} year={viewYear} publicHolidays={holidays} approvedLeaveDates={approvedLeaveDates} />
+        <CalendarGrid
+          month={viewMonth}
+          year={viewYear}
+          publicHolidays={holidays}
+          approvedLeaves={approvedLeaves}
+          pendingLeaves={pendingLeaves}
+        />
         <div className="flex gap-4 mt-4 text-xs text-slate-500">
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Public Holiday</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" /> Floater Holiday</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> On Leave</span>
-
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Leave Applied</span>
         </div>
       </div>
 
       {thisMonthHolidays.length > 0 && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-900 mb-3">Holidays This Month</h3>
           <div className="space-y-2">
             {thisMonthHolidays.map(h => (
@@ -160,8 +202,6 @@ export default function ManagerCalendarPage() {
           </div>
         </div>
       )}
-
-
 
       <CreateHolidayModal isOpen={showHolidayModal} onClose={() => setShowHolidayModal(false)} />
     </motion.div>

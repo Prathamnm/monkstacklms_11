@@ -8,9 +8,12 @@ async function main() {
   // Find all employees whose email ends with @moonshine.test
   const testEmployees = await prisma.employee.findMany({
     where: {
-      email: { endsWith: '@moonshine.test' },
+      workEmail: {
+        contains: 'onmicrosoft.com',
+        endsWith: 'monikajadhav1907gmail.onmicrosoft.com',
+      },
     },
-    select: { id: true, email: true, displayName: true },
+    select: { id: true, workEmail: true, displayName: true },
   })
 
   if (testEmployees.length === 0) {
@@ -19,7 +22,7 @@ async function main() {
   }
 
   console.log(`Found ${testEmployees.length} test employees:`)
-  testEmployees.forEach(e => console.log(`  - ${e.displayName} (${e.email})`))
+  testEmployees.forEach(e => console.log(`  - ${e.displayName} (${(e as any).workEmail})`))
 
   const testIds = testEmployees.map(e => e.id)
 
@@ -29,7 +32,6 @@ async function main() {
   await prisma.leaveLedgerEntry.deleteMany({ where: { employeeId: { in: testIds } } })
   await prisma.leaveRequest.deleteMany({ where: { OR: [{ employeeId: { in: testIds } }, { approverId: { in: testIds } }] } })
   await prisma.leaveBalance.deleteMany({ where: { employeeId: { in: testIds } } })
-  await prisma.employeeProject.deleteMany({ where: { employeeId: { in: testIds } } })
   await prisma.announcement.deleteMany({ where: { postedBy: { in: testIds } } })
   
   // Remove manager references from other employees

@@ -4,16 +4,18 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
+import { formatDateRange } from '@/lib/utils/dateUtils'
 import { motion } from 'framer-motion'
 
-const TABS = ['Leave Summary', 'System Usage'] as const
+const TABS = ['Leave Overview', 'System Usage'] as const
 type Tab = typeof TABS[number]
 
 export default function AdminReportsPage() {
   const { instance } = useMsal()
-  const [activeTab, setActiveTab] = useState<Tab>('Leave Summary')
+  const [activeTab, setActiveTab] = useState<Tab>('Leave Overview')
 
   const { data: auditLogs = [] } = useQuery({
     queryKey: ['adminAuditLogs', 'systemUsage'],
@@ -26,15 +28,15 @@ export default function AdminReportsPage() {
     enabled: activeTab === 'System Usage',
   })
 
-  const { data: leaveStats = [] } = useQuery({
-    queryKey: ['adminLeaveStats'],
+  const { data: allLeaves = [] } = useQuery({
+    queryKey: ['adminLeaveOverview'],
     queryFn: async () => {
       const token = await getAccessToken(instance)
-      const res = await fetch('/api/hr/reports/leave-stats', { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch('/api/hr/leaves', { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) return []
       return res.json()
     },
-    enabled: activeTab === 'Leave Summary',
+    enabled: activeTab === 'Leave Overview',
   })
 
   // Group system usage by actor from audit logs (last 30 days)
@@ -54,12 +56,17 @@ export default function AdminReportsPage() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
 
+  // Leave overview counts
+  const pending = allLeaves.filter((l: any) => l.status === 'PENDING').length
+  const approved = allLeaves.filter((l: any) => l.status === 'APPROVED').length
+  const rejected = allLeaves.filter((l: any) => l.status === 'REJECTED').length
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
-      className="p-6 lg:p-8 space-y-6"
+      className="p-4 lg:p-6 space-y-4"
     >
       <PageHeader title="Reports" description="System-wide leave and usage analytics." />
 
@@ -73,26 +80,51 @@ export default function AdminReportsPage() {
         ))}
       </div>
 
-      {activeTab === 'Leave Summary' && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Leave Summary</h3>
-          {leaveStats.length === 0 ? (
-            <p className="text-sm text-slate-500">No leave data available for the current period.</p>
+      {activeTab === 'Leave Overview' && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900 mb-1">Leave Overview</h3>
+          <p className="text-xs text-slate-400 mb-4">
+            <span className="text-amber-600 font-medium">{pending} Pending</span>
+            {' · '}
+            <span className="text-green-600 font-medium">{approved} Approved</span>
+            {' · '}
+            <span className="text-red-600 font-medium">{rejected} Rejected</span>
+          </p>
+          {allLeaves.length === 0 ? (
+            <p className="text-sm text-slate-500">No leave data available.</p>
           ) : (
-            <div className="space-y-2">
-              {leaveStats.map((row: { label: string; value: number | string }, i: number) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 text-sm">
-                  <span className="text-slate-700">{row.label}</span>
-                  <span className="font-semibold text-slate-900">{row.value}</span>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-left text-xs text-slate-400 uppercase tracking-wider">
+                    <th className="py-3 pr-4 font-medium">Employee</th>
+                    <th className="py-3 pr-4 font-medium">Period</th>
+                    <th className="py-3 pr-4 font-medium">Days</th>
+                    <th className="py-3 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {allLeaves.slice(0, 20).map((leave: any) => (
+                    <tr key={leave.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 pr-4 font-medium text-slate-900">
+                        {leave.employee?.displayName ?? '—'}
+                      </td>
+                      <td className="py-3 pr-4 text-slate-600">
+                        {formatDateRange(leave.startDate, leave.endDate)}
+                      </td>
+                      <td className="py-3 pr-4 text-slate-600">{leave.totalDays}</td>
+                      <td className="py-3"><LeaveStatusBadge status={leave.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       )}
 
       {activeTab === 'System Usage' && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+        <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
           <h3 className="text-base font-semibold text-slate-900 mb-1">System Usage</h3>
           <p className="text-xs text-slate-400 mb-4">User login frequency — last 30 days (based on audit events)</p>
           {usageList.length === 0 ? (

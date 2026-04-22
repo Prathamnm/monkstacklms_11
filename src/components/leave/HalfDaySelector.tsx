@@ -16,6 +16,7 @@ export function HalfDaySelector({
   isSingleDay,
 }: HalfDaySelectorProps) {
   if (isSingleDay) {
+    const isHalfDay = startHalfDay !== 'NONE'
     return (
       <div className="space-y-2">
         <p className="text-sm font-medium text-slate-700">Half Day Option</p>
@@ -37,27 +38,14 @@ export function HalfDaySelector({
             <input
               type="radio"
               name="singleHalfDay"
-              checked={startHalfDay === 'FIRST_HALF'}
+              checked={startHalfDay === 'HALF_DAY'}
               onChange={() => {
-                onStartHalfDayChange('FIRST_HALF')
+                onStartHalfDayChange('HALF_DAY')
                 onEndHalfDayChange('NONE')
               }}
               className="accent-blue-600"
             />
-            <span className="text-sm text-slate-600">Morning (AM)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="singleHalfDay"
-              checked={startHalfDay === 'SECOND_HALF'}
-              onChange={() => {
-                onStartHalfDayChange('SECOND_HALF')
-                onEndHalfDayChange('NONE')
-              }}
-              className="accent-blue-600"
-            />
-            <span className="text-sm text-slate-600">Afternoon (PM)</span>
+            <span className="text-sm text-slate-600">Half Day</span>
           </label>
         </div>
       </div>
@@ -83,11 +71,11 @@ export function HalfDaySelector({
             <input
               type="radio"
               name="startHalfDay"
-              checked={startHalfDay === 'SECOND_HALF'}
-              onChange={() => onStartHalfDayChange('SECOND_HALF')}
+              checked={startHalfDay === 'HALF_DAY'}
+              onChange={() => onStartHalfDayChange('HALF_DAY')}
               className="accent-blue-600"
             />
-            <span className="text-sm text-slate-600">Afternoon only</span>
+            <span className="text-sm text-slate-600">Half Day</span>
           </label>
         </div>
       </div>
@@ -108,11 +96,11 @@ export function HalfDaySelector({
             <input
               type="radio"
               name="endHalfDay"
-              checked={endHalfDay === 'FIRST_HALF'}
-              onChange={() => onEndHalfDayChange('FIRST_HALF')}
+              checked={endHalfDay === 'HALF_DAY'}
+              onChange={() => onEndHalfDayChange('HALF_DAY')}
               className="accent-blue-600"
             />
-            <span className="text-sm text-slate-600">Morning only</span>
+            <span className="text-sm text-slate-600">Half Day</span>
           </label>
         </div>
       </div>

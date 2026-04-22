@@ -8,10 +8,10 @@ export async function GET(req: NextRequest) {
 
     const admins = await prisma.employee.findMany({
       where: { role: 'ADMIN', employmentStatus: 'ACTIVE' },
-      select: { email: true, displayName: true },
+      select: { workEmail: true, displayName: true },
     })
 
-    return NextResponse.json(admins)
+    return NextResponse.json(admins.map(a => ({ ...a, email: (a as any).workEmail })))
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown'
     if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

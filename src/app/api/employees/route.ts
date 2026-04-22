@@ -20,9 +20,8 @@ export async function GET(req: NextRequest) {
     if (search) {
       orConditions.push(
         { displayName: { contains: search, mode: 'insensitive' } },
-        { designation: { contains: search, mode: 'insensitive' } },
         { jobTitle: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } }
+        { workEmail: { contains: search, mode: 'insensitive' } }
       )
       const upper = search.toUpperCase()
       if (['EMPLOYEE', 'MANAGER', 'HR', 'ADMIN'].includes(upper)) {
@@ -49,9 +48,9 @@ export async function GET(req: NextRequest) {
       employees.map((emp) => ({
         id: emp.id,
         displayName: emp.displayName,
-        email: emp.email,
+        email: emp.workEmail,
+        workEmail: emp.workEmail,
         role: emp.role,
-        designation: emp.designation,
         jobTitle: emp.jobTitle,
         employmentStatus: emp.employmentStatus,
         profilePictureUrl: emp.profilePictureUrl,
