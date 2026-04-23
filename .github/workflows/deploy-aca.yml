@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ✅ FIXED: Use client secret login (NOT OIDC)
+      # ✅ Azure Login (FIXED)
       - name: Azure Login
         uses: azure/login@v1
         with:
