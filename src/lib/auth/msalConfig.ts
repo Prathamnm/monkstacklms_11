@@ -23,24 +23,24 @@ function resolveTenantId(runtimeEnv?: MsalRuntimeEnv): string {
 
 /**
  * OAuth redirect URI sent to Entra.
- * We use /api/auth/callback/azure-ad (registered in Entra), then immediately
- * forward to /auth/callback where handleRedirectPromise() runs.
+ * Must match the URI registered in Entra and the page where
+ * handleRedirectPromise() runs.
  */
 export function resolveRedirectUri(): string {
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api/auth/callback/azure-ad`
+    return `${window.location.origin}/auth/callback`
   }
   const raw = process.env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI?.trim() ?? ''
   if (raw) {
     try {
       const url = new URL(raw)
-      return `${url.origin}/api/auth/callback/azure-ad`
+      return `${url.origin}/auth/callback`
     } catch {
       // Ignore malformed value and use safe fallback.
     }
   }
   const nextAuthOrigin = process.env.NEXTAUTH_URL?.replace(/\/$/, '') ?? 'http://localhost:3000'
-  return `${nextAuthOrigin}/api/auth/callback/azure-ad`
+  return `${nextAuthOrigin}/auth/callback`
 }
 
 export function resolvePostLogoutRedirectUri(): string {

@@ -25,7 +25,7 @@ export default function LoginPage() {
       clearClientAuthState()
       const redirectUri =
         typeof window !== 'undefined'
-          ? `${window.location.origin}/api/auth/callback/azure-ad`
+          ? `${window.location.origin}/auth/callback`
           : undefined
       await instance.loginRedirect({
         ...loginRequest,

@@ -7,7 +7,7 @@ import { loginRequest } from './msalConfig'
 export async function getAccessToken(instance: IPublicClientApplication): Promise<string | null> {
   const redirectUri =
     typeof window !== 'undefined'
-      ? `${window.location.origin}/api/auth/callback/azure-ad`
+      ? `${window.location.origin}/auth/callback`
       : undefined
 
   const accounts = instance.getAllAccounts()
