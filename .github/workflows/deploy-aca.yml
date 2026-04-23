@@ -5,6 +5,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+env:
+  IMAGE_NAME: moonshine-lms
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ✅ Azure Login (client secret)
+      # ✅ Azure Login
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -25,28 +28,45 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      # 🔥 Build + Deploy directly from source (NO ACR)
-      - name: Build & deploy (no ACR)
+      # 🔥 Create ACR if not exists (safe)
+      - name: Ensure ACR exists
         uses: azure/cli@v2
         with:
           inlineScript: |
-            az extension add --name containerapp --upgrade
+            az acr create \
+              --name monkstackacr \
+              --resource-group lms-rg \
+              --sku Basic \
+              --location centralindia \
+              || echo "ACR already exists"
 
-            az containerapp up \
+      # 🔥 Login to ACR
+      - name: ACR Login
+        uses: azure/docker-login@v1
+        with:
+          login-server: monkstackacr.azurecr.io
+
+      # 🔥 Build & Push image
+      - name: Build and Push Docker image
+        run: |
+          docker build -t monkstackacr.azurecr.io/moonshine-lms:${{ github.sha }} .
+          docker push monkstackacr.azurecr.io/moonshine-lms:${{ github.sha }}
+
+      # 🔥 Deploy to Container App
+      - name: Deploy to Azure Container App
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az containerapp update \
               --name monkstacklms \
               --resource-group lms-rg \
-              --environment managedEnvironment-lmsrg-8258 \
-              --source . \
-              --ingress external \
-              --target-port 3000
+              --image monkstackacr.azurecr.io/moonshine-lms:${{ github.sha }}
 
-      # 🔥 Configure secrets + env vars
-      - name: Configure ACA secrets and env vars
+      # 🔥 Set secrets + env
+      - name: Configure secrets and env
         uses: azure/cli@v2
         with:
           inlineScript: |
-            az extension add --name containerapp --upgrade
-
             az containerapp secret set \
               --name monkstacklms \
               --resource-group lms-rg \
@@ -63,14 +83,6 @@ jobs:
                 NODE_ENV=production \
                 PORT=3000 \
                 NEXTAUTH_URL="${{ vars.NEXTAUTH_URL }}" \
-                NEXT_PUBLIC_AZURE_AD_CLIENT_ID="${{ vars.NEXT_PUBLIC_AZURE_AD_CLIENT_ID }}" \
-                NEXT_PUBLIC_AZURE_AD_TENANT_ID="${{ vars.NEXT_PUBLIC_AZURE_AD_TENANT_ID }}" \
-                NEXT_PUBLIC_AZURE_AD_REDIRECT_URI="${{ vars.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI }}" \
-                AZURE_AD_CLIENT_ID="${{ vars.AZURE_AD_CLIENT_ID }}" \
-                AZURE_AD_TENANT_ID="${{ vars.AZURE_AD_TENANT_ID }}" \
-                ACS_SENDER_ADDRESS="${{ vars.ACS_SENDER_ADDRESS }}" \
-                ACS_DRY_RUN=false \
-                APPLICATIONINSIGHTS_CONNECTION_STRING="${{ vars.APPLICATIONINSIGHTS_CONNECTION_STRING }}" \
                 DATABASE_URL=secretref:database-url \
                 NEXTAUTH_SECRET=secretref:nextauth-secret \
                 AZURE_AD_CLIENT_SECRET=secretref:azure-ad-client-secret \
