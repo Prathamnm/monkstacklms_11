@@ -33,6 +33,7 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            set -euo pipefail
             az acr show --name $ACR_NAME --resource-group lms-rg >/dev/null 2>&1 || \
             az acr create \
               --name $ACR_NAME \
@@ -47,6 +48,7 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            set -euo pipefail
             USERNAME=$(az acr credential show -n $ACR_NAME --query "username" -o tsv)
             PASSWORD=$(az acr credential show -n $ACR_NAME --query "passwords[0].value" -o tsv)
 
@@ -66,10 +68,28 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            set -euo pipefail
+            retry() {
+              local max_attempts="${1:-5}"
+              shift
+              local attempt=1
+              local delay=5
+              until "$@"; do
+                if [ "$attempt" -ge "$max_attempts" ]; then
+                  echo "Command failed after ${attempt} attempts: $*"
+                  return 1
+                fi
+                echo "Attempt ${attempt} failed. Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+              done
+            }
+
             USERNAME=$(az acr credential show -n $ACR_NAME --query "username" -o tsv)
             PASSWORD=$(az acr credential show -n $ACR_NAME --query "passwords[0].value" -o tsv)
 
-            az containerapp registry set \
+            retry 5 az containerapp registry set \
               --name monkstacklms \
               --resource-group lms-rg \
               --server $ACR_LOGIN_SERVER \
@@ -80,7 +100,25 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
-            az containerapp update \
+            set -euo pipefail
+            retry() {
+              local max_attempts="${1:-5}"
+              shift
+              local attempt=1
+              local delay=5
+              until "$@"; do
+                if [ "$attempt" -ge "$max_attempts" ]; then
+                  echo "Command failed after ${attempt} attempts: $*"
+                  return 1
+                fi
+                echo "Attempt ${attempt} failed. Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+              done
+            }
+
+            retry 5 az containerapp update \
               --name monkstacklms \
               --resource-group lms-rg \
               --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -89,8 +127,26 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
-            # 🔐 Set secrets
-            az containerapp secret set \
+            set -euo pipefail
+            retry() {
+              local max_attempts="${1:-6}"
+              shift
+              local attempt=1
+              local delay=5
+              until "$@"; do
+                if [ "$attempt" -ge "$max_attempts" ]; then
+                  echo "Command failed after ${attempt} attempts: $*"
+                  return 1
+                fi
+                echo "Attempt ${attempt} failed. Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+              done
+            }
+
+            # Set secrets
+            retry 6 az containerapp secret set \
               --name monkstacklms \
               --resource-group lms-rg \
               --secrets \
@@ -101,8 +157,8 @@ jobs:
                 azure-ad-tenant-id="${{ secrets.AZURE_AD_TENANT_ID }}" \
                 acs-connection-string="${{ secrets.ACS_CONNECTION_STRING }}"
 
-            # 🌍 Set environment variables
-            az containerapp update \
+            # Set environment variables
+            retry 6 az containerapp update \
               --name monkstacklms \
               --resource-group lms-rg \
               --set-env-vars \
