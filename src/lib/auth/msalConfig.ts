@@ -1,5 +1,26 @@
 import type { Configuration, RedirectRequest } from '@azure/msal-browser'
 
+type MsalRuntimeEnv = {
+  clientId?: string
+  tenantId?: string
+}
+
+function normalizeEnv(value: string | undefined): string {
+  const normalized = value?.trim() ?? ''
+  if (!normalized || normalized.toLowerCase() === 'undefined') {
+    return ''
+  }
+  return normalized
+}
+
+function resolveClientId(runtimeEnv?: MsalRuntimeEnv): string {
+  return normalizeEnv(runtimeEnv?.clientId) || normalizeEnv(process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID)
+}
+
+function resolveTenantId(runtimeEnv?: MsalRuntimeEnv): string {
+  return normalizeEnv(runtimeEnv?.tenantId) || normalizeEnv(process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID)
+}
+
 /**
  * OAuth redirect must land on a URL that runs `handleRedirectPromise()` (see /auth/callback).
  * Bare origins (e.g. http://localhost:3000) are normalized to /auth/callback so the auth
@@ -32,11 +53,17 @@ export function resolvePostLogoutRedirectUri(): string {
   return `${origin}/login`
 }
 
-export function getMsalConfiguration(): Configuration {
+export function getMsalConfiguration(runtimeEnv?: MsalRuntimeEnv): Configuration {
+  const clientId = resolveClientId(runtimeEnv)
+  const tenantId = resolveTenantId(runtimeEnv)
+  if (!clientId || !tenantId) {
+    throw new Error('Missing Azure AD configuration. Set AZURE_AD_CLIENT_ID and AZURE_AD_TENANT_ID.')
+  }
+
   return {
     auth: {
-      clientId: process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID!,
-      authority: `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID}`,
+      clientId,
+      authority: `https://login.microsoftonline.com/${tenantId}`,
       redirectUri: resolveRedirectUri(),
       postLogoutRedirectUri: resolvePostLogoutRedirectUri(),
       // Redirect URI (/auth/callback) differs from the page that starts login (/login). Leaving this

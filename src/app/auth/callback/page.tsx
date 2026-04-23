@@ -51,7 +51,10 @@ export default function AuthCallbackPage() {
         const tokenClaims = (response.idTokenClaims as Record<string, unknown> | undefined) ?? {}
         const tokenTenantId = (typeof tokenClaims.tid === 'string' ? tokenClaims.tid : '').trim()
         const tokenIdp = (typeof tokenClaims.idp === 'string' ? tokenClaims.idp : '').toLowerCase()
-        const allowedTenantId = (process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID ?? '').trim()
+        const authority = instance.getConfiguration().auth.authority ?? ''
+        const allowedTenantId = (
+          authority.match(/login\.microsoftonline\.com\/([^/]+)/i)?.[1] ?? ''
+        ).trim()
         const isMicrosoftAccount =
           tokenTenantId === '9188040d-6c67-4c5b-b112-36a304b66dad' || tokenIdp.includes('live.com')
 
