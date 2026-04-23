@@ -30,7 +30,7 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      # 🔥 Ensure ACR exists (idempotent)
+      # 🔥 Ensure ACR exists
       - name: Ensure ACR exists
         uses: azure/cli@v2
         with:
@@ -42,12 +42,25 @@ jobs:
               --sku Basic \
               --location centralindia
 
-      # 🔥 FIXED: Login to ACR via Azure CLI (no username/password needed)
-      - name: Login to ACR via Azure CLI
+            # Enable admin user
+            az acr update -n $ACR_NAME --admin-enabled true
+
+      # 🔥 Get ACR credentials
+      - name: Get ACR credentials
+        id: acr
         uses: azure/cli@v2
         with:
           inlineScript: |
-            az acr login --name $ACR_NAME
+            USERNAME=$(az acr credential show -n $ACR_NAME --query "username" -o tsv)
+            PASSWORD=$(az acr credential show -n $ACR_NAME --query "passwords[0].value" -o tsv)
+
+            echo "username=$USERNAME" >> $GITHUB_OUTPUT
+            echo "password=$PASSWORD" >> $GITHUB_OUTPUT
+
+      # 🔥 Docker login (THIS FIXES EVERYTHING)
+      - name: Docker Login
+        run: |
+          echo "${{ steps.acr.outputs.password }}" | docker login $ACR_LOGIN_SERVER -u ${{ steps.acr.outputs.username }} --password-stdin
 
       # 🔥 Build & Push image
       - name: Build and Push Docker image
