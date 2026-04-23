@@ -5,9 +5,6 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
-env:
-  IMAGE_NAME: moonshine-lms
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -16,6 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ✅ Azure Login (client secret)
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -27,20 +25,22 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      - name: Build and deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
+      # 🔥 Build + Deploy directly from source (NO ACR)
+      - name: Build & deploy (no ACR)
+        uses: azure/cli@v2
         with:
-          appSourcePath: ${{ github.workspace }}
-          registryUrl: ${{ secrets.ACR_LOGIN_SERVER }}
-          registryUsername: ${{ secrets.ACR_USERNAME }}
-          registryPassword: ${{ secrets.ACR_PASSWORD }}
+          inlineScript: |
+            az extension add --name containerapp --upgrade
 
-          containerAppName: monkstacklms
-          resourceGroup: lms-rg
-          containerAppEnvironment: managedEnvironment-lmsrg-825
+            az containerapp up \
+              --name monkstacklms \
+              --resource-group lms-rg \
+              --environment managedEnvironment-lmsrg-8258 \
+              --source . \
+              --ingress external \
+              --target-port 3000
 
-          imageToBuild: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
+      # 🔥 Configure secrets + env vars
       - name: Configure ACA secrets and env vars
         uses: azure/cli@v2
         with:
@@ -48,8 +48,8 @@ jobs:
             az extension add --name containerapp --upgrade
 
             az containerapp secret set \
-              --name "monkstacklms" \
-              --resource-group "lms-rg" \
+              --name monkstacklms \
+              --resource-group lms-rg \
               --secrets \
                 database-url="${{ secrets.DATABASE_URL }}" \
                 nextauth-secret="${{ secrets.NEXTAUTH_SECRET }}" \
@@ -57,8 +57,8 @@ jobs:
                 acs-connection-string="${{ secrets.ACS_CONNECTION_STRING }}"
 
             az containerapp update \
-              --name "monkstacklms" \
-              --resource-group "lms-rg" \
+              --name monkstacklms \
+              --resource-group lms-rg \
               --set-env-vars \
                 NODE_ENV=production \
                 PORT=3000 \
