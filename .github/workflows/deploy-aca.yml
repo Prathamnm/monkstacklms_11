@@ -16,7 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ✅ Azure Login (client secret)
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -28,24 +27,20 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      # ✅ FIXED: Deploy to EXISTING container app
       - name: Build and deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}
-
           registryUrl: ${{ secrets.ACR_LOGIN_SERVER }}
           registryUsername: ${{ secrets.ACR_USERNAME }}
           registryPassword: ${{ secrets.ACR_PASSWORD }}
 
-          # 🔥 HARDCODED (IMPORTANT)
           containerAppName: monkstacklms
           resourceGroup: lms-rg
           containerAppEnvironment: managedEnvironment-lmsrg-825
 
           imageToBuild: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # ✅ FIXED: Use SAME app + RG (no vars)
       - name: Configure ACA secrets and env vars
         uses: azure/cli@v2
         with:
