@@ -86,11 +86,8 @@ jobs:
             az containerapp update \
               --name monkstacklms \
               --resource-group lms-rg \
-              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-              --registry-server $ACR_LOGIN_SERVER \
-              --registry-username $USERNAME \
-              --registry-password $PASSWORD
-
+              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} 
+              
       - name: Configure secrets and env
         uses: azure/cli@v2
         with:
