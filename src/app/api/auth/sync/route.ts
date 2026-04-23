@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Role } from '@prisma/client'
+import { Prisma, Role } from '@prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { verifyIdTokenFromRequest } from '@/lib/auth/validateToken'
 import { userExistsInAzureTenant } from '@/lib/auth/azureTenantSync'
@@ -19,6 +19,14 @@ function pickHighestPrivilegeRole(roles: Role[]): Role {
   if (roles.includes('HR')) return 'HR'
   if (roles.includes('MANAGER')) return 'MANAGER'
   return DEFAULT_ROLE
+}
+
+function isPrismaKnownError(err: unknown): err is Prisma.PrismaClientKnownRequestError {
+  return err instanceof Prisma.PrismaClientKnownRequestError
+}
+
+function toErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 async function resolveRoleFromEntraGroups(entraObjectId: string): Promise<Role | null> {
@@ -156,19 +164,49 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const employee = existingUser 
-      ? await prisma.employee.update({
-          where: { id: existingUser.id },
-          data: coreUserData,
-          select: { id: true, role: true, employmentStatus: true },
-        })
-      : await prisma.employee.create({
+    let employee
+    if (existingUser) {
+      employee = await prisma.employee.update({
+        where: { id: existingUser.id },
+        data: coreUserData,
+        select: { id: true, role: true, employmentStatus: true },
+      })
+    } else {
+      try {
+        employee = await prisma.employee.create({
           data: {
             ...coreUserData,
             entraObjectId,
           },
           select: { id: true, role: true, employmentStatus: true },
         })
+      } catch (createErr) {
+        // Resolve races/legacy duplicates by retrying as update when unique constraints trip.
+        if (isPrismaKnownError(createErr) && createErr.code === 'P2002') {
+          const conflicted = await prisma.employee.findFirst({
+            where: {
+              OR: [{ entraObjectId }, { workEmail: { equals: normalizedEmail } }],
+            },
+            select: { id: true },
+          })
+
+          if (!conflicted) {
+            throw createErr
+          }
+
+          employee = await prisma.employee.update({
+            where: { id: conflicted.id },
+            data: {
+              ...coreUserData,
+              entraObjectId,
+            },
+            select: { id: true, role: true, employmentStatus: true },
+          })
+        } else {
+          throw createErr
+        }
+      }
+    }
 
     // Backfill optional profile fields without blocking sign-in on older DB schemas.
     try {
@@ -244,6 +282,42 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     console.error('[/api/auth/sync] Error:', err)
-    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 })
+    if (isPrismaKnownError(err)) {
+      if (err.code === 'P1001' || err.code === 'P1002') {
+        return NextResponse.json(
+          { error: 'Database is unavailable. Please try again shortly.', code: 'DB_UNREACHABLE' },
+          { status: 503 }
+        )
+      }
+      if (err.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'User sync conflict detected. Please retry sign-in.', code: 'SYNC_CONFLICT' },
+          { status: 409 }
+        )
+      }
+      return NextResponse.json(
+        { error: `Database error (${err.code})`, code: 'DB_ERROR' },
+        { status: 500 }
+      )
+    }
+
+    if (err instanceof Prisma.PrismaClientInitializationError) {
+      return NextResponse.json(
+        { error: 'Database initialization failed. Check DATABASE_URL and SSL settings.', code: 'DB_INIT_ERROR' },
+        { status: 503 }
+      )
+    }
+
+    if (err instanceof Prisma.PrismaClientUnknownRequestError) {
+      return NextResponse.json(
+        { error: 'Unexpected database error during sign-in sync.', code: 'DB_UNKNOWN_ERROR' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(
+      { error: `Internal server error: ${toErrorMessage(err)}`, code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    )
   }
 }
