@@ -76,22 +76,20 @@ jobs:
               --username $USERNAME \
               --password $PASSWORD
 
-      - name: Deploy to Azure Container App (FINAL FIX)
+      - name: Deploy to Azure Container App
         uses: azure/cli@v2
         with:
           inlineScript: |
-            USERNAME=$(az acr credential show -n $ACR_NAME --query "username" -o tsv)
-            PASSWORD=$(az acr credential show -n $ACR_NAME --query "passwords[0].value" -o tsv)
-
             az containerapp update \
               --name monkstacklms \
               --resource-group lms-rg \
-              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} 
-              
+              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
       - name: Configure secrets and env
         uses: azure/cli@v2
         with:
           inlineScript: |
+            # 🔐 Set secrets
             az containerapp secret set \
               --name monkstacklms \
               --resource-group lms-rg \
@@ -99,8 +97,11 @@ jobs:
                 database-url="${{ secrets.DATABASE_URL }}" \
                 nextauth-secret="${{ secrets.NEXTAUTH_SECRET }}" \
                 azure-ad-client-secret="${{ secrets.AZURE_AD_CLIENT_SECRET }}" \
+                azure-ad-client-id="${{ secrets.AZURE_AD_CLIENT_ID }}" \
+                azure-ad-tenant-id="${{ secrets.AZURE_AD_TENANT_ID }}" \
                 acs-connection-string="${{ secrets.ACS_CONNECTION_STRING }}"
 
+            # 🌍 Set environment variables
             az containerapp update \
               --name monkstacklms \
               --resource-group lms-rg \
@@ -111,4 +112,6 @@ jobs:
                 DATABASE_URL=secretref:database-url \
                 NEXTAUTH_SECRET=secretref:nextauth-secret \
                 AZURE_AD_CLIENT_SECRET=secretref:azure-ad-client-secret \
+                AZURE_AD_CLIENT_ID=secretref:azure-ad-client-id \
+                AZURE_AD_TENANT_ID=secretref:azure-ad-tenant-id \
                 ACS_CONNECTION_STRING=secretref:acs-connection-string
