@@ -83,7 +83,7 @@ export default function HRAuditPage() {
                   </span>
                   {log.target && (
                     <span className="text-slate-500 text-sm hidden md:block">
-                      -> {log.target.displayName}
+                      {'->'} {log.target.displayName}
                     </span>
                   )}
                   {expandedId === log.id ? (
