@@ -17,6 +17,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Allow unauthenticated runtime auth bootstrap config.
+  if (pathname === '/api/auth/msal-config') {
+    return NextResponse.next()
+  }
+
   // Allow static files and Next.js internals
   if (
     pathname.startsWith('/_next') ||
