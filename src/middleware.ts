@@ -24,6 +24,9 @@ export function middleware(request: NextRequest) {
   if (pathname === '/api/auth/callback/azure-ad') {
     return NextResponse.next()
   }
+  if (pathname === '/api/health/ready' || pathname === '/api/health/live') {
+    return NextResponse.next()
+  }
 
   // Allow static files and Next.js internals
   if (
