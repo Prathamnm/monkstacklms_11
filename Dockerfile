@@ -1,9 +1,9 @@
-FROM node:20-alpine AS base
+FROM node:20-bookworm-slim AS base
 
 # Install dependencies only when needed
-# libc6-compat is needed for Prisma/OpenSSL in alpine
 FROM base AS deps
-RUN apk add --no-cache libc6-compat openssl openssl1.1-compat
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -34,8 +34,8 @@ ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
 ENV HOSTNAME 0.0.0.0
 
-# Prisma engine compatibility on alpine (some generated engines still require OpenSSL 1.1)
-RUN apk add --no-cache libc6-compat openssl openssl1.1-compat
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
