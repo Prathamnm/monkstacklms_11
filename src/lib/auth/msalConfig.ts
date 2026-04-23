@@ -22,9 +22,9 @@ function resolveTenantId(runtimeEnv?: MsalRuntimeEnv): string {
 }
 
 /**
- * OAuth redirect must land on a URL that runs `handleRedirectPromise()` (see /auth/callback).
- * Bare origins (e.g. http://localhost:3000) are normalized to /auth/callback so the auth
- * response is not lost and middleware does not strip the flow.
+ * OAuth redirect URI sent to Entra.
+ * We use /api/auth/callback/azure-ad (registered in Entra), then immediately
+ * forward to /auth/callback where handleRedirectPromise() runs.
  */
 export function resolveRedirectUri(): string {
   const raw = process.env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI?.trim() ?? ''
@@ -32,7 +32,7 @@ export function resolveRedirectUri(): string {
     try {
       const url = new URL(raw)
       if (url.pathname === '/' || url.pathname === '') {
-        return `${url.origin}/auth/callback`
+        return `${url.origin}/api/auth/callback/azure-ad`
       }
       return raw.replace(/\/$/, '')
     } catch {
@@ -40,9 +40,9 @@ export function resolveRedirectUri(): string {
     }
   }
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/auth/callback`
+    return `${window.location.origin}/api/auth/callback/azure-ad`
   }
-  return 'http://localhost:3000/auth/callback'
+  return 'http://localhost:3000/api/auth/callback/azure-ad'
 }
 
 export function resolvePostLogoutRedirectUri(): string {
