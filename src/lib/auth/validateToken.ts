@@ -290,13 +290,27 @@ export async function validateToken(req: NextRequest): Promise<TokenPayload> {
       throw new Error('USER_NOT_SYNCED')
     }
 
-    const existsInAzure = await userExistsInAzureTenant({
-      entraObjectId: employee.entraObjectId,
-      email: employee.workEmail,
-    })
-    if (!existsInAzure) {
-      await removeEmployeeAndDependencies(employee.id)
-      throw new Error('USER_REMOVED_FROM_TENANT')
+    try {
+      const existsInAzure = await userExistsInAzureTenant({
+        entraObjectId: employee.entraObjectId,
+        email: employee.workEmail,
+      })
+      if (!existsInAzure) {
+        await removeEmployeeAndDependencies(employee.id)
+        throw new Error('USER_REMOVED_FROM_TENANT')
+      }
+    } catch (azureCheckErr) {
+      if (azureCheckErr instanceof Error && azureCheckErr.message === 'USER_REMOVED_FROM_TENANT') {
+        throw azureCheckErr
+      }
+      // Keep API access available when app-only Graph check is misconfigured or transiently down.
+      // JWT signature + tenant validation above still gate authentication.
+      console.warn('[auth] Azure existence check failed during validateToken; continuing with verified token:', {
+        userId: employee.id,
+        entraObjectId: employee.entraObjectId,
+        email: employee.workEmail,
+        error: azureCheckErr instanceof Error ? azureCheckErr.message : String(azureCheckErr),
+      })
     }
 
     return {

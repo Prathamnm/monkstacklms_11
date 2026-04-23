@@ -60,15 +60,25 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}))
     const jobTitle = (body.jobTitle as string | undefined) ?? claimJobTitle
 
-    const existsInAzure = await userExistsInAzureTenant({
-      entraObjectId,
-      email: normalizedEmail,
-    })
-    if (!existsInAzure) {
-      return NextResponse.json(
-        { error: 'User no longer exists in Azure tenant', code: 'USER_REMOVED_FROM_TENANT' },
-        { status: 401 }
-      )
+    try {
+      const existsInAzure = await userExistsInAzureTenant({
+        entraObjectId,
+        email: normalizedEmail,
+      })
+      if (!existsInAzure) {
+        return NextResponse.json(
+          { error: 'User no longer exists in Azure tenant', code: 'USER_REMOVED_FROM_TENANT' },
+          { status: 401 }
+        )
+      }
+    } catch (azureCheckErr) {
+      // Do not block sign-in when app-only Graph checks are temporarily unavailable.
+      // The ID token is already verified against tenant + signature.
+      console.warn('[/api/auth/sync] Azure existence check failed (continuing with token-verified identity):', {
+        entraObjectId,
+        email: normalizedEmail,
+        error: azureCheckErr instanceof Error ? azureCheckErr.message : String(azureCheckErr),
+      })
     }
 
     console.log('[/api/auth/sync] Azure login user:', { entraObjectId, email: normalizedEmail, displayName })
