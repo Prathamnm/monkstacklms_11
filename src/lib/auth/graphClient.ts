@@ -9,10 +9,8 @@ export function createGraphClient(accessToken: string): Client {
 }
 
 export async function getAppAccessToken(): Promise<string> {
-  const tenantId =
-    process.env.AZURE_AD_TENANT_ID?.trim() || process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID?.trim()
-  const clientId =
-    process.env.AZURE_AD_CLIENT_ID?.trim() || process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID?.trim()
+  const tenantId = process.env.AZURE_AD_TENANT_ID?.trim()
+  const clientId = process.env.AZURE_AD_CLIENT_ID?.trim()
   const clientSecret = process.env.AZURE_AD_CLIENT_SECRET?.trim()
 
   if (!tenantId || !clientId || !clientSecret) {

@@ -6,10 +6,10 @@ import { removeEmployeeAndDependencies, userExistsInAzureTenant } from '@/lib/au
 
 /** Server-side app id (must match the SPA registration). */
 function resolveClientId(): string {
-  const id = process.env.AZURE_AD_CLIENT_ID?.trim() || process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID?.trim()
+  const id = process.env.AZURE_AD_CLIENT_ID?.trim()
   if (!id) {
     console.error(
-      '[auth] Missing AZURE_AD_CLIENT_ID (and NEXT_PUBLIC_AZURE_AD_CLIENT_ID). Add the Entra application (client) ID to .env.local.'
+      '[auth] Missing AZURE_AD_CLIENT_ID. Add the Entra application (client) ID to .env.local.'
     )
     throw new Error('UNAUTHORIZED')
   }
@@ -17,17 +17,13 @@ function resolveClientId(): string {
 }
 
 function resolveFallbackTenantId(): string | null {
-  return (
-    process.env.AZURE_AD_TENANT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID?.trim() ||
-    null
-  )
+  return process.env.AZURE_AD_TENANT_ID?.trim() || null
 }
 
 function resolveAllowedTenantId(): string {
   const tenantId = resolveFallbackTenantId()
   if (!tenantId) {
-    console.error('[auth] Missing allowed tenant ID (AZURE_AD_TENANT_ID or NEXT_PUBLIC_AZURE_AD_TENANT_ID).')
+    console.error('[auth] Missing allowed tenant ID (AZURE_AD_TENANT_ID).')
     throw new Error('UNAUTHORIZED')
   }
   return tenantId

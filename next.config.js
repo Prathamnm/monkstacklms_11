@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  env: {
+    NEXT_PUBLIC_AZURE_AD_CLIENT_ID:
+      process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID || process.env.AZURE_AD_CLIENT_ID,
+    NEXT_PUBLIC_AZURE_AD_TENANT_ID:
+      process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID || process.env.AZURE_AD_TENANT_ID,
+  },
 
   // 🔥 ADD THIS (fix build failure)
   eslint: {
