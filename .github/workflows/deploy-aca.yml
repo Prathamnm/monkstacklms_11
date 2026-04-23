@@ -18,7 +18,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ✅ Azure Login
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -30,7 +29,6 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      # 🔥 Ensure ACR exists
       - name: Ensure ACR exists
         uses: azure/cli@v2
         with:
@@ -44,7 +42,6 @@ jobs:
 
             az acr update -n $ACR_NAME --admin-enabled true
 
-      # 🔥 Get ACR credentials
       - name: Get ACR credentials
         id: acr
         uses: azure/cli@v2
@@ -56,18 +53,15 @@ jobs:
             echo "username=$USERNAME" >> $GITHUB_OUTPUT
             echo "password=$PASSWORD" >> $GITHUB_OUTPUT
 
-      # 🔥 Docker login
       - name: Docker Login
         run: |
           echo "${{ steps.acr.outputs.password }}" | docker login $ACR_LOGIN_SERVER -u ${{ steps.acr.outputs.username }} --password-stdin
 
-      # 🔥 Build & Push image
       - name: Build and Push Docker image
         run: |
           docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
           docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # 🔥 CRITICAL FIX: Grant ACA access to ACR
       - name: Grant ACR access to Container App
         uses: azure/cli@v2
         with:
@@ -82,17 +76,21 @@ jobs:
               --username $USERNAME \
               --password $PASSWORD
 
-      # 🔥 Deploy to Container App
-      - name: Deploy to Azure Container App
+      - name: Deploy to Azure Container App (FINAL FIX)
         uses: azure/cli@v2
         with:
           inlineScript: |
+            USERNAME=$(az acr credential show -n $ACR_NAME --query "username" -o tsv)
+            PASSWORD=$(az acr credential show -n $ACR_NAME --query "passwords[0].value" -o tsv)
+
             az containerapp update \
               --name monkstacklms \
               --resource-group lms-rg \
-              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
+              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+              --registry-server $ACR_LOGIN_SERVER \
+              --registry-username $USERNAME \
+              --registry-password $PASSWORD
 
-      # 🔥 Set secrets + env
       - name: Configure secrets and env
         uses: azure/cli@v2
         with:
