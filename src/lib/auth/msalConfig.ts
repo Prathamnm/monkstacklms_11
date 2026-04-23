@@ -27,22 +27,20 @@ function resolveTenantId(runtimeEnv?: MsalRuntimeEnv): string {
  * forward to /auth/callback where handleRedirectPromise() runs.
  */
 export function resolveRedirectUri(): string {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api/auth/callback/azure-ad`
+  }
   const raw = process.env.NEXT_PUBLIC_AZURE_AD_REDIRECT_URI?.trim() ?? ''
   if (raw) {
     try {
       const url = new URL(raw)
-      if (url.pathname === '/' || url.pathname === '') {
-        return `${url.origin}/api/auth/callback/azure-ad`
-      }
-      return raw.replace(/\/$/, '')
+      return `${url.origin}/api/auth/callback/azure-ad`
     } catch {
-      return raw
+      // Ignore malformed value and use safe fallback.
     }
   }
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api/auth/callback/azure-ad`
-  }
-  return 'http://localhost:3000/api/auth/callback/azure-ad'
+  const nextAuthOrigin = process.env.NEXTAUTH_URL?.replace(/\/$/, '') ?? 'http://localhost:3000'
+  return `${nextAuthOrigin}/api/auth/callback/azure-ad`
 }
 
 export function resolvePostLogoutRedirectUri(): string {
