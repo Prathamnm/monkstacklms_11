@@ -7,6 +7,8 @@ on:
 
 env:
   IMAGE_NAME: moonshine-lms
+  ACR_NAME: monkstackacr
+  ACR_LOGIN_SERVER: monkstackacr.azurecr.io
 
 jobs:
   deploy:
@@ -28,29 +30,30 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      # 🔥 Create ACR if not exists (safe)
+      # 🔥 Ensure ACR exists (idempotent)
       - name: Ensure ACR exists
         uses: azure/cli@v2
         with:
           inlineScript: |
+            az acr show --name $ACR_NAME --resource-group lms-rg >/dev/null 2>&1 || \
             az acr create \
-              --name monkstackacr \
+              --name $ACR_NAME \
               --resource-group lms-rg \
               --sku Basic \
-              --location centralindia \
-              || echo "ACR already exists"
+              --location centralindia
 
-      # 🔥 Login to ACR
-      - name: ACR Login
-        uses: azure/docker-login@v1
+      # 🔥 FIXED: Login to ACR via Azure CLI (no username/password needed)
+      - name: Login to ACR via Azure CLI
+        uses: azure/cli@v2
         with:
-          login-server: monkstackacr.azurecr.io
+          inlineScript: |
+            az acr login --name $ACR_NAME
 
       # 🔥 Build & Push image
       - name: Build and Push Docker image
         run: |
-          docker build -t monkstackacr.azurecr.io/moonshine-lms:${{ github.sha }} .
-          docker push monkstackacr.azurecr.io/moonshine-lms:${{ github.sha }}
+          docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       # 🔥 Deploy to Container App
       - name: Deploy to Azure Container App
@@ -60,7 +63,7 @@ jobs:
             az containerapp update \
               --name monkstacklms \
               --resource-group lms-rg \
-              --image monkstackacr.azurecr.io/moonshine-lms:${{ github.sha }}
+              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       # 🔥 Set secrets + env
       - name: Configure secrets and env
