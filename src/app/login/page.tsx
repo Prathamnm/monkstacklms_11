@@ -23,7 +23,14 @@ export default function LoginPage() {
     try {
       // Force a fresh auth flow instead of trusting stale browser/session state.
       clearClientAuthState()
-      await instance.loginRedirect(loginRequest)
+      const redirectUri =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/api/auth/callback/azure-ad`
+          : undefined
+      await instance.loginRedirect({
+        ...loginRequest,
+        redirectUri,
+      })
     } catch (err) {
       console.error('[Login] Error:', err)
       toast.error('Failed to initiate sign-in. Please try again.')

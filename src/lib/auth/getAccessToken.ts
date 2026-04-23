@@ -5,9 +5,14 @@ import { InteractionRequiredAuthError, BrowserAuthError } from '@azure/msal-brow
 import { loginRequest } from './msalConfig'
 
 export async function getAccessToken(instance: IPublicClientApplication): Promise<string | null> {
+  const redirectUri =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/api/auth/callback/azure-ad`
+      : undefined
+
   const accounts = instance.getAllAccounts()
   if (accounts.length === 0) {
-    console.warn('[MSAL] No accounts found — user not authenticated')
+    console.warn('[MSAL] No accounts found - user not authenticated')
     return null
   }
 
@@ -15,6 +20,7 @@ export async function getAccessToken(instance: IPublicClientApplication): Promis
     // Attempt silent token acquisition first (uses refresh token / cache)
     const result = await instance.acquireTokenSilent({
       ...loginRequest,
+      redirectUri,
       account: accounts[0],
     })
     // Our API routes use validateToken() with audience = Entra app client ID. That matches the
@@ -27,16 +33,17 @@ export async function getAccessToken(instance: IPublicClientApplication): Promis
     if (err instanceof InteractionRequiredAuthError) {
       // Silent acquisition failed because user interaction is required
       // (e.g. token expired, MFA required, consent needed)
-      // Trigger redirect — this navigates the browser away, returns void
+      // Trigger redirect - this navigates the browser away, returns void
       try {
         await instance.acquireTokenRedirect({
           ...loginRequest,
+          redirectUri,
           account: accounts[0],
         })
-        // Code after this line will not execute — browser is redirecting
+        // Code after this line will not execute - browser is redirecting
         return null
       } catch (redirectErr) {
-        // interaction_in_progress: another redirect is already happening — do nothing
+        // interaction_in_progress: another redirect is already happening - do nothing
         if (
           redirectErr instanceof BrowserAuthError &&
           redirectErr.errorCode === 'interaction_in_progress'
