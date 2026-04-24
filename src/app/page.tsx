@@ -6,11 +6,10 @@ import { useMsal } from '@azure/msal-react'
 import { InteractionStatus } from '@azure/msal-browser'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { getDashboardPath } from '@/lib/utils/roleUtils'
-import { clearClientAuthState } from '@/lib/auth/clientSession'
 
 export default function RootPage() {
   const router = useRouter()
-  const { inProgress, instance } = useMsal()
+  const { inProgress } = useMsal()
   const { data, isLoading, isError } = useCurrentUser()
 
   useEffect(() => {
@@ -26,8 +25,9 @@ export default function RootPage() {
       // it might mean the bypass email isn't in the DB.
       // But mainly we need to avoid the infinite loop if we are not technically "authenticated"
       if (isError) {
-        clearClientAuthState()
-        instance.logoutRedirect().catch(() => undefined)
+        // Do NOT call logoutRedirect() here — if the error is a transient DB issue
+        // (e.g. /api/auth/me → 500), clearing the MSAL session creates a login loop.
+        // Just redirect to /login; the Azure session remains intact so the user can retry.
         router.replace('/login')
         return
       }
@@ -41,7 +41,7 @@ export default function RootPage() {
       router.replace(path)
       return
     }
-  }, [inProgress, isLoading, data, isError, router, instance])
+  }, [inProgress, isLoading, data, isError, router])
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">

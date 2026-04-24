@@ -118,33 +118,61 @@ export default function AuthCallbackPage() {
         const syncParts = isSyncFailed ? message.split(':') : []
         const syncStatus = isSyncFailed ? Number(syncParts[1] ?? '0') : 0
         const syncCode = isSyncFailed ? (syncParts[2] ?? '') : ''
+
+        // ─── CRITICAL: Only force-logout for genuine identity rejections. ───────
+        // Do NOT call logoutRedirect() for transient backend/DB errors.
+        //
+        // The logout loop was caused by this exact pattern:
+        //   Azure login OK → DB error (503/DB_INIT_ERROR) → logoutRedirect() called
+        //   → MSAL session cleared → user sent to /login → clicks Sign In
+        //   → Azure login OK → DB still down → logoutRedirect() called → infinite loop
+        //
+        // Fix: for backend/DB errors the user IS already authenticated with Azure.
+        // Preserve the MSAL session and redirect to /login so they can retry.
+        // ────────────────────────────────────────────────────────────────────────
         const shouldForceLogout =
           message.includes('Unauthorized tenant or account type') ||
-          message.includes('SYNC_FAILED:UNAUTHORIZED') ||
-          message.includes('SYNC_FAILED:USER_REMOVED_FROM_TENANT')
+          syncCode === 'UNAUTHORIZED' ||
+          syncCode === 'USER_REMOVED_FROM_TENANT'
+
         const isBackendUnavailable =
           (isSyncFailed && syncStatus === 503) ||
           syncCode === 'DB_INIT_ERROR' ||
           syncCode === 'DB_UNREACHABLE' ||
           syncCode === 'DB_UNKNOWN_ERROR'
 
+        const isNotAuthorized = syncCode === 'USER_NOT_AUTHORIZED'
+
         if (shouldForceLogout) {
-          // Ensure no stale MSAL session remains after tenant/account rejection.
+          // Real auth failure — wrong tenant or user removed from Azure tenant.
+          // Safe to wipe MSAL session.
           clearClientAuthState()
-          // Do not await this redirect; when it fails it can keep this page in a spinner state.
           instance.logoutRedirect().catch(() => undefined)
           toast.error('Authentication failed. Please sign in with an authorized account.')
+        } else if (isNotAuthorized) {
+          // Azure login succeeded but user is not in any authorized LMS group.
+          // Do NOT clear MSAL session — just inform and redirect back to login.
+          const userMsg =
+            syncParts.slice(3).join(':') ||
+            'You are not authorized. Contact your manager to be added to the LMS groups in Azure.'
+          toast.error(userMsg, { duration: 8000 })
+          router.replace('/login')
         } else if (isBackendUnavailable) {
-          // Prevent redirect loops when sign-in succeeded but DB sync cannot complete.
-          clearClientAuthState()
-          instance.logoutRedirect().catch(() => undefined)
-          toast.error('Sign-in succeeded, but the server database is unavailable. Please try again shortly.')
-        } else if (message.startsWith('SYNC_FAILED:')) {
-          toast.error('Sign-in completed, but server sync failed. Please check database connection and retry.')
+          // Database / server temporarily unreachable.
+          // The user IS authenticated with Azure — do NOT call logoutRedirect().
+          // Redirect to /login; their Azure session stays intact so retrying works.
+          toast.error(
+            'Sign-in succeeded, but the server database is temporarily unavailable. Please wait a moment and try again.',
+            { duration: 8000 }
+          )
+          router.replace('/login')
+        } else if (isSyncFailed) {
+          toast.error('Sign-in completed, but server sync failed. Please retry sign-in.')
+          router.replace('/login')
         } else {
           toast.error('Authentication failed. Please try signing in again.')
+          router.replace('/login')
         }
-        router.replace('/login')
       }
     }
 
