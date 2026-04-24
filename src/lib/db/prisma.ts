@@ -2,6 +2,14 @@ import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
+function normalizeEnvValue(value: string | undefined): string {
+  const normalized = value?.trim() ?? ''
+  if (!normalized) return ''
+  const lowered = normalized.toLowerCase()
+  if (lowered === 'undefined' || lowered === 'null') return ''
+  return normalized
+}
+
 function stripWrappingQuotes(value: string): string {
   if (
     (value.startsWith('"') && value.endsWith('"')) ||
@@ -63,7 +71,11 @@ function ensureAzureSslMode(value: string): string {
 }
 
 function resolveDatasourceUrl(): string | undefined {
-  const rawUrl = process.env.DATABASE_URL?.trim()
+  const rawUrl =
+    normalizeEnvValue(process.env.DATABASE_URL) ||
+    normalizeEnvValue(process.env.POSTGRES_PRISMA_URL) ||
+    normalizeEnvValue(process.env.POSTGRES_URL) ||
+    normalizeEnvValue(process.env.POSTGRESQLCONNSTR_DATABASE_URL)
   if (!rawUrl) return undefined
 
   const cleaned = stripAngleBrackets(stripWrappingQuotes(rawUrl))

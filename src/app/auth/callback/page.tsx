@@ -100,7 +100,7 @@ export default function AuthCallbackPage() {
           const errorCode = typeof errorBody.code === 'string' ? errorBody.code : `HTTP_${syncRes.status}`
           const errorMessage =
             typeof errorBody.error === 'string' ? errorBody.error : String(syncRes.status)
-          throw new Error(`SYNC_FAILED:${errorCode}:${errorMessage}`)
+          throw new Error(`SYNC_FAILED:${syncRes.status}:${errorCode}:${errorMessage}`)
         }
 
         const { role } = await syncRes.json()
@@ -114,10 +114,19 @@ export default function AuthCallbackPage() {
       } catch (err) {
         console.error('[AuthCallback] Error during auth callback:', err)
         const message = err instanceof Error ? err.message : String(err)
+        const isSyncFailed = message.startsWith('SYNC_FAILED:')
+        const syncParts = isSyncFailed ? message.split(':') : []
+        const syncStatus = isSyncFailed ? Number(syncParts[1] ?? '0') : 0
+        const syncCode = isSyncFailed ? (syncParts[2] ?? '') : ''
         const shouldForceLogout =
           message.includes('Unauthorized tenant or account type') ||
           message.includes('SYNC_FAILED:UNAUTHORIZED') ||
           message.includes('SYNC_FAILED:USER_REMOVED_FROM_TENANT')
+        const isBackendUnavailable =
+          (isSyncFailed && syncStatus === 503) ||
+          syncCode === 'DB_INIT_ERROR' ||
+          syncCode === 'DB_UNREACHABLE' ||
+          syncCode === 'DB_UNKNOWN_ERROR'
 
         if (shouldForceLogout) {
           // Ensure no stale MSAL session remains after tenant/account rejection.
@@ -125,6 +134,11 @@ export default function AuthCallbackPage() {
           // Do not await this redirect; when it fails it can keep this page in a spinner state.
           instance.logoutRedirect().catch(() => undefined)
           toast.error('Authentication failed. Please sign in with an authorized account.')
+        } else if (isBackendUnavailable) {
+          // Prevent redirect loops when sign-in succeeded but DB sync cannot complete.
+          clearClientAuthState()
+          instance.logoutRedirect().catch(() => undefined)
+          toast.error('Sign-in succeeded, but the server database is unavailable. Please try again shortly.')
         } else if (message.startsWith('SYNC_FAILED:')) {
           toast.error('Sign-in completed, but server sync failed. Please check database connection and retry.')
         } else {

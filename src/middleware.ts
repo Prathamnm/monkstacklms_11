@@ -58,12 +58,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Redirect bare root to login
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // All other page routes (dashboard routes) — allow through.
+  // Allow all page routes through.
   // Client-side auth guard in (dashboard)/layout.tsx handles authentication
   // and role-based redirection for page routes.
   return NextResponse.next()
