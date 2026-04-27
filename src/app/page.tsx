@@ -13,25 +13,14 @@ export default function RootPage() {
   const { data, isLoading, isError } = useCurrentUser()
 
   useEffect(() => {
-    // Wait for MSAL to finish any in-progress interaction (login, token refresh, etc.)
-    // before making any routing decisions
     if (inProgress !== InteractionStatus.None) return
 
     if (!data?.user) {
-      // Still fetching user data — wait
       if (isLoading) return
-
-      // In dev bypass mode, if we reach here and there's an error/no data, 
-      // it might mean the bypass email isn't in the DB.
-      // But mainly we need to avoid the infinite loop if we are not technically "authenticated"
       if (isError) {
-        // Do NOT call logoutRedirect() here — if the error is a transient DB issue
-        // (e.g. /api/auth/me → 500), clearing the MSAL session creates a login loop.
-        // Just redirect to /login; the Azure session remains intact so the user can retry.
-        router.replace('/login')
+        router.replace('/login?reason=unauthorized')
         return
       }
-      // If not authenticated by MSAL, go to login
       router.replace('/login')
       return
     }
