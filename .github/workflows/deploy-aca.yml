@@ -1,0 +1,173 @@
+name: Deploy Azure Container Apps
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: moonshine-lms
+  ACR_NAME: monkstackacr
+  ACR_LOGIN_SERVER: monkstackacr.azurecr.io
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Ensure ACR exists
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            az acr show --name $ACR_NAME --resource-group lms-rg >/dev/null 2>&1 || \
+            az acr create \
+              --name $ACR_NAME \
+              --resource-group lms-rg \
+              --sku Basic \
+              --location centralindia
+
+            az acr update -n $ACR_NAME --admin-enabled true
+
+      - name: Get ACR credentials
+        id: acr
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            USERNAME=$(az acr credential show -n $ACR_NAME --query "username" -o tsv)
+            PASSWORD=$(az acr credential show -n $ACR_NAME --query "passwords[0].value" -o tsv)
+
+            echo "username=$USERNAME" >> $GITHUB_OUTPUT
+            echo "password=$PASSWORD" >> $GITHUB_OUTPUT
+
+      - name: Docker Login
+        run: |
+          echo "${{ steps.acr.outputs.password }}" | docker login $ACR_LOGIN_SERVER -u ${{ steps.acr.outputs.username }} --password-stdin
+
+      - name: Build and Push Docker image
+        run: |
+          docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Grant ACR access to Container App
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            retry() {
+              local max_attempts="${1:-5}"
+              shift
+              local attempt=1
+              local delay=5
+              until "$@"; do
+                if [ "$attempt" -ge "$max_attempts" ]; then
+                  echo "Command failed after ${attempt} attempts: $*"
+                  return 1
+                fi
+                echo "Attempt ${attempt} failed. Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+              done
+            }
+
+            USERNAME=$(az acr credential show -n $ACR_NAME --query "username" -o tsv)
+            PASSWORD=$(az acr credential show -n $ACR_NAME --query "passwords[0].value" -o tsv)
+
+            retry 5 az containerapp registry set \
+              --name monkstacklms \
+              --resource-group lms-rg \
+              --server $ACR_LOGIN_SERVER \
+              --username $USERNAME \
+              --password $PASSWORD
+
+      - name: Deploy to Azure Container App
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            retry() {
+              local max_attempts="${1:-5}"
+              shift
+              local attempt=1
+              local delay=5
+              until "$@"; do
+                if [ "$attempt" -ge "$max_attempts" ]; then
+                  echo "Command failed after ${attempt} attempts: $*"
+                  return 1
+                fi
+                echo "Attempt ${attempt} failed. Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+              done
+            }
+
+            retry 5 az containerapp update \
+              --name monkstacklms \
+              --resource-group lms-rg \
+              --image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Configure secrets and env
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            retry() {
+              local max_attempts="${1:-6}"
+              shift
+              local attempt=1
+              local delay=5
+              until "$@"; do
+                if [ "$attempt" -ge "$max_attempts" ]; then
+                  echo "Command failed after ${attempt} attempts: $*"
+                  return 1
+                fi
+                echo "Attempt ${attempt} failed. Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+              done
+            }
+
+            # Set secrets
+            retry 6 az containerapp secret set \
+              --name monkstacklms \
+              --resource-group lms-rg \
+              --secrets \
+                database-url="${{ secrets.DATABASE_URL }}" \
+                nextauth-secret="${{ secrets.NEXTAUTH_SECRET }}" \
+                azure-ad-client-secret="${{ secrets.AZURE_AD_CLIENT_SECRET }}" \
+                azure-ad-client-id="${{ secrets.AZURE_AD_CLIENT_ID }}" \
+                azure-ad-tenant-id="${{ secrets.AZURE_AD_TENANT_ID }}" \
+                acs-connection-string="${{ secrets.ACS_CONNECTION_STRING }}"
+
+            # Set environment variables
+            retry 6 az containerapp update \
+              --name monkstacklms \
+              --resource-group lms-rg \
+              --set-env-vars \
+                NODE_ENV=production \
+                PORT=3000 \
+                NEXTAUTH_URL="${{ vars.NEXTAUTH_URL }}" \
+                DATABASE_URL=secretref:database-url \
+                NEXTAUTH_SECRET=secretref:nextauth-secret \
+                AZURE_AD_CLIENT_SECRET=secretref:azure-ad-client-secret \
+                AZURE_AD_CLIENT_ID=secretref:azure-ad-client-id \
+                AZURE_AD_TENANT_ID=secretref:azure-ad-tenant-id \
+                ACS_CONNECTION_STRING=secretref:acs-connection-string

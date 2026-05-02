@@ -1,0 +1,75 @@
+{
+  "name": "monkstack-hrm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "ts-node --project tsconfig.json prisma/seed.ts",
+    "db:reset": "prisma migrate reset",
+    "db: studio": "prisma studio",
+    "db:cleanup-test": "ts-node --project tsconfig.json scripts/cleanup-test-users.ts"
+  },
+  "dependencies": {
+    "@azure/communication-email": "^1.1.0",
+    "@azure/msal-browser": "^3.27.0",
+    "@azure/msal-react": "^2.1.1",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@prisma/client": "^5.22.0",
+    "@tanstack/react-query": "^5.62.16",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "csv-stringify": "^6.5.2",
+    "date-fns": "^3.6.0",
+    "framer-motion": "^11.15.0",
+    "jose": "^5.9.6",
+    "lottie-react": "^2.4.1",
+    "lucide-react": "^0.468.0",
+    "next": "14.2.29",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.16",
+    "react": "^18",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18",
+    "react-hook-form": "^7.54.2",
+    "react-hot-toast": "^2.4.1",
+    "recharts": "^2.15.0",
+    "tailwind-merge": "^2.5.5",
+    "tailwindcss-animate": "^1.0.7",
+    "three": "^0.184.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^6.4.17",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.27",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.29",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "postcss": "^8",
+    "prettier": "^3.4.2",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "ts-node --project tsconfig.json prisma/seed.ts"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
