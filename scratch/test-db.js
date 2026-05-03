@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client')
 
 async function main() {
-  const url = "postgresql://postgres:postgres@localhost:5432/postgres"
+  const url = process.env.DATABASE_URL || "postgresql://moonshine:moonshine@localhost:5433/moonshine_lms"
   console.log('Testing connection to:', url)
   const prisma = new PrismaClient({
     datasources: {
