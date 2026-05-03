@@ -22,7 +22,16 @@ export async function GET(req: NextRequest) {
 
     const approvals = await prisma.leaveRequest.findMany({
       where: {
-        ...(useAllEmployees ? {} : { managerId: token.userId }),
+        ...(!useAllEmployees && teamIds.length > 0
+          ? {
+              OR: [
+                { managerId: token.userId },
+                { AND: [{ employeeId: { in: teamIds } }, { managerId: null }] },
+              ],
+            }
+          : useAllEmployees
+          ? {}
+          : { managerId: token.userId }),
         ...(status && status !== 'ALL' ? { status: status as any } : { status: 'PENDING' }),
       },
       include: {

@@ -10,7 +10,6 @@ import {
   Calendar,
   CalendarX,
   CheckSquare,
-  ChevronRight,
   Users,
 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -460,14 +459,6 @@ export default function ManagerDashboardPage() {
 
         <div className="flex items-center gap-3 flex-shrink-0">
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{todayLabel}</span>
-          <button
-            onClick={() => router.push('/manager/profile')}
-            type="button"
-            className="inline-flex items-center gap-1"
-            style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}
-          >
-            View <ChevronRight size={14} />
-          </button>
         </div>
       </div>
 

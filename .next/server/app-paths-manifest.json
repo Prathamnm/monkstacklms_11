@@ -1,14 +1,8 @@
 {
-  "/api/notifications/route": "app/api/notifications/route.js",
-  "/api/hr/leaves/route": "app/api/hr/leaves/route.js",
-  "/api/auth/me/route": "app/api/auth/me/route.js",
-  "/api/hr/employees/route": "app/api/hr/employees/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/auth/callback/page": "app/auth/callback/page.js",
   "/login/page": "app/login/page.js",
-  "/api/auth/msal-config/route": "app/api/auth/msal-config/route.js",
-  "/(dashboard)/hr/leaves/page": "app/(dashboard)/hr/leaves/page.js",
-  "/(dashboard)/hr/leave/page": "app/(dashboard)/hr/leave/page.js",
-  "/(dashboard)/hr/reports/page": "app/(dashboard)/hr/reports/page.js",
-  "/(dashboard)/hr/audit/page": "app/(dashboard)/hr/audit/page.js",
-  "/(dashboard)/profile/page": "app/(dashboard)/profile/page.js",
-  "/(dashboard)/hr/employees/page": "app/(dashboard)/hr/employees/page.js"
+  "/(dashboard)/employee/leave/page": "app/(dashboard)/employee/leave/page.js",
+  "/(dashboard)/employee/my-team/page": "app/(dashboard)/employee/my-team/page.js",
+  "/(dashboard)/employee/dashboard/page": "app/(dashboard)/employee/dashboard/page.js"
 }

@@ -124,11 +124,17 @@ export async function POST(req: NextRequest) {
       select: { managerId: true },
     })
 
+    const resolvedManagerId = employeeData?.managerId || managerId || null
+
+    if (!resolvedManagerId) {
+      console.warn(`[/api/leave/apply] Employee ${token.userId} has no managerId set. Leave will be created but may not appear in any manager's approvals queue.`)
+    }
+
     // Create leave request
     const leave = await prisma.leaveRequest.create({
       data: {
         employeeId: token.userId,
-        managerId: employeeData?.managerId || managerId || null,
+        managerId: resolvedManagerId,
         title,
         startDate: start,
         endDate: end,

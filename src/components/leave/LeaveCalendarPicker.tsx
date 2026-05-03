@@ -92,49 +92,36 @@ export function LeaveCalendarPicker({
   )
 
   const isDayHalfDay = (day: Date): boolean => {
+    const dayStr = format(day, 'yyyy-MM-dd')
+    if (dayOverrides.some((override) => override.date === dayStr && override.type === 'half')) return true
     if (startHalfDay === 'HALF_DAY' && selected?.from && isSameDay(day, selected.from)) return true
     if (endHalfDay === 'HALF_DAY' && selected?.to && isSameDay(day, selected.to)) return true
-    
-    const dayStr = format(day, 'yyyy-MM-dd')
-    return dayOverrides.some((override) => override.date === dayStr && override.type === 'half')
+    return false
   }
 
 
   const handleDayClick = (date: Date, modifiers: any) => {
     if (modifiers.disabled || modifiers.outside) return
-
-    // Guard: no range selected yet or just one date selected
     if (!selected?.from || !selected?.to) {
-      // Clear overrides if selecting a new range
       onDayOverrideChange?.([])
       return
     }
 
     const dateStr = format(date, 'yyyy-MM-dd')
-    const startStr = format(selected.from, 'yyyy-MM-dd')
-    const endStr = format(selected.to, 'yyyy-MM-dd')
+    const isWithin = date >= selected.from && date <= selected.to
+    if (!isWithin) return
+    if (isWeekend(date)) return
 
-    // Rule: only inner dates (not the endpoints) can be toggled via click
-    if (dateStr !== startStr && dateStr !== endStr) {
-      const isWithin = date >= selected.from && date <= selected.to
-      if (isWithin) {
-        if (isWeekend(date)) return // Weekend should not be toggled
+    const newOverrides = [...dayOverrides]
+    const existingIndex = newOverrides.findIndex((o) => o.date === dateStr)
 
-        const newOverrides = [...dayOverrides]
-        const existingIndex = newOverrides.findIndex((o) => o.date === dateStr)
-
-        if (existingIndex >= 0) {
-          newOverrides.splice(existingIndex, 1)
-        } else {
-          newOverrides.push({ date: dateStr, type: 'half' })
-        }
-
-        onDayOverrideChange?.(newOverrides)
-      }
+    if (existingIndex >= 0) {
+      newOverrides.splice(existingIndex, 1)
     } else {
-      // Clicking endpoint — DayPicker handles range reset, we clear overrides
-      onDayOverrideChange?.([])
+      newOverrides.push({ date: dateStr, type: 'half' })
     }
+
+    onDayOverrideChange?.(newOverrides)
   }
 
   // Calculate original business days count
@@ -220,12 +207,14 @@ export function LeaveCalendarPicker({
           halfDay: (day) => {
             if (!selected?.from || !selected?.to) return false
             const dStr = format(day, 'yyyy-MM-dd')
+            // Check overrides first (click-based, works for all dates including start/end)
+            if (dayOverrides.some(o => o.date === dStr && o.type === 'half')) return true
+            // Fallback to prop-based (from the sidebar radio buttons)
             const startStr = format(selected.from, 'yyyy-MM-dd')
             const endStr = format(selected.to, 'yyyy-MM-dd')
-            
             if (dStr === startStr) return startHalfDay === 'HALF_DAY'
             if (dStr === endStr) return endHalfDay === 'HALF_DAY'
-            return dayOverrides.some(o => o.date === dStr && o.type === 'half')
+            return false
           },
           weekend: (day) => day.getDay() === 0 || day.getDay() === 6,
         }}
@@ -294,7 +283,6 @@ export function LeaveCalendarPicker({
           )
         }
       />
-     />
 
       {hoveredDayInfo && (
         <div

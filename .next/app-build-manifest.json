@@ -11,36 +11,6 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/(dashboard)/employee/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/employee/dashboard/page.js"
-    ],
-    "/(dashboard)/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/layout.js"
-    ],
-    "/(dashboard)/employee/leave/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/employee/leave/page.js"
-    ],
-    "/(dashboard)/employee/my-team/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/employee/my-team/page.js"
-    ],
-    "/(dashboard)/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/profile/page.js"
-    ],
-    "/(dashboard)/employee/my-leaves/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/employee/my-leaves/page.js"
-    ],
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -51,60 +21,30 @@
       "static/chunks/main-app.js",
       "static/chunks/app/auth/callback/page.js"
     ],
-    "/(dashboard)/manager/dashboard/page": [
+    "/(dashboard)/employee/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/manager/dashboard/page.js"
+      "static/chunks/app/(dashboard)/employee/dashboard/page.js"
     ],
-    "/(dashboard)/manager/employees/page": [
+    "/(dashboard)/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/manager/employees/page.js"
+      "static/chunks/app/(dashboard)/layout.js"
     ],
-    "/(dashboard)/manager/approvals/page": [
+    "/(dashboard)/employee/my-team/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/manager/approvals/page.js"
+      "static/chunks/app/(dashboard)/employee/my-team/page.js"
     ],
-    "/(dashboard)/manager/leave/page": [
+    "/(dashboard)/employee/leave/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/manager/leave/page.js"
+      "static/chunks/app/(dashboard)/employee/leave/page.js"
     ],
-    "/(dashboard)/hr/dashboard/page": [
+    "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/hr/dashboard/page.js"
-    ],
-    "/(dashboard)/hr/employees/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/hr/employees/page.js"
-    ],
-    "/(dashboard)/hr/attendance/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/hr/attendance/page.js"
-    ],
-    "/(dashboard)/hr/leaves/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/hr/leaves/page.js"
-    ],
-    "/(dashboard)/hr/leave/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/hr/leave/page.js"
-    ],
-    "/(dashboard)/hr/reports/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/hr/reports/page.js"
-    ],
-    "/(dashboard)/hr/audit/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/hr/audit/page.js"
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

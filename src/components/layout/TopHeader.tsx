@@ -1,6 +1,5 @@
 'use client'
 
-import { Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { NotificationBell } from './NotificationBell'
 import { UserAvatar } from './UserAvatar'
@@ -8,7 +7,6 @@ import type { CurrentUser } from '@/types/auth'
 
 interface TopHeaderProps {
   user: CurrentUser
-  onToggleSidebar: () => void
 }
 
 function getPageTitle(pathname: string): string {
@@ -41,20 +39,13 @@ function getPageTitle(pathname: string): string {
   return titleMap[last] ?? (last ? last.charAt(0).toUpperCase() + last.slice(1) : 'Dashboard')
 }
 
-export function TopHeader({ user, onToggleSidebar }: TopHeaderProps) {
+export function TopHeader({ user }: TopHeaderProps) {
   const pathname = usePathname()
   const pageTitle = getPageTitle(pathname)
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10">
       <div className="flex items-center gap-4">
-        <button
-          onClick={onToggleSidebar}
-          className="text-slate-500 hover:text-slate-900 hover:bg-slate-100 p-2 rounded-lg transition-all"
-          aria-label="Toggle sidebar"
-        >
-          <Menu size={20} />
-        </button>
         <h2 className="text-slate-900 font-semibold text-base">{pageTitle}</h2>
       </div>
 

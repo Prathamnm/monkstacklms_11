@@ -20,11 +20,11 @@ export function DashboardLayout({ user, children, pendingCount = 0 }: DashboardL
         user={user}
         collapsed={sidebarCollapsed}
         pendingCount={pendingCount}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopHeader
           user={user}
-          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
         <main className="flex-1 overflow-y-auto">
           {children}
