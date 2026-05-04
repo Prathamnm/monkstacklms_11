@@ -53,13 +53,19 @@ export function LeaveCalendarPicker({
   className = '',
 }: LeaveCalendarPickerProps) {
   const [hoveredDayInfo, setHoveredDayInfo] = useState<string | null>(null)
+  // Flag to prevent onSelect from changing range when toggling half-day
+  const [isTogglingHalfDay, setIsTogglingHalfDay] = useState(false)
 
-  // Clear day overrides when date range changes
+  // Clear day overrides when date range actually changes (not on every click)
+  const [lastRangeKey, setLastRangeKey] = useState<string>('')
+  
   useEffect(() => {
-    if (selected?.from || selected?.to) {
+    const currentKey = `${selected?.from?.toISOString() || ''}-${selected?.to?.toISOString() || ''}`
+    if (currentKey !== lastRangeKey && (selected?.from || selected?.to)) {
+      setLastRangeKey(currentKey)
       onDayOverrideChange?.([])
     }
-  }, [selected?.from, selected?.to, onDayOverrideChange])
+  }, [selected?.from, selected?.to, onDayOverrideChange, lastRangeKey])
 
   const publicHolidays = useMemo(
     () => holidays.filter((h) => h.type === 'PUBLIC').map((h) => parseISO(h.date)),
@@ -100,28 +106,52 @@ export function LeaveCalendarPicker({
   }
 
 
-  const handleDayClick = (date: Date, modifiers: any) => {
+  const handleDayClick = (date: Date, modifiers: any, e?: React.MouseEvent) => {
     if (modifiers.disabled || modifiers.outside) return
-    if (!selected?.from || !selected?.to) {
-      onDayOverrideChange?.([])
-      return
-    }
+
+    const dow = date.getDay()
+    if (dow === 0 || dow === 6) return // weekend — unchanged
 
     const dateStr = format(date, 'yyyy-MM-dd')
-    const isWithin = date >= selected.from && date <= selected.to
-    if (!isWithin) return
-    if (isWeekend(date)) return
 
-    const newOverrides = [...dayOverrides]
-    const existingIndex = newOverrides.findIndex((o) => o.date === dateStr)
+    if (selected?.from && selected?.to) {
+      // Use string format for comparison — prevents timezone off-by-one bugs
+      const s = format(
+        selected.from <= selected.to ? selected.from : selected.to,
+        'yyyy-MM-dd'
+      )
+      const e_fmt = format(
+        selected.from <= selected.to ? selected.to : selected.from,
+        'yyyy-MM-dd'
+      )
 
-    if (existingIndex >= 0) {
-      newOverrides.splice(existingIndex, 1)
-    } else {
-      newOverrides.push({ date: dateStr, type: 'half' })
+      if (dateStr >= s && dateStr <= e_fmt) {
+        // INSIDE range — toggle half day only, prevent DayPicker from changing range
+        e?.preventDefault()
+        e?.stopPropagation()
+        
+        // Set flag to prevent onSelect from changing the range
+        setIsTogglingHalfDay(true)
+        
+        const newOverrides = [...dayOverrides]
+        const existingIndex = newOverrides.findIndex((o) => o.date === dateStr)
+
+        if (existingIndex >= 0) {
+          newOverrides.splice(existingIndex, 1)
+          console.log('removed half day:', dateStr)
+        } else {
+          newOverrides.push({ date: dateStr, type: 'half' })
+          console.log('added half day:', dateStr)
+        }
+
+        onDayOverrideChange?.(newOverrides)
+        return // ← MUST return to stop further processing
+      }
     }
 
-    onDayOverrideChange?.(newOverrides)
+    // Outside range or no range — start new selection, clear overrides
+    console.log('outside range, clearing overrides')
+    onDayOverrideChange?.([])
   }
 
   // Calculate original business days count
@@ -152,12 +182,24 @@ export function LeaveCalendarPicker({
     return Math.max(0.5, total)
   }, [originalCount, startHalfDay, endHalfDay, dayOverrides, selected])
 
+  // Wrapper for onSelect to prevent range changes when toggling half-day
+  const handleSelect = (range: DateRange | undefined) => {
+    if (isTogglingHalfDay) {
+      // Reset flag and don't change range - half-day was toggled instead
+      console.log('handleSelect: blocking range change due to half-day toggle')
+      setIsTogglingHalfDay(false)
+      return
+    }
+    console.log('handleSelect: allowing range change', range)
+    onSelect?.(range)
+  }
+
   return (
     <div className="leave-calendar-picker relative">
       <DayPicker
         mode="range"
         selected={selected}
-        onSelect={onSelect}
+        onSelect={handleSelect}
         month={month}
         onMonthChange={onMonthChange}
         disabled={disabled}
