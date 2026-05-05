@@ -1,0 +1,19 @@
+properties:
+  configuration:
+    activeRevisionsMode: Single
+  template:
+    containers:
+      - name: moonshine-lms
+        probes:
+          - type: Liveness
+            httpGet:
+              path: /api/health/live
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          - type: Readiness
+            httpGet:
+              path: /api/health/ready
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 20
