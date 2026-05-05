@@ -484,6 +484,14 @@ export default function HRLeavePage() {
                     <p className="text-blue-600 text-xs mt-1 ml-5">
                       Total: <strong>{totalDays} day{totalDays !== 1 ? 's' : ''}</strong>
                     </p>
+                     {dayOverrides.length > 0 && (
+                      <p className="text-blue-500 text-[11px] mt-1 ml-5">
+                        Half days: {dayOverrides
+                          .filter(o => o.type === 'half')
+                          .map(o => format(parseISO(o.date), 'd MMM'))
+                          .join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
 
