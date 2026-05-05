@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['HR', 'ADMIN'])
+    requireRole(token, ['HR'])
 
     const { id } = params
 

@@ -148,6 +148,27 @@ export async function PATCH(req: NextRequest) {
       },
     })
 
+    // Write audit log
+    const auditActionMap: Record<string, any> = {
+      APPROVED: 'LEAVE_APPROVE',
+      REJECTED: 'LEAVE_REJECT',
+      CANCELLED: 'LEAVE_CANCEL',
+      REVOKED: 'LEAVE_REVOKE'
+    }
+
+    try {
+      const { logAudit } = await import('@/lib/audit/auditLogger')
+      await logAudit(
+        auditActionMap[status] || 'LEAVE_APPROVE',
+        token.userId,
+        leave.employeeId,
+        { requestId: id, oldStatus: leave.status, newStatus: status },
+        req
+      )
+    } catch (auditErr) {
+      console.error('[Audit] Failed to log leave status change:', auditErr)
+    }
+
     return NextResponse.json({
       ...updatedLeave,
       approver: updatedLeave.approver ? { ...updatedLeave.approver, email: (updatedLeave.approver as any).workEmail } : null,

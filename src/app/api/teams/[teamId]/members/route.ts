@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db/prisma'
 export async function GET(req: NextRequest, ctx: { params: Promise<{ teamId: string }> }) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'ADMIN', 'HR'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const { teamId } = await ctx.params
     const normalizedTeamId = (teamId ?? '').trim()
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ teamId: str
     const { searchParams } = new URL(req.url)
     const status = (searchParams.get('status') ?? 'active').toLowerCase()
 
-    const where: Prisma.EmployeeWhereInput = token.role === 'ADMIN'
+    const where: Prisma.EmployeeWhereInput = token.role === 'HR'
       ? {}
       : { managerId: normalizedTeamId }
     if (status === 'active') where.employmentStatus = 'ACTIVE'

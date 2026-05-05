@@ -11,7 +11,7 @@ export interface LeaveAppliedEmailParams {
   isEmergency: boolean
   leaveId: string
   appBaseUrl: string
-  recipientRole: 'MANAGER' | 'HR' | 'ADMIN'
+  recipientRole: 'MANAGER' | 'HR'
 }
 
 export function buildLeaveAppliedEmail(params: LeaveAppliedEmailParams): { subject: string; htmlBody: string } {

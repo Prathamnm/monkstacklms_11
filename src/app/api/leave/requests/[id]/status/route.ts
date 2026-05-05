@@ -15,9 +15,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Missing status' }, { status: 400 })
     }
 
-    // Normalize status to uppercase
-    const normalizedStatus = status.toUpperCase()
-
     const validTransitions: Record<string, string[]> = {
       PENDING: ['APPROVED', 'REJECTED', 'CANCELLED'],
       APPROVED: ['REVOKED', 'CANCELLED'],
@@ -35,19 +32,19 @@ export async function PATCH(
     }
 
     const allowed = validTransitions[request.status] || []
-    if (!allowed.includes(normalizedStatus)) {
+    if (!allowed.includes(status)) {
       return NextResponse.json({
-        error: `Cannot transition from ${request.status} to ${normalizedStatus}`
+        error: `Cannot transition from ${request.status} to ${status}`
       }, { status: 400 })
     }
 
     // Permission check
-    if (normalizedStatus === 'CANCELLED') {
+    if (status === 'CANCELLED') {
       if (request.employeeId !== token.userId) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
-    } else if (['APPROVED', 'REJECTED', 'REVOKED'].includes(normalizedStatus)) {
-      if (!['MANAGER', 'HR', 'ADMIN'].includes(token.role)) {
+    } else if (['APPROVED', 'REJECTED', 'REVOKED'].includes(status)) {
+      if (!['MANAGER', 'HR'].includes(token.role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
       // Manager check
@@ -56,17 +53,17 @@ export async function PATCH(
       }
     }
 
-    const updateData: any = { status: normalizedStatus }
-    if (normalizedStatus === 'APPROVED') {
+    const updateData: any = { status }
+    if (status === 'APPROVED') {
       updateData.approvedAt = new Date()
       updateData.approverId = token.userId
-    } else if (normalizedStatus === 'REJECTED') {
+    } else if (status === 'REJECTED') {
       updateData.rejectedAt = new Date()
       updateData.approverId = token.userId
       updateData.rejectionReason = rejectionReason || null
-    } else if (normalizedStatus === 'CANCELLED') {
+    } else if (status === 'CANCELLED') {
       updateData.cancelledAt = new Date()
-    } else if (normalizedStatus === 'REVOKED') {
+    } else if (status === 'REVOKED') {
       updateData.revokedAt = new Date()
       updateData.revokedBy = token.userId
       updateData.revocationReason = rejectionReason || null
@@ -78,12 +75,19 @@ export async function PATCH(
     })
 
     // Write audit log
+    const auditActionMap: Record<string, string> = {
+      APPROVED: 'LEAVE_APPROVE',
+      REJECTED: 'LEAVE_REJECT',
+      CANCELLED: 'LEAVE_CANCEL',
+      REVOKED: 'LEAVE_REVOKE'
+    }
+
     await prisma.auditLog.create({
       data: {
-        action: `LEAVE_${normalizedStatus}` as any,
+        action: auditActionMap[status] || 'LEAVE_APPROVE',
         performedBy: token.userId,
         targetId: request.employeeId,
-        details: { requestId: id, oldStatus: request.status, newStatus: normalizedStatus },
+        details: { requestId: id, oldStatus: request.status, newStatus: status },
       }
     })
 

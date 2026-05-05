@@ -155,7 +155,7 @@ model AuditLog {
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime    @default(now())
-  performer   Employee    @relation("AuditPerformer", fields: [performedBy], references: [id])
+  performer   Employee?   @relation("AuditPerformer", fields: [performedBy], references: [id])
   target      Employee?   @relation("AuditTarget", fields: [targetId], references: [id])
 
   @@map("audit_logs")
@@ -232,7 +232,6 @@ enum Role {
   EMPLOYEE
   MANAGER
   HR
-  ADMIN
 }
 
 enum EmploymentStatus {
@@ -282,9 +281,13 @@ enum NotificationType {
 enum AuditAction {
   LEAVE_APPLY
   LEAVE_APPROVE
+  LEAVE_APPROVED
   LEAVE_REJECT
+  LEAVE_REJECTED
   LEAVE_CANCEL
+  LEAVE_CANCELLED
   LEAVE_REVOKE
+  LEAVE_REVOKED
   BALANCE_ADJUST
   EMPLOYEE_UPDATE
   RULES_UPDATE

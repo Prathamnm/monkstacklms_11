@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
     })
 
     const hrEmployees = await prisma.employee.findMany({
-      where: { role: { in: ['HR', 'ADMIN'] }, employmentStatus: 'ACTIVE' },
+      where: { role: { in: ['HR'] }, employmentStatus: 'ACTIVE' },
       select: { id: true, workEmail: true, notificationEmail: true, role: true },
     })
 
@@ -237,7 +237,7 @@ export async function POST(req: NextRequest) {
 
       const { subject, htmlBody } = buildLeaveAppliedEmail({
         ...emailBase,
-        recipientRole: hr.role as 'HR' | 'ADMIN',
+        recipientRole: hr.role as 'HR',
       })
       await sendMail({ to: [hrAddress], subject, htmlBody }).catch(console.error)
     }

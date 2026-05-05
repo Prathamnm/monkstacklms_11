@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    if (!['HR', 'ADMIN'].includes(token.role)) {
+    if (!['HR'].includes(token.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     const body = await req.json()

@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
           employmentStatus: 'ACTIVE',
           OR: [
             { managerId: token.userId },           // direct reports
-            { role: { in: ['HR', 'ADMIN'] } },    // HR and Admin
+            { role: { in: ['HR'] } },    // HR and Admin
           ],
         },
         select: { id: true, workEmail: true, notificationEmail: true, role: true },

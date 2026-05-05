@@ -5,9 +5,11 @@ import { useMsal } from '@azure/msal-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { format, parseISO } from 'date-fns'
-import { Upload, Download, Table, CheckCircle, AlertTriangle, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Upload, Download, Table, CheckCircle, AlertTriangle, X, ChevronLeft, ChevronRight, FileText, Palmtree, Trash2, Pencil, Calendar, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
+import { PoliciesSection } from '@/components/shared/PoliciesSection'
+import { HolidayManagerTab } from '@/components/shared/HolidayManagerTab'
 
 interface AttendanceRecord {
   id: string
@@ -174,7 +176,7 @@ function UploadTab() {
       <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '14px 18px' }}>
         <p style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8', marginBottom: 8 }}>📋 Required Columns</p>
         <code style={{ fontSize: 12, color: '#1D4ED8', background: '#DBEAFE', padding: '4px 10px', borderRadius: 6 }}>
-          email, date (yyyy-MM-dd), punchIn (HH:mm), punchOut (HH:mm)
+          email, date (DD-MM-YYYY or YYYY-MM-DD), punchIn (HH:mm), punchOut (HH:mm)
         </code>
         <p style={{ fontSize: 12, color: '#1D4ED8', marginTop: 8 }}>
           Accepts <strong>CSV</strong> or <strong>Excel (.xlsx)</strong>. Column headers are case-insensitive.
@@ -325,9 +327,13 @@ function UploadTab() {
 
 function RecordsTab() {
   const { instance } = useMsal()
+  const queryClient = useQueryClient()
   const [month, setMonth] = useState(format(new Date(), 'yyyy-MM'))
+  const [selectedDate, setSelectedDate] = useState<string>('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ punchIn: '', punchOut: '' })
   const PAGE_SIZE = 15
 
   const { data: records = [], isLoading } = useQuery<AttendanceRecord[]>({
@@ -342,11 +348,50 @@ function RecordsTab() {
     },
   })
 
-  const filtered = records.filter((record) =>
-    !search ||
-    record.employee?.displayName.toLowerCase().includes(search.toLowerCase()) ||
-    record.employee?.email.toLowerCase().includes(search.toLowerCase())
-  )
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, punchIn, punchOut }: { id: string; punchIn: string; punchOut: string }) => {
+      const token = await getAccessToken(instance)
+      const res = await fetch(`/api/attendance/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ punchIn, punchOut }),
+      })
+      if (!res.ok) throw new Error('Update failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] })
+      setEditingId(null)
+      toast.success('Record updated')
+    },
+    onError: (err: any) => toast.error(err.message)
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const token = await getAccessToken(instance)
+      const res = await fetch(`/api/attendance/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Delete failed')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] })
+      toast.success('Record deleted')
+    },
+    onError: (err: any) => toast.error(err.message)
+  })
+
+  const filtered = records.filter((record) => {
+    const matchesSearch = !search ||
+      record.employee?.displayName.toLowerCase().includes(search.toLowerCase()) ||
+      record.employee?.email.toLowerCase().includes(search.toLowerCase())
+    
+    const matchesDate = !selectedDate || record.date.startsWith(selectedDate)
+    
+    return matchesSearch && matchesDate
+  })
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -366,81 +411,156 @@ function RecordsTab() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={prevMonth}
-            style={{ background: 'var(--color-card-bg)', border: '1px solid var(--color-card-border)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-heading)', minWidth: 110, textAlign: 'center' }}>
-            {format(new Date(`${month}-01`), 'MMMM yyyy')}
-          </span>
-          <button
-            onClick={nextMonth}
-            style={{ background: 'var(--color-card-bg)', border: '1px solid var(--color-card-border)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-          >
-            <ChevronRight size={16} />
-          </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Search & Filter Header */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        background: 'var(--color-card-bg)',
+        border: '0.5px solid var(--color-card-border)',
+        borderRadius: 14,
+        padding: '16px 20px',
+        gap: 20,
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          {/* Month Navigation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={prevMonth}
+              style={{ background: 'var(--color-page-bg)', border: '1px solid var(--color-card-border)', borderRadius: 8, padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--color-muted)' }}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-heading)', minWidth: 120, textAlign: 'center' }}>
+              {format(new Date(`${month}-01`), 'MMMM yyyy')}
+            </span>
+            <button
+              onClick={nextMonth}
+              style={{ background: 'var(--color-page-bg)', border: '1px solid var(--color-card-border)', borderRadius: 8, padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--color-muted)' }}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          <div style={{ width: 1, height: 24, background: 'var(--color-card-border)' }} />
+
+          {/* Day Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13, color: 'var(--color-muted)', fontWeight: 500 }}>Filter by Day:</span>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value)
+                  setPage(1)
+                }}
+                style={{ 
+                  border: '1px solid var(--color-card-border)', 
+                  borderRadius: 10, 
+                  padding: '8px 12px', 
+                  fontSize: 13, 
+                  background: 'var(--color-page-bg)', 
+                  color: 'var(--color-heading)',
+                  outline: 'none',
+                  minWidth: 140
+                }}
+              />
+              {selectedDate && (
+                <button 
+                  onClick={() => setSelectedDate('')} 
+                  style={{ position: 'absolute', right: -50, background: 'none', border: 'none', cursor: 'pointer', color: '#B91C1C', fontSize: 12, fontWeight: 500 }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, flex: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <input
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
-            style={{ border: '1px solid var(--color-card-border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, width: 240, background: 'var(--color-card-bg)' }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted)' }} />
+            <input
+              placeholder="Search name or email..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+              style={{ 
+                border: '1px solid var(--color-card-border)', 
+                borderRadius: 10, 
+                padding: '10px 12px 10px 34px', 
+                fontSize: 13, 
+                width: 240, 
+                background: 'var(--color-page-bg)',
+                color: 'var(--color-heading)',
+                outline: 'none'
+              }}
+            />
+          </div>
           <button
             onClick={() => downloadCSV(filtered)}
             disabled={filtered.length === 0}
             style={{
-              background: 'var(--color-card-bg)',
-              border: '1px solid var(--color-card-border)',
-              borderRadius: 8,
-              padding: '8px 14px',
+              background: '#1D4ED8',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 10,
+              padding: '10px 18px',
               fontSize: 13,
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              color: 'var(--color-heading)',
+              gap: 8,
+              transition: 'opacity 0.2s',
+              opacity: filtered.length === 0 ? 0.5 : 1
             }}
           >
-            <Download size={15} /> Export CSV
+            <Download size={16} /> Export CSV
           </button>
         </div>
       </div>
 
+      {/* Stats Overview */}
       {!isLoading && records.length > 0 && (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {[
-            { label: 'Total Records', value: records.length, color: '#1D4ED8', bg: '#EFF6FF' },
-            { label: 'Full Days', value: records.filter((r) => (r.hoursWorked ?? 0) >= 6).length, color: '#15803D', bg: '#F0FDF4' },
-            { label: 'Half Days', value: records.filter((r) => (r.hoursWorked ?? 0) >= 3 && (r.hoursWorked ?? 0) < 6).length, color: '#B45309', bg: '#FFFBEB' },
-            { label: 'Absent / Short', value: records.filter((r) => r.hoursWorked !== null && (r.hoursWorked ?? 0) < 3).length, color: '#B91C1C', bg: '#FEF2F2' },
+            { label: 'Total Logs', value: records.length, color: '#1D4ED8', bg: '#EFF6FF', stroke: '#BFDBFE' },
+            { label: 'Active Filter', value: filtered.length, color: '#6366F1', bg: '#EEF2FF', stroke: '#C7D2FE' },
+            { label: 'Full Day Count', value: filtered.filter((r) => (r.hoursWorked ?? 0) >= 6).length, color: '#15803D', bg: '#F0FDF4', stroke: '#BBF7D0' },
+            { label: 'Half Day Count', value: filtered.filter((r) => (r.hoursWorked ?? 0) >= 3 && (r.hoursWorked ?? 0) < 6).length, color: '#B45309', bg: '#FFFBEB', stroke: '#FEF3C7' },
           ].map((card) => (
-            <div key={card.label} style={{ background: card.bg, borderRadius: 10, padding: '8px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: card.color }}>{card.value}</span>
-              <span style={{ fontSize: 12, color: card.color }}>{card.label}</span>
+            <div 
+              key={card.label} 
+              style={{ 
+                background: card.bg, 
+                border: `1px solid ${card.stroke}`,
+                borderRadius: 12, 
+                padding: '10px 16px', 
+                display: 'flex', 
+                flexDirection: 'column',
+                minWidth: 140
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: 600, color: card.color, textTransform: 'uppercase', letterSpacing: '0.02em', opacity: 0.8 }}>{card.label}</span>
+              <span style={{ fontSize: 20, fontWeight: 700, color: card.color, marginTop: 4 }}>{card.value}</span>
             </div>
           ))}
         </div>
       )}
 
-      <div style={{ background: 'var(--color-card-bg)', border: '1px solid var(--color-card-border)', borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         {isLoading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-muted)', fontSize: 14 }}>Loading records...</div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: '48px', textAlign: 'center' }}>
             <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-heading)' }}>No records found</p>
-            <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4 }}>Upload attendance data using the Upload tab to see records here.</p>
+            <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4 }}>Upload attendance data or adjust your filters.</p>
           </div>
         ) : (
           <>
@@ -448,7 +568,7 @@ function RecordsTab() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: 'var(--color-page-bg)' }}>
-                    {['Employee', 'Email', 'Date', 'Punch In', 'Punch Out', 'Hours', 'Status'].map((heading) => (
+                    {['Employee', 'Date', 'Punch In', 'Punch Out', 'Hours', 'Status', 'Actions'].map((heading) => (
                       <th key={heading} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--color-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
                         {heading}
                       </th>
@@ -458,18 +578,84 @@ function RecordsTab() {
                 <tbody>
                   {paginated.map((record, index) => {
                     const status = statusLabel(record.hoursWorked)
+                    const isEditing = editingId === record.id
+
                     return (
                       <tr key={record.id} style={{ borderTop: '1px solid var(--color-card-border)', background: index % 2 === 0 ? 'transparent' : 'var(--color-page-bg)' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 500, color: 'var(--color-heading)' }}>{record.employee?.displayName || '—'}</td>
-                        <td style={{ padding: '12px 16px', color: 'var(--color-muted)' }}>{record.employee?.email || '—'}</td>
-                        <td style={{ padding: '12px 16px', color: 'var(--color-heading)', whiteSpace: 'nowrap' }}>{record.date ? format(parseISO(record.date), 'EEE, MMM d yyyy') : '—'}</td>
-                        <td style={{ padding: '12px 16px', color: 'var(--color-heading)' }}>{record.punchIn ? format(parseISO(record.punchIn), 'hh:mm a') : '—'}</td>
-                        <td style={{ padding: '12px 16px', color: 'var(--color-heading)' }}>{record.punchOut ? format(parseISO(record.punchOut), 'hh:mm a') : '—'}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ fontWeight: 500, color: 'var(--color-heading)' }}>{record.employee?.displayName || '—'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--color-muted)' }}>{record.employee?.email || '—'}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px', color: 'var(--color-heading)', whiteSpace: 'nowrap' }}>
+                          {record.date ? format(parseISO(record.date), 'EEE, MMM d yyyy') : '—'}
+                        </td>
+                        
+                        {isEditing ? (
+                          <>
+                            <td style={{ padding: '12px 16px' }}>
+                              <input 
+                                type="datetime-local" 
+                                value={editForm.punchIn.slice(0, 16)} 
+                                onChange={e => setEditForm({ ...editForm, punchIn: e.target.value })}
+                                style={{ fontSize: 12, border: '1px solid var(--color-card-border)', borderRadius: 4, padding: '4px' }}
+                              />
+                            </td>
+                            <td style={{ padding: '12px 16px' }}>
+                              <input 
+                                type="datetime-local" 
+                                value={editForm.punchOut.slice(0, 16)} 
+                                onChange={e => setEditForm({ ...editForm, punchOut: e.target.value })}
+                                style={{ fontSize: 12, border: '1px solid var(--color-card-border)', borderRadius: 4, padding: '4px' }}
+                              />
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td style={{ padding: '12px 16px', color: 'var(--color-heading)' }}>{record.punchIn ? format(parseISO(record.punchIn), 'hh:mm a') : '—'}</td>
+                            <td style={{ padding: '12px 16px', color: 'var(--color-heading)' }}>{record.punchOut ? format(parseISO(record.punchOut), 'hh:mm a') : '—'}</td>
+                          </>
+                        )}
+
                         <td style={{ padding: '12px 16px', fontWeight: 600, color: status.color }}>{record.hoursWorked !== null && record.hoursWorked !== undefined ? `${record.hoursWorked}h` : '—'}</td>
                         <td style={{ padding: '12px 16px' }}>
                           <span style={{ background: status.bg, color: status.color, borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 600 }}>
                             {status.label}
                           </span>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                            {isEditing ? (
+                              <>
+                                <button onClick={() => updateMutation.mutate({ id: record.id, ...editForm })} style={{ background: '#1D4ED8', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Save</button>
+                                <button onClick={() => setEditingId(null)} style={{ background: '#E2E8F0', color: '#475569', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                              </>
+                            ) : (
+                              <>
+                                <button 
+                                  onClick={() => {
+                                    setEditingId(record.id)
+                                    setEditForm({ 
+                                      punchIn: record.punchIn || record.date, 
+                                      punchOut: record.punchOut || record.date 
+                                    })
+                                  }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1D4ED8', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', transition: 'background 0.2s' }} 
+                                  title="Edit"
+                                  className="hover:bg-blue-50"
+                                >
+                                  <Pencil size={15} />
+                                </button>
+                                <button 
+                                  onClick={() => { if (confirm('Delete this record?')) deleteMutation.mutate(record.id) }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B91C1C', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', transition: 'background 0.2s' }} 
+                                  title="Delete"
+                                  className="hover:bg-red-50"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
@@ -508,7 +694,8 @@ function RecordsTab() {
 }
 
 export default function HRAttendancePage() {
-  const [tab, setTab] = useState<'upload' | 'records'>('upload')
+  const [tab, setTab] = useState<'attendance' | 'policy' | 'holiday'>('attendance')
+  const [attendanceView, setAttendanceView] = useState<'upload' | 'records'>('upload')
 
   const tabStyle = (active: boolean): CSSProperties => ({
     padding: '9px 20px',
@@ -522,25 +709,74 @@ export default function HRAttendancePage() {
     transition: 'all 0.15s ease',
   })
 
+  const subTabStyle = (active: boolean): CSSProperties => ({
+    padding: '6px 16px',
+    fontSize: 13,
+    fontWeight: 500,
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer',
+    background: active ? 'var(--icon-pill-blue-bg)' : 'transparent',
+    color: active ? 'var(--icon-pill-blue-stroke)' : 'var(--color-muted)',
+    transition: 'all 0.15s ease',
+  })
+
   return (
     <div style={{ padding: '24px 32px', background: 'var(--color-page-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-heading)' }}>Attendance Management</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--color-heading)' }}>Document Uploads</h1>
         <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4 }}>
-          Upload punch-in/out data and view attendance records across your organisation.
+          Upload attendance data, policy documents, and manage public holidays.
         </p>
       </div>
 
       <div style={{ display: 'flex', gap: 4, background: 'var(--color-card-bg)', border: '1px solid var(--color-card-border)', borderRadius: 12, padding: 4, width: 'fit-content' }}>
-        <button style={tabStyle(tab === 'upload')} onClick={() => setTab('upload')}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Upload size={15} /> Upload</span>
+        <button style={tabStyle(tab === 'attendance')} onClick={() => setTab('attendance')}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Upload size={15} /> Attendance</span>
         </button>
-        <button style={tabStyle(tab === 'records')} onClick={() => setTab('records')}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Table size={15} /> Records</span>
+        <button style={tabStyle(tab === 'policy')} onClick={() => setTab('policy')}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={15} /> Policy Docs</span>
+        </button>
+        <button style={tabStyle(tab === 'holiday')} onClick={() => setTab('holiday')}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Palmtree size={15} /> Holidays</span>
         </button>
       </div>
 
-      {tab === 'upload' ? <UploadTab /> : <RecordsTab />}
+      {tab === 'attendance' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ 
+            display: 'inline-flex', 
+            background: 'var(--color-card-bg)', 
+            border: '0.5px solid var(--color-card-border)', 
+            borderRadius: 10, 
+            padding: 4,
+            width: 'fit-content'
+          }}>
+            <button 
+              style={subTabStyle(attendanceView === 'upload')} 
+              onClick={() => setAttendanceView('upload')}
+            >
+              Upload
+            </button>
+            <button 
+              style={subTabStyle(attendanceView === 'records')} 
+              onClick={() => setAttendanceView('records')}
+            >
+              View Records
+            </button>
+          </div>
+          
+          <div style={{ 
+            animation: 'fadeIn 0.3s ease-out'
+          }}>
+            {attendanceView === 'upload' ? <UploadTab /> : <RecordsTab />}
+          </div>
+        </div>
+      )}
+
+      {tab === 'policy' && <PoliciesSection canUpload={true} />}
+
+      {tab === 'holiday' && <HolidayManagerTab />}
     </div>
   )
 }

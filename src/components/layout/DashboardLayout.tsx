@@ -19,12 +19,14 @@ export function DashboardLayout({ user, children, pendingCount = 0 }: DashboardL
       <Sidebar
         user={user}
         collapsed={sidebarCollapsed}
-        pendingCount={pendingCount}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        pendingCount={pendingCount}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopHeader
           user={user}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          collapsed={sidebarCollapsed}
         />
         <main className="flex-1 overflow-y-auto">
           {children}

@@ -118,28 +118,28 @@ export default function ManagerLeavePage() {
 
   const totalDays = useMemo(() => {
     if (!range?.from) return 0
-    
     const start = range.from
     const end = range.to || range.from
-    
-    // Count business days (excluding weekends)
     const days = eachDayOfInterval({ start, end })
-    const businessDays = days.filter(day => !isWeekend(day))
-    const businessDaysCount = businessDays.length
+    const businessDaysCount = days.filter((day) => !isWeekend(day)).length
 
-    // Start/End half days (from props)
-    const startAdjust = startHalfDay === 'HALF_DAY' ? 0.5 : 0
-    const endAdjust = (!range.to || isSameDay(range.from, range.to)) ? 0 : (endHalfDay === 'HALF_DAY' ? 0.5 : 0)
-    
-    // Inner half days (from overrides)
-    const innerHalfCount = dayOverrides.filter(o => {
-      const dStr = o.date
-      const startStr = format(range.from!, 'yyyy-MM-dd')
-      const endStr = range.to ? format(range.to, 'yyyy-MM-dd') : ''
-      return dStr !== startStr && dStr !== endStr && o.type === 'half'
+    const startStr = format(start, 'yyyy-MM-dd')
+    const endStr = format(end, 'yyyy-MM-dd')
+
+    const halfDayDates = new Set<string>()
+    if (startHalfDay === 'HALF_DAY') halfDayDates.add(startStr)
+    if (endHalfDay === 'HALF_DAY' && range.to && !isSameDay(range.from, range.to)) halfDayDates.add(endStr)
+    dayOverrides.forEach(o => {
+      if (o.type === 'half') halfDayDates.add(o.date)
+    })
+
+    const halfDayCount = Array.from(halfDayDates).filter(dStr => {
+      const d = parseISO(dStr)
+      const isInRange = d >= start && d <= end
+      return isInRange && !isWeekend(d)
     }).length
 
-    const total = businessDaysCount - startAdjust - endAdjust - (innerHalfCount * 0.5)
+    const total = businessDaysCount - (halfDayCount * 0.5)
     return Math.max(0.5, total)
   }, [range, startHalfDay, endHalfDay, dayOverrides])
 
@@ -252,7 +252,7 @@ export default function ManagerLeavePage() {
         padding: '16px',
         marginBottom: '16px',
         position: 'relative',
-        zIndex: 10,
+        zIndex: 5,
       }}>
         <div style={{
           display: 'grid',
@@ -313,7 +313,7 @@ export default function ManagerLeavePage() {
             cursor: 'pointer',
           }}
         >
-          Apply for leave
+          Apply for Leave
         </button>
         <button
           onClick={() => setActiveTab('requests')}
@@ -357,7 +357,7 @@ export default function ManagerLeavePage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
             <div>
               <h3 style={{ fontWeight: 600, fontSize: 18, color: 'var(--color-heading)', margin: 0 }}>
-                Apply for Leave
+                Leave Management
               </h3>
               <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>
                 Select dates — your request is approved automatically as a manager
@@ -483,14 +483,6 @@ export default function ManagerLeavePage() {
                     <p className="text-blue-600 text-xs mt-1 ml-5">
                       Total: <strong>{totalDays} day{totalDays !== 1 ? 's' : ''}</strong>
                     </p>
-                    {dayOverrides.length > 0 && (
-                      <p className="text-blue-500 text-[11px] mt-1 ml-5">
-                        Half days: {dayOverrides
-                          .filter(o => o.type === 'half')
-                          .map(o => format(parseISO(o.date), 'd MMM'))
-                          .join(', ')}
-                      </p>
-                    )}
                   </div>
                 )}
 

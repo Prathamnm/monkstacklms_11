@@ -130,7 +130,7 @@ export default function ProfilePage() {
     >
       <PageHeader title={`Welcome, ${firstName}`} description="Your personal details, leave summary, and quick actions." />
 
-      <div style={{ display: 'grid', gap: 24, gridTemplateColumns: 'minmax(320px, 360px) 1fr' }} className="lg:grid-cols-[minmax(320px,360px)_1fr] grid-cols-1">
+      <div style={{ display: 'grid', gap: 24, gridTemplateColumns: '1fr 1fr' }} className="lg:grid-cols-2 grid-cols-1">
         {/* Identity card */}
         <section style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -173,7 +173,7 @@ export default function ProfilePage() {
 
           {/* Profile fields grid */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
               {profileFields.map((f) => (
                 <div key={f.label}>
                   <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</p>
@@ -252,7 +252,7 @@ export default function ProfilePage() {
                   Manage employees
                 </button>
               )}
-              {user.role === 'ADMIN' && (
+              {user.role === 'HR' && (
                 <button onClick={() => router.push('/hr/audit')}
                   style={{ textAlign: 'left', background: 'transparent', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '16px 20px', fontSize: 13, fontWeight: 500, color: 'var(--color-heading)', cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-page-bg)'; e.currentTarget.style.borderColor = 'var(--icon-pill-blue-stroke)' }}

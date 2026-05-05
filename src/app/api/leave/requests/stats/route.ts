@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const userId = searchParams.get('userId') || token.userId
 
     // Access control: only self or HR/Manager/Admin can view stats
-    if (userId !== token.userId && !['HR', 'MANAGER', 'ADMIN'].includes(token.role)) {
+    if (userId !== token.userId && !['MANAGER', 'HR'].includes(token.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

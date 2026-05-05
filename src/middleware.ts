@@ -42,7 +42,7 @@ export function middleware(request: NextRequest) {
   // full JWT validation happens inside each API route handler via validateToken())
   if (pathname.startsWith('/api/')) {
     if (
-      pathname === '/api/admin/users/sync' &&
+      pathname === '/api/hr/users/sync' &&
       request.headers.get('x-sync-secret')
     ) {
       return NextResponse.next()

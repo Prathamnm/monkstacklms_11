@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') ?? '50')
 
     const logs = await prisma.auditLog.findMany({
-      where: action ? { action: action as AuditAction } : {},
+      where: action ? { action: action as any } : {},
       include: {
         target: { select: { id: true, displayName: true, workEmail: true } },
         performer: { select: { id: true, displayName: true, workEmail: true } },
@@ -27,13 +27,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       logs.map((log) => ({
         ...log,
-        createdAt: log.createdAt.toISOString(),
+        createdAt: log.createdAt ? log.createdAt.toISOString() : new Date().toISOString(),
       }))
     )
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown'
-    if (message === 'UNAUTHORIZED') return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 })
-    if (message === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 })
-    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 })
+  } catch (err: any) {
+    console.error('[API/HR/AUDIT] Global Error:', err)
+    
+    return NextResponse.json({ 
+      error: 'Failed to fetch audit logs', 
+      details: err.message || String(err),
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      code: 'INTERNAL_ERROR' 
+    }, { status: 500 })
   }
 }

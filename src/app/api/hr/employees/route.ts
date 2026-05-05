@@ -6,7 +6,7 @@ import { getAvailabilityForDate } from '@/lib/utils/dateUtils'
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['HR', 'ADMIN'])
+    requireRole(token, ['HR'])
 
     const { searchParams } = new URL(req.url)
     const statusFilter = searchParams.get('status')

@@ -19,7 +19,7 @@ interface MyLeavesViewProps {
   initialLeaves?: LeaveRequest[]
 }
 
-const STATUS_FILTERS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'REVOKED'] as const
+const STATUS_FILTERS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const
 
 export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
   const { instance } = useMsal()
@@ -46,7 +46,7 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
     queryKey: ['contactEmails', role],
     queryFn: async () => {
       const token = await getAccessToken(instance)
-      const endpoint = role === 'EMPLOYEE' ? '/api/hr/contact' : '/api/admin/contact'
+      const endpoint = role === 'EMPLOYEE' ? '/api/hr/contact' : '/api/hr/contact'
       const res = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) return []
       return res.json()
@@ -79,7 +79,10 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
   })
 
   const filteredLeaves = leaves
-    .filter((l) => filter === 'ALL' || l.status === filter)
+    .filter((l) => {
+      if (filter === 'ALL') return l.status !== 'REVOKED'
+      return l.status === filter
+    })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   function getCancelAction(leave: LeaveRequest) {
@@ -112,10 +115,6 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
 
   return (
     <div className="space-y-6">
-      {currentUserData?.balance && (
-        <LeaveBalanceCard />
-      )}
-
       {/* Filter tabs */}
       <div className="flex gap-2 flex-wrap">
         {STATUS_FILTERS.map((f) => (

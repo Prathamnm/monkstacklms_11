@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx'
 
 export async function GET(req: NextRequest) {
   const token = await validateToken(req)
-  requireRole(token, ['HR', 'ADMIN'])
+  requireRole(token, ['HR'])
 
   const { searchParams } = new URL(req.url)
   const format = (searchParams.get('format') ?? 'xlsx').toLowerCase()

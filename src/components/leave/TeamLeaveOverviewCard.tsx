@@ -141,7 +141,7 @@ export function TeamLeaveOverviewCard(props: {
           </p>
         </div>
 
-        {(role === 'HR' || role === 'ADMIN') && departmentOptions.length > 0 && (
+        {(role === 'HR' || role === 'HR') && departmentOptions.length > 0 && (
           <div className="flex items-center gap-2">
             <label className="sr-only" htmlFor="team-overview-dept">
               Department filter
@@ -247,14 +247,6 @@ export function TeamLeaveOverviewCard(props: {
         )}
       </div>
 
-      <div className={['mt-4', variant === 'card' ? 'pt-3 border-t border-slate-100' : ''].join(' ')}>
-        <Link
-          href={props.calendarHref}
-          className="text-sm text-blue-700 hover:text-blue-800 font-medium inline-flex items-center gap-1"
-        >
-          View full team calendar <ChevronRight size={16} />
-        </Link>
-      </div>
     </div>
   )
 

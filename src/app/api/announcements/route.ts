@@ -32,11 +32,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'HR', 'ADMIN'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const body = await req.json()
-    const { title, content, body: bodyText } = body
-    const normalizedBody = bodyText ?? content
+    const { title, content, body: bodyText, message } = body
+    const normalizedBody = bodyText ?? content ?? message
 
     if (!title || !normalizedBody) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       data: activeEmployees.map((emp) => ({
         type: 'ANNOUNCEMENT_POSTED' as const,
         title: `Announcement: ${title}`,
-        message: content.slice(0, 200),
+        message: normalizedBody.slice(0, 200),
         recipientId: emp.id,
         senderId: token.userId,
         referenceId: announcement.id,

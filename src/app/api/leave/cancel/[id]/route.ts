@@ -95,7 +95,7 @@ async function cancelLeave(
     // Send Emails
     const employee = leave.employee
     const hrEmployees = await prisma.employee.findMany({
-      where: { role: { in: ['HR', 'ADMIN'] }, employmentStatus: 'ACTIVE' },
+      where: { role: { in: ['HR'] }, employmentStatus: 'ACTIVE' },
       select: { id: true, workEmail: true, notificationEmail: true, role: true },
     })
 

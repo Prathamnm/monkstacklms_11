@@ -15,7 +15,7 @@ export async function POST(
 ) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['HR', 'ADMIN'])
+    requireRole(token, ['HR'])
 
     const { id } = params
     const body = await req.json()
@@ -108,7 +108,7 @@ export async function POST(
     // 2. Inform other HR/Admin (excluding the person who triggered the revoke)
     const hrAdminList = await prisma.employee.findMany({
       where: {
-        role: { in: ['HR', 'ADMIN'] },
+        role: { in: ['HR'] },
         employmentStatus: 'ACTIVE',
         id: { not: token.userId },
       },

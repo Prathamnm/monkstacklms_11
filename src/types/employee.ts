@@ -1,5 +1,5 @@
 export type EmploymentStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED'
-export type Role = 'EMPLOYEE' | 'MANAGER' | 'HR' | 'ADMIN'
+export type Role = 'EMPLOYEE' | 'MANAGER' | 'HR'
 export type AvailabilityStatus = 'AVAILABLE' | 'ON_LEAVE' | 'HALF_DAY_AM' | 'HALF_DAY_PM'
 
 export interface Employee {

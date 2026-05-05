@@ -10,7 +10,7 @@ import { calculateProratedEmergencyLeaves, calculateProratedLeaves, calculatePro
 const DEFAULT_ROLE: Role = 'EMPLOYEE'
 
 function normalizeRole(role: unknown): Role {
-  if (role === 'ADMIN') return 'HR'
+  if (role === 'HR') return 'HR'
   return role === 'MANAGER' || role === 'HR' ? role : DEFAULT_ROLE
 }
 

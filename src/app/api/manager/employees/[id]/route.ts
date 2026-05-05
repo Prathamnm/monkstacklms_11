@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'HR', 'ADMIN'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const employee = await prisma.employee.findUnique({
       where: { id: params.id },

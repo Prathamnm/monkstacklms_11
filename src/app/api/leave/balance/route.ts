@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       if (!subject) {
         return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
       }
-      if (!['MANAGER', 'HR', 'ADMIN'].includes(token.role)) {
+      if (!['MANAGER', 'HR'].includes(token.role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
       if (token.role === 'MANAGER' && subject.managerId !== token.userId) {

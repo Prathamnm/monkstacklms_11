@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db/prisma'
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'ADMIN'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     // Find team members (employees whose manager is the current user)
     const teamMembers = await prisma.employee.findMany({
@@ -15,23 +15,21 @@ export async function GET(req: NextRequest) {
 
     const teamIds = teamMembers.map((m) => m.id)
 
-    const useAllEmployees = token.role === 'ADMIN'
+    const useAllEmployees = token.role === 'HR'
 
     const url = new URL(req.url)
     const status = url.searchParams.get('status')
 
     const approvals = await prisma.leaveRequest.findMany({
       where: {
-        ...(!useAllEmployees && teamIds.length > 0
-          ? {
+        ...(useAllEmployees
+          ? {}
+          : {
               OR: [
                 { managerId: token.userId },
-                { AND: [{ employeeId: { in: teamIds } }, { managerId: null }] },
+                { employeeId: { in: teamIds }, managerId: null },
               ],
-            }
-          : useAllEmployees
-          ? {}
-          : { managerId: token.userId }),
+            }),
         ...(status && status !== 'ALL' ? { status: status as any } : { status: 'PENDING' }),
       },
       include: {

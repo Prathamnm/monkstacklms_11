@@ -37,12 +37,12 @@ export const ROUTES = {
   },
 
   ADMIN: {
-    DASHBOARD: '/admin/dashboard',
-    USERS:     '/admin/users',
-    SETTINGS:  '/admin/settings',
-    APPROVALS: '/admin/leaves',
-    REPORTS:   '/admin/reports',
-    AUDIT:     '/admin/audit',
+    DASHBOARD: '/hr/dashboard',
+    USERS:     '/hr/users',
+    SETTINGS:  '/hr/settings',
+    APPROVALS: '/hr/leaves',
+    REPORTS:   '/hr/reports',
+    AUDIT:     '/hr/audit',
   },
 } as const
 

@@ -1,12 +1,15 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { Menu } from 'lucide-react'
 import { NotificationBell } from './NotificationBell'
 import { UserAvatar } from './UserAvatar'
 import type { CurrentUser } from '@/types/auth'
 
 interface TopHeaderProps {
   user: CurrentUser
+  onToggle: () => void
+  collapsed: boolean
 }
 
 function getPageTitle(pathname: string): string {
@@ -23,13 +26,14 @@ function getPageTitle(pathname: string): string {
     employees: 'Team Monkstack',
     lifecycle: 'Employee Lifecycle',
     leaves: 'All Leaves',
+    leave: 'Leave Management',
     reports: 'Reports',
     rules: 'Accrual Rules',
     users: 'Users',
     audit: 'Audit Log',
     settings: 'Settings',
     onboard: 'Onboard Employee',
-    attendance: 'Upload Attendance',
+    attendance: 'Document Uploads',
   }
 
   if (!isNaN(Number(last)) || last?.length > 20) {
@@ -39,12 +43,12 @@ function getPageTitle(pathname: string): string {
   return titleMap[last] ?? (last ? last.charAt(0).toUpperCase() + last.slice(1) : 'Dashboard')
 }
 
-export function TopHeader({ user }: TopHeaderProps) {
+export function TopHeader({ user, onToggle, collapsed }: TopHeaderProps) {
   const pathname = usePathname()
   const pageTitle = getPageTitle(pathname)
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-50">
       <div className="flex items-center gap-4">
         <h2 className="text-slate-900 font-semibold text-base">{pageTitle}</h2>
       </div>

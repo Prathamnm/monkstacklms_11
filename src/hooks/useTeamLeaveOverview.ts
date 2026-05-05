@@ -9,7 +9,7 @@ import type { TeamLeaveOverviewRecord } from '@/types/teamLeaveOverview'
 export interface TeamLeaveOverviewParams {
   from: Date
   to: Date
-  scope: 'EMPLOYEE' | 'MANAGER' | 'HR' | 'ADMIN'
+  scope: 'EMPLOYEE' | 'MANAGER' | 'HR'
   department?: string | null
 }
 

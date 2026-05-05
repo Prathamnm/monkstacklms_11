@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { useRouter } from 'next/navigation'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { PageSkeleton } from '@/components/shared/LoadingSkeleton'
@@ -15,9 +14,12 @@ import { getInitials, getCleanFirstName } from '@/lib/utils/formatters'
 import { cn } from '@/lib/utils/cn'
 import { ROLE_LABELS, ROLE_COLORS } from '@/constants/roles'
 import { format } from 'date-fns'
+import { Pencil, Trash2 } from 'lucide-react'
 import type { Announcement } from '@/types/announcement'
 import { PoliciesSection } from '@/components/shared/PoliciesSection'
 import { AttendanceCard } from '@/components/shared/AttendanceCard'
+
+import toast from 'react-hot-toast'
 
 interface HRStats {
   totalActive: number
@@ -62,6 +64,8 @@ export default function HRDashboardPage() {
   const user = currentUserData?.user
   const firstName = getCleanFirstName(user?.firstName, user?.displayName)
   const [announcementForm, setAnnouncementForm] = useState({ open: false, title: '', content: '' })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ title: '', content: '' })
 
   const { data: stats, isLoading } = useQuery<HRStats>({
     queryKey: ['hrStats'],
@@ -131,19 +135,55 @@ export default function HRDashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['announcements'] })
       setAnnouncementForm({ open: false, title: '', content: '' })
+      toast.success('Announcement posted')
     },
+    onError: (err: any) => toast.error(err.message),
+  })
+
+  const updateAnnouncement = useMutation({
+    mutationFn: async ({ id, title, content }: { id: string; title: string; content: string }) => {
+      const token = await getAccessToken(instance)
+      const res = await fetch(`/api/announcements/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content }),
+      })
+      if (!res.ok) throw new Error('Update failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['announcements'] })
+      setEditingId(null)
+      toast.success('Announcement updated')
+    },
+    onError: (err: any) => toast.error(err.message),
+  })
+
+  const deleteAnnouncement = useMutation({
+    mutationFn: async (id: string) => {
+      const token = await getAccessToken(instance)
+      const res = await fetch(`/api/announcements/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Delete failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['announcements'] })
+      toast.success('Announcement deleted')
+    },
+    onError: (err: any) => toast.error(err.message),
   })
 
   if (isLoading) return <PageSkeleton />
   if (!stats) return null
 
   const statItems = [
-    { label: 'Total Active Employees', value: stats.totalActive, color: 'bg-blue-500' },
+    { label: 'Active Employees', value: stats.totalActive, color: 'bg-blue-500' },
+    { label: 'Available Today', value: stats.totalActive - stats.onLeaveToday, color: 'bg-green-500' },
     { label: 'On Leave Today', value: stats.onLeaveToday, color: 'bg-red-500' },
-    { label: 'Pending Approvals', value: stats.pendingApprovals, color: 'bg-amber-500' },
-    { label: 'Leaves This Month', value: stats.leavesThisMonth, color: 'bg-purple-500' },
-    { label: 'New Joiners This Month', value: stats.newJoinersThisMonth, color: 'bg-green-500' },
-    { label: 'Available Today', value: `${stats.availablePercent}%`, color: 'bg-teal-500' },
+    { label: 'Leaves Approved This Month', value: stats.leavesThisMonth, color: 'bg-purple-500' },
   ]
 
   return (
@@ -179,50 +219,14 @@ export default function HRDashboardPage() {
         {statItems.map((s) => <StatCard key={s.label} {...s} />)}
       </motion.div>
 
-      {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: '20px 22px' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-heading)', marginBottom: 16 }}>Monthly Leave Trend</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={stats.monthlyTrend}>
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--color-muted)' }} />
-                <YAxis tick={{ fontSize: 12, fill: 'var(--color-muted)' }} />
-                <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="count" fill="var(--icon-pill-blue-stroke)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-            style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: '20px 22px' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-heading)', marginBottom: 16 }}>Leave Status Distribution</h3>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie data={stats.statusDistribution.filter((d) => d.value > 0)} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                  {stats.statusDistribution.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-              {stats.statusDistribution.map((item) => (
-                <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: item.color, display: 'inline-block' }} />
-                    <span style={{ color: 'var(--color-muted)' }}>{item.name}</span>
-                  </div>
-                  <span style={{ fontWeight: 500, color: 'var(--color-heading)' }}>{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+        <div style={{ flex: 3 }}>
+          <AttendanceCard />
+        </div>
+        <div style={{ flex: 1 }}>
+          <PoliciesSection canUpload={false} />
         </div>
       </div>
-
-      <AttendanceCard />
-      <PoliciesSection canUpload={user?.role === 'HR' || user?.role === 'ADMIN'} />
 
       {/* Announcements */}
       <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: '22px 24px' }}>
@@ -250,12 +254,72 @@ export default function HRDashboardPage() {
         {announcements.length === 0 ? (
           <EmptyState icon="📢" title="No announcements" description="Post an announcement to all employees." />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {announcements.slice(0, 5).map((a) => (
-              <div key={a.id} style={{ background: 'var(--color-page-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '12px 14px' }}>
-                <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-heading)' }}>{a.title}</p>
-                <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4 }}>{a.content}</p>
-                <p style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 6 }}>{a.poster?.displayName} · {format(new Date(a.createdAt), 'dd MMM yyyy')}</p>
+              <div key={a.id} style={{ background: 'var(--color-page-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: '16px' }}>
+                {editingId === a.id ? (
+                  <div className="space-y-3">
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    />
+                    <textarea
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm resize-none"
+                      rows={3}
+                      value={editForm.content}
+                      onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => updateAnnouncement.mutate({ id: a.id, title: editForm.title, content: editForm.content })}
+                        disabled={updateAnnouncement.isPending}
+                        className="text-[11px] bg-blue-600 text-white px-3 py-1 rounded-md font-medium"
+                      >
+                        {updateAnnouncement.isPending ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="text-[11px] bg-slate-200 text-slate-600 px-3 py-1 rounded-md font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-start">
+                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-heading)' }}>{a.title}</p>
+                      <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingId(a.id)
+                              setEditForm({ title: a.title, content: a.content })
+                            }}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="Edit announcement"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Delete this announcement?')) deleteAnnouncement.mutate(a.id)
+                            }}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="Delete announcement"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4 }}>{a.content}</p>
+                    <p style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontWeight: 500 }}>{a.poster?.displayName}</span>
+                      <span>•</span>
+                      <span>{format(new Date(a.createdAt), 'dd MMM yyyy')}</span>
+                    </p>
+                  </>
+                )}
               </div>
             ))}
           </div>

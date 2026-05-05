@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/audit/auditLogger'
 export async function POST(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['HR', 'MANAGER', 'ADMIN'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const body = await req.json()
     const { name, date, type, notes } = body

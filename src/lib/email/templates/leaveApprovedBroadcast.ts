@@ -8,7 +8,7 @@ export interface LeaveApprovedBroadcastParams {
   totalDays: number
   approverName: string
   appBaseUrl: string
-  recipientRole: 'EMPLOYEE' | 'HR' | 'ADMIN' | 'MANAGER'
+  recipientRole: 'EMPLOYEE' | 'HR' | 'MANAGER'
 }
 
 export function buildLeaveApprovedBroadcastEmail(

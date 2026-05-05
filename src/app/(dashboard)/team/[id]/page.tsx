@@ -21,7 +21,7 @@ interface EmployeeDetail {
     phoneNumber?: string | null
     joinDate: string
     entraObjectId: string
-    role: 'EMPLOYEE' | 'MANAGER' | 'HR' | 'ADMIN'
+    role: 'EMPLOYEE' | 'MANAGER' | 'HR'
     employmentStatus: string
     availabilityStatus: 'AVAILABLE' | 'ON_LEAVE' | 'HALF_DAY_AM' | 'HALF_DAY_PM'
     emergencyName?: string | null

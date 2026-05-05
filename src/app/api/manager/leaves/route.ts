@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db/prisma'
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'ADMIN'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const { searchParams } = new URL(req.url)
     const from = searchParams.get('from')
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       select: { id: true },
     })
     const teamIds = teamMembers.map((m) => m.id)
-    const useAllEmployees = token.role === 'ADMIN' || teamIds.length === 0
+    const useAllEmployees = token.role === 'HR' || teamIds.length === 0
 
     const leaves = await prisma.leaveRequest.findMany({
       where: {

@@ -46,3 +46,25 @@ export function useMarkAllNotificationsRead() {
     },
   })
 }
+
+export function useMarkNotificationRead() {
+  const { instance } = useMsal()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = await getAccessToken(instance)
+      if (!token) throw new Error('No access token')
+
+      const res = await fetch(`/api/notifications/${id}/read`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Failed to mark notification as read')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+}

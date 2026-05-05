@@ -13,6 +13,7 @@ import {
   isEqual,
   isWeekend,
   parseISO,
+  isSameDay,
   startOfMonth,
 } from 'date-fns'
 import { AlertTriangle, Info } from 'lucide-react'
@@ -118,32 +119,29 @@ export default function HRLeavePage() {
 
   const totalDays = useMemo(() => {
     if (!range?.from) return 0
-    
     const start = range.from
     const end = range.to || range.from
-    
-    const startValue = startHalfDay === 'HALF_DAY' ? 0.5 : 1.0
-    const endValue = endHalfDay === 'HALF_DAY' ? 0.5 : 1.0
-    
-    if (isEqual(start, end)) {
-      return startValue
-    }
-    
-    // Count working days between start and end (exclusive)
-    const interiorDays = eachDayOfInterval({ 
-      start: new Date(start.getTime() + 86400000), 
-      end: new Date(end.getTime() - 86400000) 
-    }).filter(day => !isWeekend(day)).length
-    
-    // Subtract 0.5 for each toggled interior date
-    const interiorToggles = dayOverrides.filter(o => {
-      const d = parseISO(o.date)
-      return d > start && d < end && o.type === 'half'
+    const days = eachDayOfInterval({ start, end })
+    const businessDaysCount = days.filter((day) => !isWeekend(day)).length
+
+    const startStr = format(start, 'yyyy-MM-dd')
+    const endStr = format(end, 'yyyy-MM-dd')
+
+    const halfDayDates = new Set<string>()
+    if (startHalfDay === 'HALF_DAY') halfDayDates.add(startStr)
+    if (endHalfDay === 'HALF_DAY' && range.to && !isSameDay(range.from, range.to)) halfDayDates.add(endStr)
+    dayOverrides.forEach(o => {
+      if (o.type === 'half') halfDayDates.add(o.date)
+    })
+
+    const halfDayCount = Array.from(halfDayDates).filter(dStr => {
+      const d = parseISO(dStr)
+      const isInRange = d >= start && d <= end
+      return isInRange && !isWeekend(d)
     }).length
-    
-    const interiorWorkingDays = interiorDays - (interiorToggles * 0.5)
-    
-    return startValue + interiorWorkingDays + endValue
+
+    const total = businessDaysCount - (halfDayCount * 0.5)
+    return Math.max(0.5, total)
   }, [range, startHalfDay, endHalfDay, dayOverrides])
 
   const applyMutation = useMutation({
@@ -255,7 +253,7 @@ export default function HRLeavePage() {
         padding: '16px',
         marginBottom: '16px',
         position: 'relative',
-        zIndex: 10,
+        zIndex: 5,
       }}>
         <div style={{
           display: 'grid',
@@ -316,7 +314,7 @@ export default function HRLeavePage() {
             cursor: 'pointer',
           }}
         >
-          Apply for leave
+          Apply for Leave
         </button>
         <button
           onClick={() => setActiveTab('requests')}
@@ -360,7 +358,7 @@ export default function HRLeavePage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
             <div>
               <h3 style={{ fontWeight: 600, fontSize: 18, color: 'var(--color-heading)', margin: 0 }}>
-                Apply for Leave
+                Leave Management
               </h3>
               <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>
                 Submit your leave request for approval
@@ -486,14 +484,6 @@ export default function HRLeavePage() {
                     <p className="text-blue-600 text-xs mt-1 ml-5">
                       Total: <strong>{totalDays} day{totalDays !== 1 ? 's' : ''}</strong>
                     </p>
-                    {dayOverrides.length > 0 && (
-                      <p className="text-blue-500 text-[11px] mt-1 ml-5">
-                        Half days: {dayOverrides
-                          .filter(o => o.type === 'half')
-                          .map(o => format(parseISO(o.date), 'd MMM'))
-                          .join(', ')}
-                      </p>
-                    )}
                   </div>
                 )}
 

@@ -14,7 +14,8 @@ import {
   CalendarPlus,
   Clock,
   Menu,
-  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { useMsal } from '@azure/msal-react'
 import { cn } from '@/lib/utils/cn'
@@ -33,8 +34,8 @@ interface NavItem {
 interface SidebarProps {
   user: CurrentUser
   collapsed: boolean
-  pendingCount?: number
   onToggle: () => void
+  pendingCount?: number
 }
 
 function getNavItems(role: string, pendingCount = 0): NavItem[] {
@@ -43,23 +44,23 @@ function getNavItems(role: string, pendingCount = 0): NavItem[] {
       return [
         { label: 'Dashboard',      href: '/employee/dashboard',   icon: <LayoutDashboard size={18} /> },
         { label: 'Team Monkstack', href: '/employee/my-team',     icon: <Users size={18} /> },
-        { label: 'Leave',          href: '/employee/leave',       icon: <ClipboardList size={18} /> },
+        { label: 'Leave Management',          href: '/employee/leave',       icon: <ClipboardList size={18} /> },
       ]
     case 'MANAGER':
       return [
         { label: 'Dashboard',   href: '/manager/dashboard',   icon: <LayoutDashboard size={18} /> },
         { label: 'Team Monkstack', href: '/manager/employees',   icon: <Users size={18} /> },
         { label: 'Approvals',   href: '/manager/approvals',   icon: <CheckSquare size={18} />, badge: pendingCount },
-        { label: 'Leave',       href: '/manager/leave',       icon: <ClipboardList size={18} /> },
+        { label: 'Leave Management',       href: '/manager/leave',       icon: <ClipboardList size={18} /> },
       ]
     case 'HR':
       return [
         { label: 'Dashboard',      href: '/hr/dashboard',          icon: <LayoutDashboard size={18} /> },
         { label: 'Team Monkstack', href: '/hr/employees',          icon: <Users size={18} /> },
-        { label: 'Attendance Upload', href: '/hr/attendance',    icon: <Clock size={18} /> },
-        { label: 'Leave Approvals',href: '/hr/leaves',             icon: <ClipboardList size={18} /> },
-        { label: 'Leave',          href: '/hr/leave',              icon: <ClipboardList size={18} /> },
+        { label: 'Document Uploads', href: '/hr/attendance',    icon: <Clock size={18} /> },
+        { label: 'Leave Management',          href: '/hr/leave',              icon: <ClipboardList size={18} /> },
         { label: 'Reports',        href: '/hr/reports',            icon: <BarChart2 size={18} /> },
+        { label: 'Users & Roles',  href: '/hr/users',              icon: <Users size={18} /> },
         { label: 'Audit Log',      href: '/hr/audit',              icon: <ScrollText size={18} /> },
       ]
     default:
@@ -67,7 +68,7 @@ function getNavItems(role: string, pendingCount = 0): NavItem[] {
   }
 }
 
-export function Sidebar({ user, collapsed, pendingCount = 0, onToggle }: SidebarProps) {
+export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { instance } = useMsal()
@@ -84,11 +85,14 @@ export function Sidebar({ user, collapsed, pendingCount = 0, onToggle }: Sidebar
       transition={{ duration: 0.2, ease: 'easeInOut' }}
       className={cn(
         'flex flex-col h-full bg-slate-900 overflow-hidden flex-shrink-0',
-        user.role === 'ADMIN' && 'border-r-2 border-purple-500'
+        user.role === 'HR' && 'border-r-2 border-purple-500'
       )}
     >
-      {/* Logo */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-slate-800 flex-shrink-0">
+      {/* Logo Area */}
+      <div className={cn(
+        "flex items-center px-4 py-5 border-b border-slate-800 flex-shrink-0",
+        collapsed ? "justify-center" : "justify-between"
+      )}>
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -103,20 +107,25 @@ export function Sidebar({ user, collapsed, pendingCount = 0, onToggle }: Sidebar
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.15 }}
+                className="flex-1 min-w-0"
               >
-                <p className="text-white font-bold text-sm leading-none">Monkstack HRM</p>
+                <p className="text-white font-bold text-sm leading-none truncate">Monkstack HRM</p>
                 <p className="text-slate-400 text-xs mt-0.5">Human Resources</p>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
-        <button
-          onClick={onToggle}
-          className="text-slate-400 hover:text-white transition-colors p-1 rounded flex-shrink-0 ml-2"
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <Menu size={16} /> : <X size={16} />}
-        </button>
+
+        {/* Top Toggle (Expanded only) */}
+        {!collapsed && (
+          <button
+            onClick={onToggle}
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            title="Collapse sidebar"
+          >
+            <Menu size={20} />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -158,6 +167,19 @@ export function Sidebar({ user, collapsed, pendingCount = 0, onToggle }: Sidebar
           )
         })}
       </nav>
+
+      {/* Bottom Toggle (Collapsed only) */}
+      {collapsed && (
+        <div className="px-3 pb-2">
+          <button
+            onClick={onToggle}
+            className="w-full flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200"
+            title="Expand sidebar"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      )}
 
       {/* User card */}
       <div className="border-t border-slate-800 p-3 flex-shrink-0">

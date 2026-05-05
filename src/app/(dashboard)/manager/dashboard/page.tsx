@@ -11,6 +11,8 @@ import {
   CalendarX,
   CheckSquare,
   Users,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -19,7 +21,6 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useLeaveBalance } from '@/hooks/useLeaveBalance'
 import { Skeleton } from '@/components/shared/LoadingSkeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { ROLE_LABELS } from '@/constants/roles'
 import { getInitials, getCleanFirstName } from '@/lib/utils/formatters'
 import type { Announcement } from '@/types/announcement'
 import { PoliciesSection } from '@/components/shared/PoliciesSection'
@@ -75,13 +76,13 @@ function StatCard(props: {
           <Skeleton className="h-3 w-20" />
         </div>
       ) : (
-        <div>
+        <div className="flex items-center gap-4">
           <div
-            className="flex items-center justify-center mb-2.5"
+            className="flex items-center justify-center flex-shrink-0"
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
+              width: 40,
+              height: 40,
+              borderRadius: 10,
               background: `var(${props.pillBgVar})`,
               color: `var(${props.pillStrokeVar})`,
             }}
@@ -90,11 +91,11 @@ function StatCard(props: {
             {props.icon}
           </div>
 
-          <div>
-            <p className="text-sm font-semibold" style={{ color: 'var(--color-heading)', marginBottom: 4 }}>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold leading-tight mb-1" style={{ color: 'var(--color-heading)' }}>
               {props.label}
             </p>
-            <p className="text-3xl font-bold leading-none" style={{ color: 'var(--color-heading)' }}>
+            <p className="text-lg font-bold leading-none opacity-80" style={{ color: 'var(--color-heading)' }}>
               {props.isError ? '\u2014' : props.value ?? '\u2014'}
             </p>
           </div>
@@ -108,7 +109,7 @@ function StatCard(props: {
               }}
               className="text-xs text-blue-600 hover:underline mt-2"
             >
-              Could not load · Retry
+              Retry
             </button>
           )}
         </div>
@@ -136,7 +137,7 @@ export default function ManagerDashboardPage() {
   useEffect(() => {
     if (!user) return
     if (user.role !== 'MANAGER') {
-      router.replace(user.role === 'HR' || user.role === 'ADMIN' ? '/hr/dashboard' : '/employee/dashboard')
+      router.replace(user.role === 'HR' ? '/hr/dashboard' : '/employee/dashboard')
     }
   }, [router, user])
 
@@ -313,7 +314,7 @@ export default function ManagerDashboardPage() {
     isError: announcementsError,
     refetch: refetchAnnouncements,
   } = useQuery<Announcement[]>({
-    queryKey: ['announcements', 'manager'],
+    queryKey: ['announcements'],
     queryFn: async () => {
       const token = await getAccessToken(instance)
       if (!token) throw new Error('UNAUTHORIZED')
@@ -326,6 +327,9 @@ export default function ManagerDashboardPage() {
     retry: 1,
   })
 
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ title: '', body: '' })
+
   const postAnnouncement = useMutation({
     mutationFn: async () => {
       const token = await getAccessToken(instance)
@@ -335,7 +339,7 @@ export default function ManagerDashboardPage() {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: announcementForm.title,
-          body: announcementForm.body,
+          content: announcementForm.body,
           audience: announcementForm.audience,
           createdBy: userId,
         }),
@@ -346,16 +350,50 @@ export default function ManagerDashboardPage() {
       }
       return res.json()
     },
-    onSuccess: (created: Announcement) => {
-      queryClient.setQueryData<Announcement[]>(['announcements', 'manager'], (old) => {
-        const prev = Array.isArray(old) ? old : []
-        return [created, ...prev].slice(0, 5)
-      })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['announcements'] })
       setAnnouncementForm({ open: false, title: '', body: '', audience: 'all' })
+      toast.success('Announcement posted')
     },
     onError: (err: Error) => {
       toast.error(err.message)
     },
+  })
+
+  const updateAnnouncement = useMutation({
+    mutationFn: async ({ id, title, content }: { id: string; title: string; content: string }) => {
+      const token = await getAccessToken(instance)
+      const res = await fetch(`/api/announcements/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content }),
+      })
+      if (!res.ok) throw new Error('Update failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['announcements'] })
+      setEditingId(null)
+      toast.success('Announcement updated')
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const deleteAnnouncement = useMutation({
+    mutationFn: async (id: string) => {
+      const token = await getAccessToken(instance)
+      const res = await fetch(`/api/announcements/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Delete failed')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['announcements'] })
+      toast.success('Announcement deleted')
+    },
+    onError: (err: Error) => toast.error(err.message),
   })
 
   const approveLeaveMutation = useMutation({
@@ -401,316 +439,110 @@ export default function ManagerDashboardPage() {
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
-      className="min-h-[calc(100vh-64px)]"
-      style={{ background: 'var(--color-page-bg)', padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}
+      style={{ padding: '24px', background: 'var(--color-page-bg)', minHeight: '100vh' }}
     >
-      {/* Welcome */}
-      <div
-        className="mb-[14px]"
-        style={{
-          background: 'var(--color-sidebar-bg)',
-          borderRadius: 14,
-          padding: '18px 22px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="flex items-center justify-center flex-shrink-0"
-            style={{
-              background: 'var(--accent-border-blue)',
-              color: 'var(--icon-pill-blue-bg)',
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-            aria-label="User avatar"
-          >
-            {profileLoading ? (
-              <Skeleton className="w-11 h-11 rounded-full" />
-            ) : (
-              profile?.avatarInitials ?? getInitials(user?.displayName ?? 'Manager')
-            )}
-          </div>
-
-          <div className="min-w-0">
-            <p className="truncate" style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-white)' }}>
-              {welcomeName}
-            </p>
-            <p className="truncate" style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-              {profile?.designation ?? user?.jobTitle ?? 'Manager'}
-            </p>
-            {profileError && (
-              <button
-                type="button"
-                onClick={() => refetchProfile()}
-                className="text-xs underline"
-                style={{ color: 'rgba(255,255,255,0.7)', marginTop: 4 }}
-              >
-                Retry
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{todayLabel}</span>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <motion.div
-        variants={containerVariants}
-        initial="initial"
-        animate="animate"
-        className="stat-grid"
-      >
-        <StatCard
-          label="Pending approvals"
-          icon={<CheckSquare size={16} />}
-          href="/manager/approvals"
-          value={pendingCount?.count ?? null}
-          isLoading={pendingLoading}
-          isError={pendingError}
-          showIndicator={(pendingCount?.count ?? 0) > 0}
-          onRetry={() => refetchPending()}
-          pillBgVar="--icon-pill-amber-bg"
-          pillStrokeVar="--icon-pill-amber-stroke"
-        />
-        <StatCard
-          label="Team size"
-          icon={<Users size={16} />}
-          href="/manager/employees"
-          value={teamSize?.count ?? null}
-          isLoading={teamSizeLoading}
-          isError={teamSizeError}
-          onRetry={() => refetchTeamSize()}
-          pillBgVar="--icon-pill-blue-bg"
-          pillStrokeVar="--icon-pill-blue-stroke"
-        />
-        <StatCard
-          label="On leave today"
-          icon={<CalendarX size={16} />}
-          href="/manager/employees?filter=on-leave-today"
-          value={onLeaveToday?.count ?? null}
-          isLoading={onLeaveLoading}
-          isError={onLeaveError}
-          tooltip={onLeaveNames}
-          onRetry={() => refetchOnLeave()}
-          pillBgVar="--icon-pill-red-bg"
-          pillStrokeVar="--icon-pill-red-stroke"
-        />
-        <StatCard
-          label="Approved this month"
-          icon={<Calendar size={16} />}
-          href="/manager/approvals?filter=approved"
-          value={approvedThisMonth?.count ?? null}
-          isLoading={approvedLoading}
-          isError={approvedError}
-          onRetry={() => refetchApproved()}
-          pillBgVar="--icon-pill-green-bg"
-          pillStrokeVar="--icon-pill-green-stroke"
-        />
-      </motion.div>
-
-      {/* Balance + Actions */}
-      <div className="balance-actions-row">
-        {/* LEFT COLUMN — Company Policies */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-          <PoliciesSection canUpload={false} />
-        </div>
-
-        {/* RIGHT COLUMN — Attendance on top, Leave Balance below */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-          <AttendanceCard />
-
-          {/* Leave Balance */}
-          <div
-            className="cursor-pointer"
-            onClick={() => router.push('/manager/my-leaves')}
-            role="button"
-            tabIndex={0}
-            style={{
-              background: 'var(--color-card-bg)',
-              border: '0.5px solid var(--color-card-border)',
-              borderLeft: '3px solid var(--accent-border-green)',
-              borderRadius: '0 12px 12px 0',
-              padding: '16px 18px',
-            }}
-          >
-            <p
-              className="text-xs font-bold uppercase tracking-widest"
-              style={{
-                color: 'var(--icon-pill-green-stroke)',
-                marginBottom: 12,
-              }}
-            >
-              Leave balance
-            </p>
-
-            {!leaveBalance ? (
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Skeleton className="h-7 w-16 mb-1" />
-                  <Skeleton className="h-3 w-20" />
-                </div>
-                <div>
-                  <Skeleton className="h-7 w-16 mb-1" />
-                  <Skeleton className="h-3 w-20" />
-                </div>
-                <div>
-                  <Skeleton className="h-7 w-16 mb-1" />
-                  <Skeleton className="h-3 w-20" />
-                </div>
-                <div className="col-span-3">
-                  <Skeleton className="h-1 w-full rounded" />
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--color-heading)', marginBottom: 4 }}>Available</p>
-                    <p className="text-3xl font-bold" style={{ color: 'var(--color-heading)', lineHeight: 1 }}>
-                      {(standardAvailable ?? 0).toFixed(1)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--color-heading)', marginBottom: 4 }}>Used</p>
-                    <p className="text-3xl font-bold" style={{ color: 'var(--balance-used-color)', lineHeight: 1 }}>
-                      {leaveBalance.standardUsed.toFixed(1)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--color-heading)', marginBottom: 4 }}>Pending</p>
-                    <p className="text-3xl font-bold" style={{ color: 'var(--icon-pill-blue-stroke)', lineHeight: 1 }}>
-                      {leaveBalance.pendingDays.toFixed(1)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <div style={{ background: 'var(--balance-track-bg)', height: 4, borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ background: 'var(--accent-border-green)', height: 4, width: `${usedPercent}%` }} />
-                  </div>
-                </div>
-
-                {lowBalance && (
-                  <p className="mt-2 flex items-center gap-1.5" style={{ fontSize: 11, color: 'var(--icon-pill-amber-stroke)' }}>
-                    <AlertTriangle size={12} />
-                    Low balance — plan ahead
-                  </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Banner (Full Width) */}
+        <div style={{ background: 'var(--color-background-secondary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--color-background-info)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-info)', fontSize: 14, fontWeight: 500, overflow: 'hidden', flexShrink: 0 }}>
+                {user?.profilePictureUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.profilePictureUrl} alt={user.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  getInitials(user?.displayName ?? 'Manager')
                 )}
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span
-                    style={{
-                      background: 'var(--icon-pill-red-bg)',
-                      color: 'var(--pill-emergency-text)',
-                      fontSize: 10,
-                      padding: '2px 9px',
-                      borderRadius: 99,
-                      fontWeight: 500,
-                    }}
-                  >
-                    Emergency: {leaveBalance.availableEmergency}/{leaveBalance.emergencyTotal}
-                  </span>
-                  <span
-                    style={{
-                      background: 'var(--icon-pill-green-bg)',
-                      color: 'var(--pill-floater-text)',
-                      fontSize: 10,
-                      padding: '2px 9px',
-                      borderRadius: 99,
-                      fontWeight: 500,
-                    }}
-                  >
-                    Floater: {leaveBalance.availableFloater}/{leaveBalance.floaterTotal}
-                  </span>
-                </div>
               </div>
-            )}
+              <div>
+                <p style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text-primary)' }}>Welcome back, {welcomeName} 👋</p>
+                <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>{profile?.designation ?? user?.jobTitle ?? 'Manager'}</p>
+              </div>
+            </div>
+            <div style={{ background: 'var(--color-background-secondary)', padding: '6px 12px', borderRadius: '99px', fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 400, flexShrink: 0 }}>
+              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <motion.div
+          variants={containerVariants}
+          initial="initial"
+          animate="animate"
+          className="stat-grid"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}
+        >
+          <StatCard
+            label="Team size"
+            icon={<Users size={16} />}
+            href="/manager/employees"
+            value={teamSize?.count ?? null}
+            isLoading={teamSizeLoading}
+            isError={teamSizeError}
+            onRetry={() => refetchTeamSize()}
+            pillBgVar="--icon-pill-blue-bg"
+            pillStrokeVar="--icon-pill-blue-stroke"
+          />
+          <StatCard
+            label="On leave today"
+            icon={<CalendarX size={16} />}
+            href="/manager/employees?filter=on-leave-today"
+            value={onLeaveToday?.count ?? null}
+            isLoading={onLeaveLoading}
+            isError={onLeaveError}
+            tooltip={onLeaveNames}
+            onRetry={() => refetchOnLeave()}
+            pillBgVar="--icon-pill-red-bg"
+            pillStrokeVar="--icon-pill-red-stroke"
+          />
+          <StatCard
+            label="Pending approvals"
+            icon={<CheckSquare size={16} />}
+            href="/manager/approvals"
+            value={pendingCount?.count ?? null}
+            isLoading={pendingLoading}
+            isError={pendingError}
+            showIndicator={(pendingCount?.count ?? 0) > 0}
+            onRetry={() => refetchPending()}
+            pillBgVar="--icon-pill-amber-bg"
+            pillStrokeVar="--icon-pill-amber-stroke"
+          />
+          <StatCard
+            label="Approved this month"
+            icon={<Calendar size={16} />}
+            href="/manager/approvals?filter=approved"
+            value={approvedThisMonth?.count ?? null}
+            isLoading={approvedLoading}
+            isError={approvedError}
+            onRetry={() => refetchApproved()}
+            pillBgVar="--icon-pill-green-bg"
+            pillStrokeVar="--icon-pill-green-stroke"
+          />
+        </motion.div>
+
+        {/* Main Content Grid — 6 Columns */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '24px' }}>
+          {/* Attendance */}
+          <div style={{ gridColumn: 'span 4', width: '100%' }}>
+            <AttendanceCard />
+          </div>
+
+          {/* Company Policies */}
+          <div style={{ gridColumn: 'span 2', width: '100%', display: 'flex' }}>
+            <PoliciesSection canUpload={false} />
           </div>
         </div>
       </div>
-
-      {/* Pending approvals quick view */}
-      {pendingPreviewLoading ? (
-        <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: 24 }}>
-          <Skeleton className="h-5 w-40 mb-4" />
-          <div className="space-y-3">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        </div>
-      ) : pendingLeaves.length > 0 ? (
-        <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: 24 }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold uppercase tracking-widest" style={{ color: 'var(--color-heading)' }}>Pending Approvals</h2>
-            <button onClick={() => router.push('/manager/approvals')} className="text-xs text-blue-600 hover:underline">
-              View all
-            </button>
-          </div>
-          <div className="space-y-3">
-            {pendingLeaves.map((leave) => (
-              <div
-                key={leave.id}
-                className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">
-                    {leave.employee?.displayName ?? 'Employee'}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {format(new Date(leave.startDate), 'dd MMM')} → {format(new Date(leave.endDate), 'dd MMM')} ·{' '}
-                    {leave.totalDays}d
-                  </p>
-                </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => approveLeaveMutation.mutate({ id: leave.id, action: 'approve' })}
-                    className="w-8 h-8 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 text-sm flex items-center justify-center font-bold transition-colors"
-                    aria-label="Approve leave"
-                    type="button"
-                  >
-                    ✓
-                  </button>
-                  <button
-                    onClick={() => approveLeaveMutation.mutate({ id: leave.id, action: 'reject' })}
-                    className="w-8 h-8 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 text-sm flex items-center justify-center font-bold transition-colors"
-                    aria-label="Reject leave"
-                    type="button"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       {/* Announcements */}
-      <div
-        style={{
-          background: 'var(--color-card-bg)',
-          border: '0.5px solid var(--color-card-border)',
-          borderRadius: 12,
-          padding: '16px 18px',
-        }}
-      >
+      <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-widest" style={{ color: 'var(--color-heading)' }}>
-            Announcements
-          </h2>
+          <p style={{ fontSize: 11, fontWeight: 400, textTransform: 'uppercase', color: 'var(--color-text-tertiary)' }}>Announcements</p>
           <button
             onClick={() => setAnnouncementForm((s) => ({ ...s, open: !s.open }))}
             className="hover:underline"
-            style={{ fontSize: 11, color: 'var(--icon-pill-blue-stroke)', fontWeight: 400 }}
+            style={{ fontSize: 11, color: 'var(--color-text-info)', fontWeight: 500 }}
             type="button"
           >
             {announcementForm.open ? 'Cancel' : '+ Post announcement'}
@@ -718,7 +550,7 @@ export default function ManagerDashboardPage() {
         </div>
 
         {announcementForm.open && (
-          <div className="mb-4 space-y-3 bg-slate-50 rounded-xl p-4 border border-slate-200">
+          <div className="mb-4 space-y-3 bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-inner">
             <input
               value={announcementForm.title}
               onChange={(e) => setAnnouncementForm((s) => ({ ...s, title: e.target.value }))}
@@ -768,40 +600,74 @@ export default function ManagerDashboardPage() {
         ) : announcements.length === 0 ? (
           <EmptyState icon="📢" title="No announcements" description="Post an announcement to notify the team." />
         ) : (
-          <div className="space-y-3">
-            {announcements.slice(0, 5).map((a, idx) => {
-              const cycle = idx % 4
-              const bg =
-                cycle === 0
-                  ? 'var(--announce-purple-bg)'
-                  : cycle === 1
-                    ? 'var(--announce-teal-bg)'
-                    : cycle === 2
-                      ? 'var(--announce-amber-bg)'
-                      : 'var(--announce-blue-bg)'
-
-              const titleColor =
-                cycle === 0 ? 'var(--announce-purple-title)' : cycle === 1 ? 'var(--announce-teal-title)' : 'var(--color-heading)'
-              const bodyColor =
-                cycle === 0 ? 'var(--announce-purple-body)' : cycle === 1 ? 'var(--announce-teal-body)' : 'var(--color-muted)'
-
-              return (
-                <div
-                  key={a.id}
-                  style={{
-                    background: bg,
-                    borderRadius: 9,
-                    padding: '10px 12px',
-                    marginBottom: 7,
-                  }}
-                >
-                  <p style={{ fontSize: 12, fontWeight: 500, color: titleColor }}>{a.title}</p>
-                  <p className="line-clamp-2" style={{ fontSize: 11, marginTop: 2, color: bodyColor }}>
-                    {a.content}
-                  </p>
-                </div>
-              )
-            })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {announcements.slice(0, 5).map((a) => (
+              <div key={a.id} style={{ background: 'var(--color-background-secondary)', borderRadius: '12px', padding: 16, border: '0.5px solid var(--color-border-tertiary)' }}>
+                {editingId === a.id ? (
+                  <div className="space-y-3">
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    />
+                    <textarea
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm resize-none"
+                      rows={3}
+                      value={editForm.body}
+                      onChange={(e) => setEditForm({ ...editForm, body: e.target.value })}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => updateAnnouncement.mutate({ id: a.id, title: editForm.title, content: editForm.body })}
+                        disabled={updateAnnouncement.isPending}
+                        className="text-[11px] bg-blue-600 text-white px-3 py-1 rounded-md font-medium"
+                      >
+                        {updateAnnouncement.isPending ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="text-[11px] bg-slate-200 text-slate-600 px-3 py-1 rounded-md font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-start">
+                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>{a.title}</p>
+                      <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingId(a.id)
+                              setEditForm({ title: a.title, body: a.content })
+                            }}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="Edit announcement"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Delete this announcement?')) deleteAnnouncement.mutate(a.id)
+                            }}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="Delete announcement"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>{a.content}</p>
+                    <p style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontWeight: 500 }}>{a.poster?.displayName}</span>
+                      <span>•</span>
+                      <span>{format(new Date(a.createdAt), 'dd MMM yyyy')}</span>
+                    </p>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>

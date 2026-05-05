@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const start = startOfMonth(refDate)
     const end = endOfMonth(refDate)
 
-    if (!['HR', 'ADMIN'].includes(token.role)) {
+    if (!['HR'].includes(token.role)) {
       const records = await prisma.attendanceRecord.findMany({
         where: { employeeId: token.userId, date: { gte: start, lte: end } },
         orderBy: { date: 'desc' },

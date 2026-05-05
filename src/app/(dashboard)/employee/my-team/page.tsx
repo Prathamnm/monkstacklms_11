@@ -18,7 +18,7 @@ type ApiEmployee = {
   id: string
   displayName: string
   email: string
-  role: 'EMPLOYEE' | 'MANAGER' | 'HR' | 'ADMIN'
+  role: 'EMPLOYEE' | 'MANAGER' | 'HR'
   jobTitle?: string | null
   profilePictureUrl?: string | null
   employmentStatus?: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED'
@@ -199,9 +199,9 @@ export default function TeamMonkstackPage() {
           >
             <UserPlus size={18} color="var(--icon-pill-green-stroke)" />
           </div>
-          <p className="text-sm font-semibold" style={{ color: 'var(--color-heading)', marginTop: 12, marginBottom: 4 }}>Joined this month</p>
+          <p className="text-sm font-semibold" style={{ color: 'var(--color-heading)', marginTop: 12, marginBottom: 4 }}>Available Today</p>
           <p className="text-3xl font-bold" style={{ color: 'var(--color-heading)', lineHeight: 1 }}>
-            {isLoading ? '—' : joinedThisMonth}
+            {isLoading ? '—' : employees.filter(e => e.availabilityStatus === 'AVAILABLE').length}
           </p>
         </div>
       </div>
@@ -238,7 +238,7 @@ export default function TeamMonkstackPage() {
           <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-heading)', marginBottom: 6 }}>No employees found</p>
           <p style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 12 }}>
             The directory is empty. An admin can import everyone from Microsoft Entra: POST{' '}
-            <code className="text-xs">/api/admin/users/sync</code> (admin session or <code className="text-xs">x-sync-secret</code> cron).
+            <code className="text-xs">/api/hr/users/sync</code> (admin session or <code className="text-xs">x-sync-secret</code> cron).
           </p>
           <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>Requires server env: AZURE_AD_TENANT_ID, AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET.</p>
         </div>
@@ -252,20 +252,19 @@ export default function TeamMonkstackPage() {
           <table style={{ width: '100%' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--color-card-border)', background: 'var(--color-page-bg)' }}>
-                <th className="text-xs font-semibold uppercase tracking-wider" style={{ textAlign: 'left', color: 'var(--color-muted)', padding: '12px 16px' }}>Employee</th>
-                <th className="text-xs font-semibold uppercase tracking-wider" style={{ textAlign: 'left', color: 'var(--color-muted)', padding: '12px 16px' }}>Role</th>
-                <th className="text-xs font-semibold uppercase tracking-wider" style={{ textAlign: 'left', color: 'var(--color-muted)', padding: '12px 16px' }}>Status Today</th>
-                <th className="text-xs font-semibold uppercase tracking-wider" style={{ textAlign: 'left', color: 'var(--color-muted)', padding: '12px 16px' }}>Action</th>
+                <th className="text-xs font-semibold uppercase tracking-wider" style={{ textAlign: 'left', color: 'var(--color-muted)', padding: '12px 16px' }}>Name</th>
+                <th className="text-xs font-semibold uppercase tracking-wider" style={{ textAlign: 'left', color: 'var(--color-muted)', padding: '12px 16px' }}>Email</th>
+                <th className="text-xs font-semibold uppercase tracking-wider" style={{ textAlign: 'left', color: 'var(--color-muted)', padding: '12px 16px' }}>Job Title</th>
+                <th className="text-xs font-semibold uppercase tracking-wider" style={{ textAlign: 'left', color: 'var(--color-muted)', padding: '12px 16px' }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((emp) => (
                 <tr
                   key={emp.id}
-                  style={{ borderBottom: '1px solid var(--color-card-border)', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                  style={{ borderBottom: '1px solid var(--color-card-border)', transition: 'background-color 0.2s' }}
                   onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-page-bg)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  onClick={() => router.push(`/team/${emp.id}`)}
                 >
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -286,50 +285,27 @@ export default function TeamMonkstackPage() {
                       >
                         {getInitials(emp.displayName)}
                       </div>
-                      <div>
-                        <p style={{ fontWeight: 500, color: 'var(--color-heading)', fontSize: 14 }}>{emp.displayName}</p>
-                        <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>{emp.email}</p>
-                      </div>
+                      <p style={{ fontWeight: 500, color: 'var(--color-heading)', fontSize: 13 }}>{emp.displayName}</p>
                     </div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    {emp.role === 'HR' && (
-                      <span style={{ padding: '4px 8px', fontSize: 11, fontWeight: 600, background: 'var(--icon-pill-purple-bg)', color: 'var(--icon-pill-purple-stroke)', borderRadius: 6 }}>HR</span>
-                    )}
-                    {emp.role === 'MANAGER' && (
-                      <span style={{ padding: '4px 8px', fontSize: 11, fontWeight: 600, background: 'var(--icon-pill-blue-bg)', color: 'var(--icon-pill-blue-stroke)', borderRadius: 6 }}>MANAGER</span>
-                    )}
+                    <a
+                      href={`mailto:${emp.email}`}
+                      style={{ color: '#3b82f6', fontSize: 13, textDecoration: 'none' }}
+                    >
+                      {emp.email}
+                    </a>
+                  </td>
+                  <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--color-heading)' }}>
+                    {emp.jobTitle || '—'}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     {emp.availabilityStatus === 'AVAILABLE' && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-approved-bg)', display: 'inline-block' }} />
-                        <span style={{ color: 'var(--status-approved-text)' }}>Available</span>
-                      </span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 99, background: 'var(--status-approved-bg)', color: 'var(--status-approved-text)' }}>Available</span>
                     )}
-                    {emp.availabilityStatus === 'ON_LEAVE' && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-rejected-bg)', display: 'inline-block' }} />
-                        <span style={{ color: 'var(--status-rejected-text)' }}>On Leave</span>
-                      </span>
+                    {(emp.availabilityStatus === 'ON_LEAVE' || emp.availabilityStatus === 'HALF_DAY_AM' || emp.availabilityStatus === 'HALF_DAY_PM') && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 99, background: 'var(--status-pending-bg)', color: 'var(--status-pending-text)' }}>On Leave</span>
                     )}
-                    {(emp.availabilityStatus === 'HALF_DAY_AM' || emp.availabilityStatus === 'HALF_DAY_PM') && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-pending-bg)', display: 'inline-block' }} />
-                        <span style={{ color: 'var(--status-pending-text)' }}>Half Day</span>
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <button
-                      style={{ color: 'var(--icon-pill-blue-stroke)', fontWeight: 500, fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/team/${emp.id}`)
-                      }}
-                    >
-                      View Profile
-                    </button>
                   </td>
                 </tr>
               ))}

@@ -13,7 +13,7 @@ function initialsFromName(name: string) {
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'ADMIN', 'HR'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const { searchParams } = new URL(req.url)
     const teamId = (searchParams.get('teamId') ?? '').trim()
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     }
 
     const teamMembers = await prisma.employee.findMany({
-      where: token.role === 'ADMIN' ? { employmentStatus: 'ACTIVE' } : { managerId: teamId, employmentStatus: 'ACTIVE' },
+      where: token.role === 'HR' ? { employmentStatus: 'ACTIVE' } : { managerId: teamId, employmentStatus: 'ACTIVE' },
       select: { id: true },
     })
 

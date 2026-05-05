@@ -8,7 +8,7 @@ const ALLOWED: LeaveStatus[] = ['APPROVED', 'REJECTED', 'PENDING', 'CANCELLED', 
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'ADMIN'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const { searchParams } = new URL(req.url)
     const rawStatus = searchParams.get('status') ?? 'APPROVED'
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const leaves = await prisma.leaveRequest.findMany({
       where: {
         status,
-        ...(token.role === 'ADMIN' ? {} : { approverId: token.userId }),
+        ...(token.role === 'HR' ? {} : { approverId: token.userId }),
         ...(from && to
           ? {
               approvedAt: {

@@ -51,8 +51,8 @@ function LoginContent() {
           autoplay={true}
           style={{ width: 350, height: 350 }}
         />
-        <p className="text-white font-bold text-2xl tracking-widest uppercase">
-          Imagination Engineered
+        <p className="text-white text-3xl tracking-tight">
+          Imagination <span className="font-bold text-white">Engineered</span>
         </p>
       </div>
 
@@ -63,13 +63,10 @@ function LoginContent() {
           {/* Card Header */}
           <div className="px-8 pt-10 pb-2">
             <div className="mb-8">
-              <Image
+              <img
                 src="/monkstack-logo.png"
                 alt="Monkstack"
-                width={200}
-                height={64}
-                className="h-14 w-auto object-contain object-left [filter:invert(1)]"
-                priority
+                className="h-14 w-auto object-contain object-left [filter:invert(1)] mix-blend-multiply"
               />
             </div>
 

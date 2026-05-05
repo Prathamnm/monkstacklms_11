@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db/prisma'
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'ADMIN'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const { searchParams } = new URL(req.url)
     const managerId = (searchParams.get('managerId') ?? '').trim()
@@ -26,7 +26,13 @@ export async function GET(req: NextRequest) {
     if (teamIds.length === 0) return NextResponse.json({ count: 0 })
 
     const count = await prisma.leaveRequest.count({
-      where: { employeeId: { in: teamIds }, status: 'PENDING' },
+      where: { 
+        OR: [
+          { managerId: managerId },
+          { employeeId: { in: teamIds }, managerId: null },
+        ],
+        status: 'PENDING' 
+      },
     })
 
     return NextResponse.json({ count })

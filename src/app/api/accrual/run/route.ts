@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/audit/auditLogger'
 export async function POST(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN'])
+    requireRole(token, ['HR'])
 
     const result = await runMonthlyAccrual()
 

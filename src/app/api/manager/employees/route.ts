@@ -6,7 +6,7 @@ import { getAvailabilityForDate } from '@/lib/utils/dateUtils'
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'ADMIN'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)

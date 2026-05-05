@@ -16,7 +16,7 @@ export async function PATCH(
 ) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['MANAGER', 'ADMIN'])
+    requireRole(token, ['MANAGER', 'HR'])
 
     const { id } = params
     const body = await req.json()
@@ -82,7 +82,7 @@ export async function PATCH(
             employmentStatus: 'ACTIVE',
             OR: [
               { managerId: token.userId },
-              { role: { in: ['HR', 'ADMIN'] } }
+              { role: { in: ['HR'] } }
             ]
           },
           select: { workEmail: true, notificationEmail: true, role: true, displayName: true, jobTitle: true }

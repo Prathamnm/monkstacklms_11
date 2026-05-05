@@ -6,30 +6,13 @@ import { useMsal } from '@azure/msal-react'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { PageSkeleton } from '@/components/shared/LoadingSkeleton'
-import { EmptyState } from '@/components/shared/EmptyState'
 import { getInitials, getCleanFirstName } from '@/lib/utils/formatters'
-import { cn } from '@/lib/utils/cn'
-import { ROLE_LABELS, ROLE_COLORS } from '@/constants/roles'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
 import type { Announcement } from '@/types/announcement'
 import { PoliciesSection } from '@/components/shared/PoliciesSection'
 import { AttendanceCard } from '@/components/shared/AttendanceCard'
-
-const container = { animate: { transition: { staggerChildren: 0.07 } } }
-const item = {
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
-}
-
-function SummaryCard({ value, label }: { value: string | number; label: string }) {
-  return (
-    <motion.div variants={item} className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
-      <p className="text-3xl font-semibold text-slate-900">{value}</p>
-      <p className="text-sm text-slate-500 mt-2">{label}</p>
-    </motion.div>
-  )
-}
+import { UpcomingLeavesCard } from '@/components/shared/UpcomingLeavesCard'
 
 export default function EmployeeDashboardPage() {
   const router = useRouter()
@@ -63,7 +46,6 @@ export default function EmployeeDashboardPage() {
   })
 
   const isLoading = isUserLoading || statsLoading
-
   const firstName = getCleanFirstName(user?.firstName, user?.displayName)
 
   if (isLoading || !user) return <PageSkeleton />
@@ -75,10 +57,10 @@ export default function EmployeeDashboardPage() {
       transition={{ duration: 0.25 }}
       style={{ padding: '16px', background: 'var(--color-page-bg)', minHeight: '100vh' }}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }} className="responsive-grid">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-        {/* Row 1 — Welcome Banner (spans all 3 columns) */}
-        <div style={{ gridColumn: '1 / -1', background: 'var(--color-background-secondary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
+        {/* Banner (Full Width) */}
+        <div style={{ background: 'var(--color-background-secondary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--color-background-info)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-info)', fontSize: 14, fontWeight: 500, overflow: 'hidden', flexShrink: 0 }}>
@@ -100,84 +82,52 @@ export default function EmployeeDashboardPage() {
           </div>
         </div>
 
-        {/* Row 2 — Three stat cards (1 column each) */}
-        <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
-          <p style={{ fontSize: 11, fontWeight: 400, textTransform: 'uppercase', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>Total leave requests</p>
-          <p style={{ fontSize: 32, fontWeight: 500, color: 'var(--color-text-primary)', lineHeight: 1 }}>{stats?.totalThisMonth ?? 0}</p>
-          <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 4 }}>{(stats?.totalThisMonth ?? 0) === 0 ? 'No requests this month' : 'This month'}</p>
-        </div>
-
-        <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
-          <p style={{ fontSize: 11, fontWeight: 400, textTransform: 'uppercase', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>Pending leave requests</p>
-          <p style={{ fontSize: 32, fontWeight: 500, color: 'var(--color-text-primary)', lineHeight: 1 }}>{stats?.pendingCount ?? 0}</p>
-          <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 4 }}>{(stats?.pendingCount ?? 0) === 0 ? 'Nothing awaiting approval' : 'Awaiting approval'}</p>
-        </div>
-
-        <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
-          <p style={{ fontSize: 11, fontWeight: 400, textTransform: 'uppercase', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>Leave balance</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div style={{ background: 'var(--color-background-secondary)', borderRadius: '8px', padding: 12 }}>
-              <p style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>Standard</p>
-              <p style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary)', lineHeight: 1 }}>{balance?.availableStandard ?? '—'}</p>
-            </div>
-            <div style={{ background: 'var(--color-background-secondary)', borderRadius: '8px', padding: 12 }}>
-              <p style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>Emergency</p>
-              <p style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary)', lineHeight: 1 }}>{balance?.availableEmergency ?? '—'}</p>
-            </div>
+        {/* Main Dashboard Grid — 6 Columns for precise proportionality */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }} className="responsive-grid">
+          
+          {/* Row 2 — Stats & Balance */}
+          <div style={{ gridColumn: 'span 1', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '20px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--color-text-tertiary)', letterSpacing: '0.05em', marginBottom: 12 }}>Total requests</p>
+            <p style={{ fontSize: 32, fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1 }}>{stats?.totalThisMonth ?? 0}</p>
+            <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 10, opacity: 0.8 }}>This month</p>
           </div>
-        </div>
 
-        {/* Row 3 — Attendance (2 columns) + Company Policies (1 column) */}
-        <div style={{ gridColumn: '1 / 3', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
-          <p style={{ fontSize: 11, fontWeight: 400, textTransform: 'uppercase', color: 'var(--color-text-tertiary)', marginBottom: 12 }}>Attendance — April 2026</p>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {[
-              { day: 'Fri', date: 'Apr 24', status: 'Weekend', color: 'var(--color-text-secondary)' },
-              { day: 'Sat', date: 'Apr 25', status: 'Weekend', color: 'var(--color-text-secondary)' },
-              { day: 'Sun', date: 'Apr 26', status: 'Weekend', color: 'var(--color-text-secondary)' },
-              { day: 'Mon', date: 'Apr 27', status: 'No data', color: 'var(--color-text-warning)' },
-              { day: 'Tue', date: 'Apr 28', status: 'No data', color: 'var(--color-text-warning)' },
-              { day: 'Wed', date: 'Apr 29', status: 'No data', color: 'var(--color-text-warning)' },
-              { day: 'Thu', date: 'Apr 30', status: 'No data', color: 'var(--color-text-warning)' },
-            ].map((row, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', borderBottom: idx < 6 ? '0.5px solid var(--color-border-tertiary)' : 'none', padding: '8px 0' }}>
-                <div style={{ width: 80, flexShrink: 0 }}>
-                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{row.day}</p>
-                  <p style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>{row.date}</p>
-                </div>
-                <div style={{ flex: 1, display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ width: 12, height: 1, background: 'var(--color-border-tertiary)' }} />
-                  <span style={{ width: 12, height: 1, background: 'var(--color-border-tertiary)' }} />
-                  <span style={{ width: 12, height: 1, background: 'var(--color-border-tertiary)' }} />
-                </div>
-                <div style={{ flexShrink: 0 }}>
-                  <span style={{ fontSize: 11, fontWeight: 400, padding: '4px 10px', borderRadius: '99px', background: row.status === 'Weekend' ? 'var(--color-background-secondary)' : 'var(--color-background-warning)', color: row.color }}>
-                    {row.status}
-                  </span>
-                </div>
+          <div style={{ gridColumn: 'span 1', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '20px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--color-text-tertiary)', letterSpacing: '0.05em', marginBottom: 12 }}>Pending Requests</p>
+            <p style={{ fontSize: 32, fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1 }}>{stats?.pendingCount ?? 0}</p>
+            <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 10, opacity: 0.8 }}>Awaiting approval</p>
+          </div>
+
+          <div style={{ gridColumn: 'span 2', height: '100%' }}>
+            <UpcomingLeavesCard />
+          </div>
+
+          <div style={{ gridColumn: 'span 2', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '20px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--color-text-tertiary)', letterSpacing: '0.05em', marginBottom: 12 }}>Leave balance</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ background: 'var(--color-background-secondary)', borderRadius: '10px', padding: '14px 12px', border: '0.5px solid var(--color-border-tertiary)' }}>
+                <p style={{ fontSize: 9, color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Standard</p>
+                <p style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text-primary)' }}>{balance?.availableStandard ?? '—'}</p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
-          <p style={{ fontSize: 11, fontWeight: 400, textTransform: 'uppercase', color: 'var(--color-text-tertiary)', marginBottom: 12 }}>Company policies</p>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0' }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--color-background-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" strokeWidth={1.5}>
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1={16} y1={13} x2={8} y2={13} />
-                <line x1={16} y1={17} x2={8} y2={17} />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
+              <div style={{ background: 'var(--color-background-secondary)', borderRadius: '10px', padding: '14px 12px', border: '0.5px solid var(--color-border-tertiary)' }}>
+                <p style={{ fontSize: 9, color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Emergency</p>
+                <p style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text-primary)' }}>{balance?.availableEmergency ?? '—'}</p>
+              </div>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>No policies uploaded yet</p>
+          </div>
+
+          {/* Row 3 — Attendance & Policies */}
+          <div style={{ gridColumn: 'span 4', width: '100%' }}>
+            <AttendanceCard />
+          </div>
+
+          <div style={{ gridColumn: 'span 2', width: '100%', display: 'flex' }}>
+            <PoliciesSection canUpload={false} />
           </div>
         </div>
 
-        {/* Row 4 — Announcements (spans all 3 columns) */}
-        <div style={{ gridColumn: '1 / -1', background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
+        {/* Row 3 — Announcements (Full Width) */}
+        <div style={{ background: 'var(--color-background-primary)', border: '0.5px solid var(--color-border-tertiary)', borderRadius: '12px', padding: '16px' }}>
           <p style={{ fontSize: 11, fontWeight: 400, textTransform: 'uppercase', color: 'var(--color-text-tertiary)', marginBottom: 12 }}>Announcements</p>
           {announcements.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
