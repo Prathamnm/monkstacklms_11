@@ -196,11 +196,11 @@ export default function AuthCallbackPage() {
   }, [instance, inProgress, router])
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-black flex items-center justify-center">
       <div className="text-center">
-        <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <h2 className="text-white text-lg font-semibold mb-2">Signing you in...</h2>
-        <p className="text-slate-400 text-sm">Setting up your workspace</p>
+        <p className="text-white/70 text-sm">Setting up your workspace</p>
       </div>
     </div>
   )

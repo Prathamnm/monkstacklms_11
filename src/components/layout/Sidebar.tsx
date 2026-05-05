@@ -84,17 +84,17 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
       animate={{ width: collapsed ? 72 : 260 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
       className={cn(
-        'flex flex-col h-full bg-slate-900 overflow-hidden flex-shrink-0',
+        'flex flex-col h-full bg-[#0a0a0a] overflow-hidden flex-shrink-0',
         user.role === 'HR' && 'border-r-2 border-purple-500'
       )}
     >
       {/* Logo Area */}
       <div className={cn(
-        "flex items-center px-4 py-5 border-b border-slate-800 flex-shrink-0",
+        "flex items-center px-4 py-5 border-b border-[rgba(255,255,255,0.07)] flex-shrink-0",
         collapsed ? "justify-center" : "justify-between"
       )}>
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -109,8 +109,8 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
                 transition={{ duration: 0.15 }}
                 className="flex-1 min-w-0"
               >
-                <p className="text-white font-bold text-sm leading-none truncate">Monkstack HRM</p>
-                <p className="text-slate-400 text-xs mt-0.5">Human Resources</p>
+                <p className="text-white font-bold text-sm leading-none truncate">Monkstack LMS</p>
+                <p className="text-[rgba(255,255,255,0.4)] text-xs mt-0.5">Learning Management</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -120,7 +120,7 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
         {!collapsed && (
           <button
             onClick={onToggle}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 text-[rgba(255,255,255,0.45)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] rounded-lg transition-colors"
             title="Collapse sidebar"
           >
             <Menu size={20} />
@@ -139,8 +139,8 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-2.5 mx-0 text-sm font-medium transition-colors duration-150 appearance-none border-0 outline-none',
                 isActive
-                  ? 'bg-slate-800 text-white border-l-2 border-blue-500 pl-[14px]'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                  ? 'bg-[rgba(255,255,255,0.08)] text-white border-l-2 border-white pl-[14px]'
+                  : 'text-[rgba(255,255,255,0.45)] hover:bg-[rgba(255,255,255,0.08)] hover:text-white',
                 collapsed && 'justify-center px-0'
               )}
               title={collapsed ? item.label : undefined}
@@ -173,7 +173,7 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
         <div className="px-3 pb-2">
           <button
             onClick={onToggle}
-            className="w-full flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200"
+            className="w-full flex items-center justify-center p-2 rounded-lg text-[rgba(255,255,255,0.45)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] transition-all duration-200"
             title="Expand sidebar"
           >
             <Menu size={20} />
@@ -182,7 +182,7 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
       )}
 
       {/* User card */}
-      <div className="border-t border-slate-800 p-3 flex-shrink-0">
+      <div className="border-t border-[rgba(255,255,255,0.07)] p-3 flex-shrink-0">
         <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
             {user.profilePictureUrl ? (
@@ -205,7 +205,7 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
                 className="flex-1 min-w-0"
               >
                 <p className="text-white text-xs font-medium truncate">{user.displayName}</p>
-                <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', ROLE_COLORS[user.role])}>
+                <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.6)]">
                   {ROLE_LABELS[user.role]}
                 </span>
               </motion.div>
@@ -215,7 +215,7 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
             <button
               onClick={handleSignOut}
               title="Sign out"
-              className="text-slate-400 hover:text-white transition-colors p-1 rounded"
+              className="text-[rgba(255,255,255,0.45)] hover:text-white hover:bg-[rgba(255,255,255,0.08)] transition-colors p-1 rounded"
             >
               <LogOut size={16} />
             </button>
