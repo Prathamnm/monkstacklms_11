@@ -111,8 +111,13 @@ export function LeaveCalendarPicker({
 
   const handleContextMenu = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement
-    const dateStr = target.getAttribute('data-date') || target.closest('[data-date]')?.getAttribute('data-date')
+    let dateStr = target.getAttribute('data-date') || target.closest('[data-date]')?.getAttribute('data-date')
     
+    // If we clicked the button but not the inner span, look downwards
+    if (!dateStr && target.querySelector) {
+      dateStr = target.querySelector('[data-date]')?.getAttribute('data-date')
+    }
+
     if (dateStr) {
       e.preventDefault()
       handleDayToggle(parseISO(dateStr))

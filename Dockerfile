@@ -43,6 +43,7 @@ RUN adduser --system --uid 1001 nextjs
 # Set correct permissions
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
 COPY --chown=nextjs:nodejs ./scripts/container-start.sh ./container-start.sh
