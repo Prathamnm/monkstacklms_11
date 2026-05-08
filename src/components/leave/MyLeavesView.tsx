@@ -183,7 +183,7 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
                   {/* Cancel actions */}
                   {action && (
                     <div className="mt-3 pt-3 border-t border-slate-100">
-                      {action === 'cancel' && role === 'EMPLOYEE' && (
+                      {action === 'cancel' && (
                         <button
                           onClick={() => setCancelingId(leave.id)}
                           className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
@@ -192,7 +192,11 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
                         </button>
                       )}
                       {action === 'contact_hr' && (
-                        <p className="text-xs text-slate-400 italic">Contact HR to reverse this leave</p>
+                        <p className="text-xs text-slate-400 italic">
+                          {role === 'EMPLOYEE'
+                            ? 'Contact HR to reverse this leave'
+                            : 'Contact Admin to reverse this leave'}
+                        </p>
                       )}
                     </div>
                   )}

@@ -130,6 +130,10 @@ export async function POST(req: NextRequest) {
       console.warn(`[/api/leave/apply] Employee ${token.userId} has no managerId set. Leave will be created but may not appear in any manager's approvals queue.`)
     }
 
+    // Managers' own leave requests are auto-approved
+    const isManagerApplying = token.role === 'MANAGER'
+    const leaveStatus = isManagerApplying ? 'APPROVED' : 'PENDING'
+
     // Create leave request
     const leave = await prisma.leaveRequest.create({
       data: {
@@ -144,7 +148,11 @@ export async function POST(req: NextRequest) {
         totalDays: calculatedTotalDays,
         reason: reason.trim(),
         isEmergency,
-        status: 'PENDING',
+        status: leaveStatus,
+        ...(isManagerApplying && {
+          approverId: token.userId,
+          approvedAt: new Date(),
+        }),
         emailsSent: { applied: false },
       },
     })
