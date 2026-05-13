@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { format, parseISO, isAfter, startOfDay } from 'date-fns'
-import { Calendar, ChevronRight } from 'lucide-react'
+import { Calendar, ChevronRight, Clock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface LeaveRequest {
@@ -40,67 +40,53 @@ export function UpcomingLeavesCard() {
   })
 
   return (
-    <div
-      style={{
-        background: 'var(--color-card-bg)',
-        border: '0.5px solid var(--color-border-tertiary)',
-        borderRadius: '12px',
-        padding: '16px',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column'
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <p style={{ fontSize: 11, fontWeight: 400, textTransform: 'uppercase', color: 'var(--color-text-tertiary)' }}>Upcoming Leaves</p>
-        <Calendar size={14} style={{ color: 'var(--color-text-tertiary)' }} />
+    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest leading-none">
+          Upcoming Leaves
+        </p>
+        <Calendar size={14} className="text-slate-300" />
       </div>
 
+      {/* Body */}
       {isLoading ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>Loading...</p>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-slate-100 border-t-blue-400 rounded-full animate-spin" />
         </div>
       ) : leaves.length === 0 ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
-          <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', textAlign: 'center' }}>No upcoming approved leaves</p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
+          <Clock size={18} className="text-slate-200" />
+          <p className="text-[10px] font-medium text-slate-300 uppercase tracking-widest">
+            No upcoming approved leaves
+          </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {leaves.map((leave) => (
-            <div 
-              key={leave.id}
-              style={{ 
-                background: 'var(--color-background-secondary)', 
-                borderRadius: '8px', 
-                padding: '10px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>
-                  {format(parseISO(leave.startDate), 'dd MMM')} - {format(parseISO(leave.endDate), 'dd MMM')}
-                </p>
-                <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                  {(leave.type || 'Leave').replace('_', ' ')} · {(leave.reason || 'No reason').length > 25 ? leave.reason.substring(0, 25) + '...' : (leave.reason || 'No reason')}
-                </p>
+        <div className="flex flex-col flex-1">
+          <div className="flex flex-col gap-1.5">
+            {leaves.map((leave) => (
+              <div
+                key={leave.id}
+                className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-3 cursor-pointer hover:bg-white hover:border-blue-100 hover:shadow-sm transition-all group"
+                onClick={() => router.push('/employee/leave')}
+              >
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-slate-800 leading-tight">
+                    {format(parseISO(leave.startDate), 'dd MMM')} – {format(parseISO(leave.endDate), 'dd MMM')}
+                  </p>
+                  <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                    Leave · {leave.reason || 'No reason specified'}
+                  </p>
+                </div>
+                <ChevronRight size={14} className="text-slate-300 group-hover:text-blue-500 transition-colors shrink-0 ml-2" />
               </div>
-              <ChevronRight size={14} style={{ color: 'var(--color-text-tertiary)' }} />
-            </div>
-          ))}
-          <button 
+            ))}
+          </div>
+
+          {/* Footer link */}
+          <button
             onClick={() => router.push('/employee/leave')}
-            style={{ 
-              marginTop: 4,
-              fontSize: 11, 
-              color: 'var(--color-text-info)', 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontWeight: 500
-            }}
+            className="mt-auto pt-3 text-[11px] font-medium text-blue-500 hover:text-blue-600 text-left transition-colors"
           >
             View all requests →
           </button>

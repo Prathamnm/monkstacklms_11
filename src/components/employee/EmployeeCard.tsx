@@ -1,86 +1,55 @@
+'use client'
+
 import { getInitials } from '@/lib/utils/formatters'
 import { AvailabilityBadge } from './AvailabilityBadge'
 import type { EmployeeWithAvailability } from '@/types/employee'
+import { cn } from '@/lib/utils/cn'
 
 interface EmployeeCardProps {
   employee: EmployeeWithAvailability
   onClick?: () => void
   showActions?: boolean
+  className?: string
 }
 
-export function EmployeeCard({ employee, onClick }: EmployeeCardProps) {
+export function EmployeeCard({ employee, onClick, className }: EmployeeCardProps) {
   return (
     <div
       onClick={onClick}
-      className="card-hover"
-      style={{
-        background: 'var(--color-card-bg)',
-        border: '1px solid var(--color-card-border)',
-        borderRadius: 16,
-        padding: '18px 20px',
-        cursor: onClick ? 'pointer' : 'default',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-      }}
+      className={cn(
+        "group flex items-center gap-4 bg-white border border-slate-200 rounded-2xl p-5 transition-all shadow-sm",
+        onClick ? "cursor-pointer hover:border-blue-200 hover:shadow-md active:scale-[0.98]" : "cursor-default",
+        className
+      )}
     >
-      <div
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: '50%',
-          background: 'var(--status-active-bg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 600,
-          fontSize: 15,
-          color: 'var(--status-active-text)',
-          flexShrink: 0,
-          overflow: 'hidden',
-        }}
-      >
+      <div className="w-12 h-12 rounded-full bg-blue-50 border-2 border-white shadow-sm flex items-center justify-center text-blue-600 text-[14px] font-bold shrink-0 transition-transform group-hover:scale-105 overflow-hidden">
         {employee.profilePictureUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={employee.profilePictureUrl}
             alt={employee.displayName}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            className="w-full h-full object-cover"
           />
         ) : (
           getInitials(employee.displayName)
         )}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p
-          style={{
-            fontWeight: 600,
-            fontSize: 14,
-            color: 'var(--color-heading)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+      
+      <div className="flex-1 min-w-0">
+        <p className="text-[14px] font-bold text-slate-900 truncate leading-tight group-hover:text-blue-700 transition-colors">
           {employee.displayName}
         </p>
-        <p
-          style={{
-            fontSize: 12,
-            color: 'var(--color-muted)',
-            marginTop: 1,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+        <p className="text-[11px] font-medium text-slate-400 truncate mt-0.5">
           {employee.workEmail || '—'}
         </p>
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 1 }}>
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 opacity-80">
           {employee.jobTitle || 'No title'}
         </p>
       </div>
-      <AvailabilityBadge status={employee.availabilityStatus} />
+
+      <div className="shrink-0">
+        <AvailabilityBadge status={employee.availabilityStatus} />
+      </div>
     </div>
   )
 }

@@ -4,26 +4,17 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
+import { motion } from 'framer-motion'
+import { format } from 'date-fns'
+import { Camera, ChevronRight, Briefcase, Mail, Phone, Calendar, UserCheck, Shield } from 'lucide-react'
+import toast from 'react-hot-toast'
+
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { PageSkeleton } from '@/components/shared/LoadingSkeleton'
 import { getInitials, getCleanFirstName } from '@/lib/utils/formatters'
 import { ROLE_COLORS, ROLE_LABELS } from '@/constants/roles'
-import { motion } from 'framer-motion'
-import { format } from 'date-fns'
-import { Camera } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
-
-function StatCard({ label, value, description }: { label: string; value: string | number; description?: string }) {
-  return (
-    <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: '20px 24px' }}>
-      <p style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 8 }}>{label}</p>
-      <p style={{ fontSize: 24, fontWeight: 600, color: 'var(--color-heading)' }}>{value}</p>
-      {description && <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 8 }}>{description}</p>}
-    </div>
-  )
-}
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -37,64 +28,9 @@ export default function ProfilePage() {
   if (isError || !data) return null
 
   const { user, balance } = data
-
-  const leaveRouteMap: Record<string, string> = {
-    EMPLOYEE: '/employee/apply-leave',
-    MANAGER: '/manager/apply-leave',
-    HR: '/hr/apply-leave',
-    ADMIN: '/employee/apply-leave',
-  }
-
-  const dashboardRouteMap: Record<string, string> = {
-    EMPLOYEE: '/employee/dashboard',
-    MANAGER: '/manager/dashboard',
-    HR: '/hr/dashboard',
-    ADMIN: '/hr/dashboard',
-  }
-
-  const leavesRouteMap: Record<string, string> = {
-    EMPLOYEE: '/employee/my-leaves',
-    MANAGER: '/manager/my-leaves',
-    HR: '/hr/my-leaves',
-    ADMIN: '/employee/my-leaves',
-  }
-
-  const metrics = [
-    {
-      label: 'Standard Leave Remaining',
-      value: balance.availableStandard,
-      description: `${balance.standardTotal} total · ${balance.standardUsed} used`,
-    },
-    {
-      label: 'Floater Leave Remaining',
-      value: balance.availableFloater ?? 2,
-      description: `${balance.floaterTotal ?? 2} total (included in standard) · ${balance.floaterUsed ?? 0} used`,
-    },
-    {
-      label: 'Emergency Leave Remaining',
-      value: balance.availableEmergency,
-      description: `${balance.emergencyTotal} total · ${balance.emergencyUsed} used`,
-    },
-    {
-      label: 'Pending Approval',
-      value: balance.pendingDays,
-      description: 'Days awaiting manager approval',
-    },
-  ]
-
-  const profileFields = [
-    { label: 'Email',               value: user.email },
-    { label: 'Job Title',           value: user.jobTitle ?? '—' },
-    { label: 'Role',                value: ROLE_LABELS[user.role] },
-    { label: 'Phone',               value: user.phoneNumber ?? '—' },
-    { label: 'Reporting Manager',   value: (user as any).manager?.displayName ?? 'Unassigned' },
-    { label: 'Employment Status',   value: user.employmentStatus ?? '—' },
-    { label: 'Join Date',           value: user.joinDate ? (() => { try { return format(new Date(user.joinDate as string), 'dd MMM yyyy') } catch { return '—' } })() : '—' },
-  ]
-
   const firstName = getCleanFirstName(user?.firstName, user?.displayName)
 
-  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
@@ -107,10 +43,7 @@ export default function ProfilePage() {
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       })
-      if (!res.ok) {
-        const d = await res.json()
-        throw new Error(d.error ?? 'Upload failed')
-      }
+      if (!res.ok) throw new Error('Upload failed')
       await queryClient.invalidateQueries({ queryKey: ['currentUser'] })
       toast.success('Profile photo updated')
     } catch (err: any) {
@@ -125,145 +58,181 @@ export default function ProfilePage() {
     <motion.div
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-      style={{ padding: '24px 32px', background: 'var(--color-page-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 14 }}
+      className="p-6 md:p-8 bg-[var(--color-page-bg)] min-h-screen flex flex-col gap-6"
     >
-      <PageHeader title={`Welcome, ${firstName}`} description="Your personal details, leave summary, and quick actions." />
+      <PageHeader 
+        title={`Welcome, ${firstName}`} 
+        description="Your personal details, leave summary, and quick actions." 
+      />
 
-      <div style={{ display: 'grid', gap: 24, gridTemplateColumns: '1fr 1fr' }} className="lg:grid-cols-2 grid-cols-1">
-        {/* Identity card */}
-        <section style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Avatar with upload overlay */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
+        {/* Identity & Personal Info Section */}
+        <section className="bg-[var(--color-card-bg)] border border-[var(--color-card-border)] rounded-2xl p-6 md:p-8 shadow-sm space-y-8">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Avatar Section */}
             <div
-              className="relative w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden flex-shrink-0 cursor-pointer group"
+              className="relative w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-white text-3xl font-bold overflow-hidden cursor-pointer group shadow-lg"
               onClick={() => !uploading && fileInputRef.current?.click()}
-              title="Change photo"
             >
               {uploading ? (
-                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : user.profilePictureUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img src={user.profilePictureUrl} alt={user.displayName} className="w-full h-full object-cover" />
               ) : (
                 getInitials(user.displayName)
               )}
               {!uploading && (
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity">
-                  <Camera size={18} className="text-white" />
-                  <span className="text-white text-[9px] font-medium mt-0.5">Change Photo</span>
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity">
+                  <Camera size={20} className="text-white" />
+                  <span className="text-white text-[10px] font-bold mt-1 uppercase tracking-tighter">Update</span>
                 </div>
               )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png"
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
-            <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.displayName}</p>
-              <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4 }}>{user.jobTitle ?? 'Employee'}</p>
-              <span className={`inline-flex mt-3 items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${ROLE_COLORS[user.role]}`}>
-                {ROLE_LABELS[user.role]}
-              </span>
-            </div>
-          </div>
-
-          {/* Profile fields grid */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-              {profileFields.map((f) => (
-                <div key={f.label}>
-                  <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{f.label}</p>
-                  <p style={{ fontSize: 13, color: 'var(--color-heading)', marginTop: 4, wordBreak: 'break-all' }}>{f.value}</p>
-                </div>
-              ))}
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoChange} />
             </div>
 
-            {/* Emergency Contact */}
-            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '0.5px solid var(--color-card-border)' }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Emergency Contact</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: 'var(--color-muted)' }}>Name</span>
-                  <span style={{ fontWeight: 500, color: 'var(--color-heading)' }}>{(user as any).emergencyName ?? '—'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: 'var(--color-muted)' }}>Relation</span>
-                  <span style={{ fontWeight: 500, color: 'var(--color-heading)' }}>{(user as any).emergencyRelation ?? '—'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: 'var(--color-muted)' }}>Phone</span>
-                  <span style={{ fontWeight: 500, color: 'var(--color-heading)' }}>{(user as any).emergencyPhone ?? '—'}</span>
-                </div>
+            <div className="text-center sm:text-left space-y-2">
+              <h2 className="text-2xl font-bold text-[var(--color-heading)] tracking-tight">{user.displayName}</h2>
+              <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                <span className={`inline-flex items-center rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${ROLE_COLORS[user.role]}`}>
+                  {ROLE_LABELS[user.role]}
+                </span>
+                <span className="bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">
+                  {user.employmentStatus}
+                </span>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <button onClick={() => router.push(leaveRouteMap[user.role])}
-              style={{ background: 'var(--icon-pill-blue-stroke)', color: 'var(--icon-pill-blue-bg)', border: 'none', borderRadius: 9, padding: '12px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', width: '100%' }}>
-              Request Leave
-            </button>
-            <button onClick={() => router.push(leavesRouteMap[user.role])}
-              style={{ background: 'transparent', border: '0.5px solid var(--color-card-border)', color: 'var(--color-heading)', borderRadius: 9, padding: '12px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', width: '100%', transition: 'background 0.2s' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-page-bg)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-              View Leave History
-            </button>
-          </div>
-        </section>
-
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-            {metrics.map((metric) => <StatCard key={metric.label} {...metric} />)}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 border-t border-[var(--color-card-border)] pt-8">
+            <ProfileField label="Work Email" value={user.email} icon={<Mail size={14} />} />
+            <ProfileField label="Job Title" value={user.jobTitle} icon={<Briefcase size={14} />} />
+            <ProfileField label="Phone Number" value={user.phoneNumber} icon={<Phone size={14} />} />
+            <ProfileField 
+              label="Join Date" 
+              value={user.joinDate ? format(new Date(user.joinDate), 'MMMM dd, yyyy') : '—'} 
+              icon={<Calendar size={14} />} 
+            />
+            <ProfileField 
+              label="Manager" 
+              value={(user as any).manager?.displayName} 
+              icon={<UserCheck size={14} />} 
+            />
+            <ProfileField label="Role Permissions" value={ROLE_LABELS[user.role]} icon={<Shield size={14} />} />
           </div>
 
-          <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: 24 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-heading)', marginBottom: 16 }}>Quick actions</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <button onClick={() => router.push(dashboardRouteMap[user.role])}
-                style={{ textAlign: 'left', background: 'transparent', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '16px 20px', fontSize: 13, fontWeight: 500, color: 'var(--color-heading)', cursor: 'pointer', transition: 'all 0.2s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-page-bg)'; e.currentTarget.style.borderColor = 'var(--icon-pill-blue-stroke)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--color-card-border)' }}>
-                Go to Dashboard
-              </button>
-              <button onClick={() => router.push(leavesRouteMap[user.role])}
-                style={{ textAlign: 'left', background: 'transparent', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '16px 20px', fontSize: 13, fontWeight: 500, color: 'var(--color-heading)', cursor: 'pointer', transition: 'all 0.2s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-page-bg)'; e.currentTarget.style.borderColor = 'var(--icon-pill-blue-stroke)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--color-card-border)' }}>
-                View leave history
-              </button>
-              {user.role === 'EMPLOYEE' && (
-                <button onClick={() => router.push('/employee/my-team')}
-                  style={{ textAlign: 'left', background: 'transparent', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '16px 20px', fontSize: 13, fontWeight: 500, color: 'var(--color-heading)', cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-page-bg)'; e.currentTarget.style.borderColor = 'var(--icon-pill-blue-stroke)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--color-card-border)' }}>
-                  See team availability
-                </button>
-              )}
-              {user.role === 'HR' && (
-                <button onClick={() => router.push('/hr/employees')}
-                  style={{ textAlign: 'left', background: 'transparent', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '16px 20px', fontSize: 13, fontWeight: 500, color: 'var(--color-heading)', cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-page-bg)'; e.currentTarget.style.borderColor = 'var(--icon-pill-blue-stroke)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--color-card-border)' }}>
-                  Manage employees
-                </button>
-              )}
-              {user.role === 'HR' && (
-                <button onClick={() => router.push('/hr/audit')}
-                  style={{ textAlign: 'left', background: 'transparent', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '16px 20px', fontSize: 13, fontWeight: 500, color: 'var(--color-heading)', cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-page-bg)'; e.currentTarget.style.borderColor = 'var(--icon-pill-blue-stroke)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--color-card-border)' }}>
-                  Open audit logs
-                </button>
-              )}
+          {/* Emergency Contact */}
+          <div className="bg-slate-50/50 rounded-2xl p-6 border border-[var(--color-card-border)]">
+            <h3 className="text-xs font-bold text-[var(--color-muted)] uppercase tracking-widest mb-4 flex items-center gap-2">
+              <div className="w-1 h-3 bg-blue-500 rounded-full" />
+              Emergency Contact
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <MiniField label="Name" value={(user as any).emergencyName} />
+              <MiniField label="Relation" value={(user as any).emergencyRelation} />
+              <MiniField label="Phone" value={(user as any).emergencyPhone} />
             </div>
           </div>
         </section>
+
+        {/* Leave Summary & Quick Actions */}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <BalanceCard 
+              label="Standard Leave" 
+              value={balance.availableStandard} 
+              subtext={`${balance.standardUsed} used of ${balance.standardTotal}`} 
+            />
+            <BalanceCard 
+              label="Emergency Leave" 
+              value={balance.availableEmergency} 
+              subtext={`${balance.emergencyUsed} used of ${balance.emergencyTotal}`} 
+            />
+            <BalanceCard 
+              label="Floater Leave" 
+              value={balance.availableFloater ?? 2} 
+              subtext={`${balance.floaterUsed ?? 0} used of ${balance.floaterTotal ?? 2}`} 
+            />
+            <BalanceCard 
+              label="Pending Days" 
+              value={balance.pendingDays} 
+              subtext="Awaiting approval"
+              highlight 
+            />
+          </div>
+
+          <div className="bg-[var(--color-card-bg)] border border-[var(--color-card-border)] rounded-2xl p-6 shadow-sm">
+            <h3 className="text-sm font-bold text-[var(--color-heading)] uppercase tracking-wider mb-6">Quick Actions</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <ActionButton 
+                label="Apply for Leave" 
+                onClick={() => router.push(`/${user.role.toLowerCase()}/leave`)}
+                primary
+              />
+              <ActionButton 
+                label="View Leave History" 
+                onClick={() => router.push(`/${user.role.toLowerCase()}/leave?tab=requests`)}
+              />
+              <ActionButton 
+                label="Go to Dashboard" 
+                onClick={() => router.push(`/${user.role.toLowerCase()}/dashboard`)}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </motion.div>
+  )
+}
+
+/* --- Atomic Sub-components --- */
+
+function ProfileField({ label, value, icon }: { label: string, value: string | null | undefined, icon: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+        <span className="text-slate-300">{icon}</span>
+        {label}
+      </p>
+      <p className="text-sm font-semibold text-[var(--color-heading)] break-all">
+        {value || '—'}
+      </p>
+    </div>
+  )
+}
+
+function MiniField({ label, value }: { label: string, value: string | null | undefined }) {
+  return (
+    <div>
+      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">{label}</p>
+      <p className="text-sm font-bold text-[var(--color-heading)]">{value || '—'}</p>
+    </div>
+  )
+}
+
+function BalanceCard({ label, value, subtext, highlight = false }: { label: string, value: number, subtextText?: string, subtext?: string, highlight?: boolean }) {
+  return (
+    <div className={`p-6 rounded-2xl border transition-all ${highlight ? 'bg-blue-50 border-blue-100 shadow-blue-50' : 'bg-white border-[var(--color-card-border)] shadow-sm'}`}>
+      <p className={`text-[10px] font-bold uppercase tracking-widest mb-4 ${highlight ? 'text-blue-600' : 'text-slate-400'}`}>
+        {label}
+      </p>
+      <p className="text-3xl font-extrabold text-slate-900 tracking-tighter mb-2">{value}</p>
+      <p className="text-[11px] font-medium text-slate-500">{subtext}</p>
+    </div>
+  )
+}
+
+function ActionButton({ label, onClick, primary = false }: { label: string, onClick: () => void, primary?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full py-4 px-6 rounded-xl text-sm font-bold transition-all flex items-center justify-between group ${
+        primary 
+          ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-[0.98]' 
+          : 'bg-white border border-[var(--color-card-border)] text-[var(--color-heading)] hover:bg-slate-50 active:scale-[0.98]'
+      }`}
+    >
+      {label}
+      <ChevronRight size={16} className={`transition-transform group-hover:translate-x-1 ${primary ? 'text-blue-200' : 'text-slate-300'}`} />
+    </button>
   )
 }

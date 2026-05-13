@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { FileText, Upload, Trash2, ExternalLink } from 'lucide-react'
+import { cn } from '@/lib/utils/cn'
+import { HEADING_STYLES } from '@/constants/tailwind'
 
 interface Policy {
   id: string
@@ -35,7 +37,7 @@ export function PoliciesSection({ canUpload = false }: PoliciesSectionProps) {
       return
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB
+    if (file.size > 10 * 1024 * 1024) {
       setError('File size must be less than 10MB')
       return
     }
@@ -99,7 +101,6 @@ export function PoliciesSection({ canUpload = false }: PoliciesSectionProps) {
         window.open(base64Data, '_blank')
         return
       }
-
       const base64WithoutHeader = base64Data.split(',')[1]
       const byteCharacters = atob(base64WithoutHeader)
       const byteNumbers = new Array(byteCharacters.length)
@@ -111,24 +112,14 @@ export function PoliciesSection({ canUpload = false }: PoliciesSectionProps) {
       const fileURL = URL.createObjectURL(blob)
       window.open(fileURL, '_blank')
     } catch (err) {
-      console.error('Failed to open PDF:', err)
       window.open(base64Data, '_blank')
     }
   }
 
   return (
-    <div
-      style={{
-        background: 'var(--color-card-bg)',
-        border: '1px solid var(--color-card-border)',
-        borderRadius: 16,
-        padding: '24px 28px',
-        width: '100%',
-        height: '100%',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 className="text-sm font-semibold uppercase tracking-widest" style={{ color: 'var(--color-heading)' }}>Company Policies</h3>
+    <div className="bg-[var(--color-card-bg)] border border-[var(--color-card-border)] rounded-2xl p-5 shadow-sm h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className={HEADING_STYLES.cardHeader}>Company Policies</h3>
         {canUpload && (
           <button
             type="button"
@@ -137,87 +128,38 @@ export function PoliciesSection({ canUpload = false }: PoliciesSectionProps) {
               setError(null)
               setFileData(null)
             }}
-            style={{
-              background: 'var(--icon-pill-blue-bg)',
-              color: 'var(--icon-pill-blue-stroke)',
-              border: '1px solid #BFDBFE',
-              borderRadius: 8,
-              padding: '7px 12px',
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-600 text-[11px] font-bold uppercase tracking-wider border border-blue-100 hover:bg-blue-100 transition-colors"
           >
-            <Upload size={14} /> {uploadForm.open ? 'Close' : 'Upload Policy'}
+            <Upload size={14} /> {uploadForm.open ? 'Close' : 'Upload'}
           </button>
         )}
       </div>
 
       {canUpload && uploadForm.open && (
-        <div
-          style={{
-            background: 'var(--color-page-bg)',
-            border: '1px solid var(--color-card-border)',
-            borderRadius: 12,
-            padding: '16px 20px',
-            marginBottom: 16,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}
-        >
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 space-y-3">
           <input
-            placeholder="Policy title (e.g. Leave Policy 2025)"
+            placeholder="Policy title..."
             value={uploadForm.title}
             onChange={(e) => setUploadForm((f) => ({ ...f, title: e.target.value }))}
-            style={{
-              border: '1px solid var(--color-card-border)',
-              borderRadius: 8,
-              padding: '8px 12px',
-              fontSize: 13,
-              width: '100%',
-              boxSizing: 'border-box',
-              background: 'var(--color-card-bg)',
-              color: 'var(--color-heading)',
-            }}
+            className="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400 outline-none transition-all"
           />
           
-          <div style={{
-            border: '1px dashed var(--color-card-border)',
-            borderRadius: 8,
-            padding: '16px',
-            textAlign: 'center',
-            background: 'var(--color-card-bg)',
-            cursor: 'pointer',
-            position: 'relative'
-          }}>
+          <div className="relative border-2 border-dashed border-slate-200 rounded-lg p-4 text-center hover:bg-slate-100 transition-colors">
             <input
               type="file"
               accept=".pdf"
               onChange={handleFileChange}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                opacity: 0,
-                cursor: 'pointer'
-              }}
+              className="absolute inset-0 opacity-0 cursor-pointer"
             />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <FileText size={20} style={{ color: 'var(--icon-pill-blue-stroke)' }} />
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-heading)' }}>
-                {fileData ? fileData.name : 'Click or drag PDF to upload'}
+            <div className="flex flex-col items-center gap-2">
+              <FileText size={20} className="text-slate-400" />
+              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">
+                {fileData ? fileData.name : 'Choose PDF File'}
               </span>
-              <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>Max size: 10MB</span>
             </div>
           </div>
 
-          {error && <p style={{ fontSize: 12, color: '#B91C1C' }}>{error}</p>}
+          {error && <p className="text-[10px] text-red-600 font-bold uppercase tracking-tight">{error}</p>}
           
           <button
             type="button"
@@ -229,88 +171,55 @@ export function PoliciesSection({ canUpload = false }: PoliciesSectionProps) {
               })
             }
             disabled={!uploadForm.title || !fileData || addMutation.isPending}
-            style={{
-              background: '#1D4ED8',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 16px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              opacity: (!uploadForm.title || !fileData || addMutation.isPending) ? 0.6 : 1
-            }}
+            className="w-full py-2.5 rounded-lg bg-blue-600 text-white text-xs font-bold uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all"
           >
-            {addMutation.isPending ? 'Saving...' : 'Save Policy'}
+            {addMutation.isPending ? 'Uploading...' : 'Save Policy'}
           </button>
         </div>
       )}
 
-      {isLoading ? (
-        <p style={{ fontSize: 13, color: 'var(--color-muted)' }}>Loading policies...</p>
-      ) : policies.length === 0 ? (
-        <p style={{ fontSize: 13, color: 'var(--color-muted)', textAlign: 'center', padding: '20px 0' }}>
-          No policies uploaded yet.
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {policies.map((p) => (
-            <div
-              key={p.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                background: 'var(--color-page-bg)',
-                border: '1px solid var(--color-card-border)',
-                borderRadius: 10,
-                padding: '12px 16px',
-              }}
+      <div className="space-y-2 overflow-y-auto no-scrollbar flex-1">
+        {isLoading ? (
+          <div className="text-center py-8">
+            <div className="w-6 h-6 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto" />
+          </div>
+        ) : policies.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">No policies available</p>
+          </div>
+        ) : (
+          policies.map((p) => (
+              <div className="group flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-sm hover:border-blue-100 transition-all"
             >
-              <FileText size={18} style={{ color: 'var(--icon-pill-blue-stroke)', flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-heading)' }}>{p.title}</p>
-                <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>{p.fileName}</p>
+              <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors">
+                <FileText size={16} />
               </div>
-              <button
-                type="button"
-                onClick={() => openBase64PDF(p.fileUrl)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--icon-pill-blue-stroke)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  padding: '4px 8px',
-                  borderRadius: 6,
-                }}
-                className="hover:bg-blue-50"
-              >
-                <ExternalLink size={14} /> Open
-              </button>
-              {canUpload && (
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold text-slate-900 leading-tight truncate">{p.title}</p>
+                <p className="text-[10px] font-medium text-slate-400 truncate mt-0.5">{p.fileName}</p>
+              </div>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   type="button"
-                  onClick={() => deleteMutation.mutate(p.id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--icon-pill-red-stroke)',
-                    padding: 4,
-                  }}
+                  onClick={() => openBase64PDF(p.fileUrl)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-tight transition-colors"
                 >
-                  <Trash2 size={14} />
+                  <ExternalLink size={14} /> Open
                 </button>
-              )}
+                {canUpload && (
+                  <button
+                    type="button"
+                    onClick={() => deleteMutation.mutate(p.id)}
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   )
 }

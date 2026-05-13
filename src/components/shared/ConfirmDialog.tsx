@@ -59,7 +59,7 @@ export function ConfirmDialog({
             >
               <X size={18} />
             </button>
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">{title}</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
             <p className="text-slate-500 text-sm mb-4 leading-relaxed">{description}</p>
             {children && <div className="mb-4">{children}</div>}
             <div className="flex justify-end gap-3">

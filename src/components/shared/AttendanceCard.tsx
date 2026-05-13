@@ -19,6 +19,8 @@ import {
 } from 'date-fns'
 import { Clock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { cn } from '@/lib/utils/cn'
+import { HEADING_STYLES } from '@/constants/tailwind'
 
 interface AttendanceRecord {
   id: string
@@ -36,8 +38,8 @@ interface Holiday {
 }
 
 function statusFromHours(hours: number | null, isWeekend: boolean, holidayName?: string): { label: string; color: string } {
-  if (holidayName) return { label: 'Holiday', color: '#8B5CF6' } // Purple for holidays
-  if (isWeekend) return { label: 'Weekend', color: '#94A3B8' } // Slate for weekends
+  if (holidayName) return { label: 'Holiday', color: '#8B5CF6' }
+  if (isWeekend) return { label: 'Weekend', color: '#94A3B8' }
   if (hours === null) return { label: 'No data', color: '#DC2626' }
   if (hours >= 6) return { label: 'Full day', color: '#15803D' }
   if (hours >= 3) return { label: 'Half day', color: '#D97706' }
@@ -63,7 +65,6 @@ export function AttendanceCard() {
       return res.json()
     },
     refetchInterval: 60 * 1000,
-    staleTime: 55 * 1000,
   })
 
   const { data: holidays = [] } = useQuery<Holiday[]>({
@@ -116,186 +117,134 @@ export function AttendanceCard() {
   const isJoinMonth = isSameMonth(viewMonth, joinDate) || isBefore(viewMonth, startOfMonth(joinDate))
 
   return (
-    <div
-      style={{
-        background: 'var(--color-card-bg)',
-        border: '1px solid var(--color-card-border)',
-        borderRadius: 16,
-        padding: '24px 28px',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'var(--icon-pill-blue-bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--icon-pill-blue-stroke)',
-            }}
-          >
-            <Clock size={16} />
+    <div className="bg-white border border-slate-200/80 rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 border border-blue-100">
+            <Clock size={15} />
           </div>
-          <div style={{ minWidth: 0 }}>
-            <h3 className="text-sm font-semibold uppercase tracking-widest" style={{ color: 'var(--color-heading)', margin: 0 }}>
+          <div>
+            <h3 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider leading-none">
               Attendance
             </h3>
-            <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 2 }}>
+            <p className="text-[11px] text-slate-400 mt-1 leading-none">
               {avgHours !== null ? `Avg ${avgHours}h / recorded day` : 'No data recorded yet'}
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--color-page-bg)', padding: '4px 8px', borderRadius: 20, border: '1px solid var(--color-card-border)' }}>
-          <button 
-            onClick={handlePrevMonth} 
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handlePrevMonth}
             disabled={isJoinMonth}
-            style={{ 
-              background: 'transparent', border: 'none', cursor: isJoinMonth ? 'not-allowed' : 'pointer',
-              color: isJoinMonth ? 'var(--color-muted)' : 'var(--color-heading)', display: 'flex', alignItems: 'center'
-            }}
+            className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-slate-500"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={15} />
           </button>
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-heading)', minWidth: 100, textAlign: 'center' }}>
-            {format(viewMonth, 'MMMM yyyy')}
+          <span className="text-[12px] font-semibold text-slate-700 min-w-[88px] text-center">
+            {format(viewMonth, 'MMM yyyy')}
           </span>
-          <button 
-            onClick={handleNextMonth} 
+          <button
+            onClick={handleNextMonth}
             disabled={isCurrentMonth}
-            style={{ 
-              background: 'transparent', border: 'none', cursor: isCurrentMonth ? 'not-allowed' : 'pointer',
-              color: isCurrentMonth ? 'var(--color-muted)' : 'var(--color-heading)', display: 'flex', alignItems: 'center'
-            }}
+            className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-slate-500"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={15} />
           </button>
         </div>
       </div>
 
       {isLoading ? (
-        <p style={{ fontSize: 13, color: 'var(--color-muted)' }}>Loading…</p>
+        <div className="flex items-center justify-center h-48">
+          <div className="w-6 h-6 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+        </div>
       ) : (
-        <div
-          style={{
-            maxHeight: 320,
-            overflowY: 'auto',
-            border: '1px solid var(--color-card-border)',
-            borderRadius: 12,
-            background: 'var(--color-page-bg)',
-          }}
-        >
-          {/* Table Header */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,1.4fr) minmax(0,0.6fr) minmax(0,1fr)',
-              gap: 8,
-              alignItems: 'center',
-              padding: '10px 16px',
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              color: 'var(--color-text-tertiary)',
-              borderBottom: '1px solid var(--color-card-border)',
-              background: 'rgba(248, 250, 252, 0.5)',
-            }}
-          >
-            <span>Date</span>
-            <span>Punch In/Out</span>
-            <span style={{ textAlign: 'center' }}>Hours</span>
-            <span style={{ textAlign: 'right' }}>Status</span>
+        <div className="border border-[var(--color-card-border)] rounded-xl overflow-hidden bg-slate-50/50">
+          <div className="grid grid-cols-12 gap-4 px-4 py-2.5 bg-slate-100/80 border-b border-[var(--color-card-border)] text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+            <span className="col-span-4">Date</span>
+            <span className="col-span-4">Punch In/Out</span>
+            <span className="col-span-2 text-center">Hours</span>
+            <span className="col-span-2 text-right">Status</span>
           </div>
 
-          {calendarDays.map((day, idx) => {
-            const key = format(day, 'yyyy-MM-dd')
-            const rec = byDate.get(key)
-            const holiday = holidaysByDate.get(key)
-            
-            const isWeekendDay = getDay(day) === 0 || getDay(day) === 6
-            const st = statusFromHours(rec?.hoursWorked ?? null, isWeekendDay, holiday?.name)
-            const isToday = key === todayKey
-            
-            const isFuture = isBefore(startOfDay(new Date()), day)
-            if (isFuture && st.label === 'No data') {
-              st.label = '—'
-              st.color = 'var(--color-muted)'
-            }
+          <div className="max-h-[380px] overflow-y-auto no-scrollbar">
+            {calendarDays.map((day, idx) => {
+              const key = format(day, 'yyyy-MM-dd')
+              const rec = byDate.get(key)
+              const holiday = holidaysByDate.get(key)
+              const isWeekendDay = getDay(day) === 0 || getDay(day) === 6
+              const st = statusFromHours(rec?.hoursWorked ?? null, isWeekendDay, holiday?.name)
+              const isToday = key === todayKey
+              const isFuture = isBefore(startOfDay(new Date()), day)
 
-            const getStatusStyles = (label: string) => {
-              switch (label) {
-                case 'Full day': return { bg: '#F0FDF4', text: '#15803D' }
-                case 'Half day': return { bg: '#FFFBEB', text: '#D97706' }
-                case 'Holiday': return { bg: '#F5F3FF', text: '#7C3AED' }
-                case 'Weekend': return { bg: '#F8FAFC', text: '#64748B' }
-                case 'Absent':
-                case 'No data': return { bg: '#FEF2F2', text: '#DC2626' }
-                default: return { bg: 'transparent', text: 'inherit' }
+              if (isFuture && st.label === 'No data') {
+                st.label = '—'
               }
-            }
-            const badge = getStatusStyles(st.label)
 
-            return (
-              <div
-                key={key}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,1.4fr) minmax(0,0.6fr) minmax(0,1fr)',
-                  gap: 8,
-                  alignItems: 'center',
-                  padding: '12px 16px',
-                  fontSize: 13,
-                  borderBottom: '1px solid var(--color-card-border)',
-                  background: isToday ? 'rgba(59, 130, 246, 0.05)' : (idx % 2 === 0 ? 'transparent' : 'rgba(248, 250, 252, 0.3)'),
-                }}
-              >
-                <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>
-                  {format(day, 'EEE, MMM d')}
-                  {isToday && <span style={{ marginLeft: 6, fontSize: 10, background: '#3B82F6', color: '#fff', padding: '1px 5px', borderRadius: 4, verticalAlign: 'middle' }}>Today</span>}
-                </span>
-                <span style={{ color: 'var(--color-text-secondary)', fontSize: 12 }}>
-                  {rec?.punchIn ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      {format(parseISO(rec.punchIn), 'hh:mm a')}
-                      <span style={{ margin: '0 4px', opacity: 0.5 }}>→</span>
-                      {rec?.punchOut ? format(parseISO(rec.punchOut), 'hh:mm a') : '??'}
-                    </span>
-                  ) : (
-                    <span style={{ opacity: 0.4 }}>—</span>
+              const getStatusStyles = (label: string) => {
+                switch (label) {
+                  case 'Full day': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                  case 'Half day': return 'bg-amber-100 text-amber-700 border-amber-200'
+                  case 'Holiday': return 'bg-purple-100 text-purple-700 border-purple-200'
+                  case 'Weekend': return 'bg-slate-100 text-slate-500 border-slate-200'
+                  case 'Absent':
+                  case 'No data': return 'bg-red-100 text-red-700 border-red-200'
+                  default: return 'bg-transparent text-slate-400'
+                }
+              }
+
+              return (
+                <div
+                  key={key}
+                  className={cn(
+                    "grid grid-cols-12 gap-4 px-4 py-3 text-xs border-b border-[var(--color-card-border)] items-center transition-colors",
+                    isToday ? "bg-blue-50/50" : (idx % 2 === 0 ? "bg-transparent" : "bg-white/40"),
+                    "hover:bg-slate-50/80"
                   )}
-                </span>
-                <span style={{ color: 'var(--color-text-primary)', textAlign: 'center', fontWeight: 600 }}>
-                  {rec?.hoursWorked != null ? `${rec.hoursWorked}h` : ''}
-                </span>
-                <div style={{ textAlign: 'right' }}>
-                  {st.label !== '—' ? (
-                    <span style={{ 
-                      display: 'inline-block',
-                      background: badge.bg, 
-                      color: badge.text, 
-                      padding: '2px 8px', 
-                      borderRadius: 6, 
-                      fontSize: 11, 
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {st.label === 'Holiday' ? (holiday?.name || 'Holiday') : st.label}
+                >
+                  <div className="col-span-4 flex items-center gap-2">
+                    <span className="font-bold text-slate-700">
+                      {format(day, 'EEE, MMM d')}
                     </span>
-                  ) : (
-                    <span style={{ color: 'var(--color-muted)', fontSize: 11 }}>—</span>
-                  )}
+                    {isToday && (
+                      <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded-md font-black uppercase">Today</span>
+                    )}
+                  </div>
+                  
+                  <div className="col-span-4 text-slate-500 font-medium">
+                    {rec?.punchIn ? (
+                      <div className="flex items-center gap-1">
+                        <span>{format(parseISO(rec.punchIn), 'hh:mm a')}</span>
+                        <span className="opacity-30">→</span>
+                        <span>{rec?.punchOut ? format(parseISO(rec.punchOut), 'hh:mm a') : '??'}</span>
+                      </div>
+                    ) : (
+                      <span className="opacity-20 text-[10px]">NO PUNCH DATA</span>
+                    )}
+                  </div>
+
+                  <div className="col-span-2 text-center font-bold text-slate-700">
+                    {rec?.hoursWorked != null ? `${rec.hoursWorked}h` : ''}
+                  </div>
+
+                  <div className="col-span-2 flex justify-end">
+                    {st.label !== '—' ? (
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-tight border",
+                        getStatusStyles(st.label)
+                      )}>
+                        {st.label === 'Holiday' ? (holiday?.name || 'Holiday') : st.label}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-300 font-bold tracking-widest">—</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
   )
 }
-

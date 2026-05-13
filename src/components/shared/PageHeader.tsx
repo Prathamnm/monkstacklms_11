@@ -10,29 +10,25 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, badge, actions, className }: PageHeaderProps) {
   return (
-    <div className={cn('flex items-start justify-between mb-[18px]', className)}>
-      <div>
+    <div className={cn('flex items-center justify-between mb-8', className)}>
+      <div className="space-y-1">
         <div className="flex items-center gap-3">
-          <h1 style={{ fontSize: 18, fontWeight: 500, color: 'var(--color-heading)' }}>{title}</h1>
+          <h1 className="text-2xl font-bold text-[var(--color-heading)] tracking-tight">
+            {title}
+          </h1>
           {badge !== undefined && (
-            <span
-              className="rounded-full px-2 py-0.5"
-              style={{
-                background: 'var(--balance-track-bg)',
-                color: 'var(--color-heading)',
-                fontSize: 11,
-                fontWeight: 500,
-              }}
-            >
+            <span className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
               {badge}
             </span>
           )}
         </div>
         {description && (
-          <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>{description}</p>
+          <p className="text-sm text-[var(--color-muted)] font-medium">
+            {description}
+          </p>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex items-center gap-3">{actions}</div>}
     </div>
   )
 }

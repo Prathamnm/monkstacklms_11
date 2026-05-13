@@ -11,12 +11,7 @@ import {
   parseISO,
 } from 'date-fns'
 import type { PublicHoliday } from '@/types/holiday'
-import type { LeaveRequest } from '@/types/leave'
-
-interface DayOverride {
-  date: string
-  type: 'full' | 'half'
-}
+import type { LeaveRequest, DayOverride } from '@/types/leave'
 
 interface LeaveCalendarPickerProps {
   selected?: DateRange

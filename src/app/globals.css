@@ -25,7 +25,7 @@ body {
     --color-nav-active-bg: rgba(255, 255, 255, 0.1);
     --color-nav-active-text: #ffffff;
     --color-nav-active-border: #e2e8f0;
-    --color-heading: #0F172A;
+    --color-heading: #000000;
     --color-muted: #64748B;
 
     /* New design system variables for Employee Dashboard */
@@ -361,11 +361,11 @@ body {
 }
 
 .balance-strip-label {
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--icon-pill-green-stroke);
+  letter-spacing: 0.05em;
+  color: #0f172a;
   white-space: nowrap;
   margin-right: 16px;
   padding-right: 16px;
@@ -469,10 +469,10 @@ body {
 
 .leave-details-title {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--icon-pill-blue-stroke);
+  color: #0f172a;
   margin-bottom: 2px;
 }
 

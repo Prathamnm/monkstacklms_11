@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useMsal } from '@azure/msal-react'
-import { Download, FileText, FileSpreadsheet } from 'lucide-react'
+import { FileText, FileSpreadsheet, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -11,17 +11,17 @@ const REPORT_TYPES = [
   {
     id: 'leave-summary',
     title: 'Leave Summary Report',
-    description: 'All leaves in date range — employee, dates, days, status, reason',
+    description: 'Detailed log of all leave requests within the selected date range including status and reasons.',
   },
   {
     id: 'leave-balance',
     title: 'Leave Balance Report',
-    description: 'All employees — standard balance, emergency balance, used, pending, available',
+    description: 'Comprehensive overview of current leave balances, usage, and pending days for all employees.',
   },
   {
     id: 'employee-directory',
     title: 'Employee Directory',
-    description: 'All employees with contact info, manager, projects, join date',
+    description: 'Full workforce snapshot with contact info, manager hierarchy, and employment metadata.',
   },
 ]
 
@@ -57,53 +57,81 @@ export default function HRReportsPage() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', background: 'var(--color-page-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <PageHeader title="Reports" description="Export HR reports for analysis and compliance" />
+    <div className="p-6 md:p-8 bg-[var(--color-page-bg)] min-h-screen space-y-6">
+      <PageHeader 
+        title="Administrative Reports" 
+        description="Generate and export comprehensive workforce data for analysis and compliance" 
+      />
 
       {/* Date range filter */}
-      <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: '18px 22px', display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--color-heading)', marginBottom: 6 }}>From Date</label>
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-            style={{ background: 'var(--color-page-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '9px 12px', fontSize: 13, color: 'var(--color-heading)', outline: 'none' }}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-wrap gap-6 items-end shadow-sm">
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-2">
+            <Calendar size={12} className="text-blue-500" />
+            From Date
+          </label>
+          <input 
+            type="date" 
+            value={dateFrom} 
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-300 transition-all shadow-inner"
           />
         </div>
-        <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--color-heading)', marginBottom: 6 }}>To Date</label>
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-            style={{ background: 'var(--color-page-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '9px 12px', fontSize: 13, color: 'var(--color-heading)', outline: 'none' }}
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-2">
+            <Calendar size={12} className="text-blue-500" />
+            To Date
+          </label>
+          <input 
+            type="date" 
+            value={dateTo} 
+            onChange={(e) => setDateTo(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-300 transition-all shadow-inner"
           />
         </div>
       </div>
 
       {/* Report cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {REPORT_TYPES.map((report) => (
-          <div key={report.id} style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, padding: '18px 22px' }}>
-            <h3 style={{ fontWeight: 500, color: 'var(--color-heading)', marginBottom: 4 }}>{report.title}</h3>
-            <p style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 16 }}>{report.description}</p>
-            <div style={{ display: 'flex', gap: 8 }}>
+          <div 
+            key={report.id} 
+            className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:border-blue-200 transition-all group"
+          >
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-blue-600 mb-4 shadow-inner group-hover:bg-blue-50 transition-colors">
+                <FileText size={20} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-700 transition-colors">
+                {report.title}
+              </h3>
+              <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6">
+                {report.description}
+              </p>
+            </div>
+            
+            <div className="flex gap-3 pt-4 border-t border-slate-100">
               <button
                 onClick={() => handleExport(report.id, 'csv')}
                 disabled={!!loading}
-                className="btn-secondary flex items-center gap-1.5 text-xs"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-100 transition-all active:scale-95"
               >
                 {loading === `${report.id}-csv` ? (
-                  <span className="w-3 h-3 border border-slate-400 border-t-transparent rounded-full animate-spin" />
+                  <span className="w-3 h-3 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />
                 ) : (
-                  <FileText size={13} />
+                  <FileText size={14} className="text-slate-400" />
                 )}
                 CSV
               </button>
               <button
                 onClick={() => handleExport(report.id, 'xlsx')}
                 disabled={!!loading}
-                className="btn-secondary flex items-center gap-1.5 text-xs"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 border border-blue-500 rounded-xl text-[11px] font-bold uppercase tracking-widest text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
               >
                 {loading === `${report.id}-xlsx` ? (
-                  <span className="w-3 h-3 border border-slate-400 border-t-transparent rounded-full animate-spin" />
+                  <span className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <FileSpreadsheet size={13} />
+                  <FileSpreadsheet size={14} className="text-white/80" />
                 )}
                 Excel
               </button>

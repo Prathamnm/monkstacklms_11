@@ -5,9 +5,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { format, parseISO } from 'date-fns'
-import { Plus, Trash2, AlertTriangle, Upload, Pencil, Download } from 'lucide-react'
+import { Trash2, Upload, Pencil, FileText, CheckCircle2 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
+import { cn } from '@/lib/utils/cn'
 
 interface PublicHoliday {
   id: string
@@ -70,45 +72,45 @@ export function HolidayManagerTab() {
   })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-heading)' }}>Public Holidays</h2>
-          <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 2 }}>Manage the annual holiday calendar for all employees.</p>
+          <h2 className="text-xl font-bold text-slate-900">Public Holidays</h2>
+          <p className="text-[13px] font-medium text-slate-500 mt-0.5">Manage the annual holiday calendar for all employees.</p>
         </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          background: 'var(--color-card-bg)', 
-          border: '0.5px solid var(--color-card-border)', 
-          borderRadius: 10, 
-          padding: 4 
-        }}>
+        
+        <div className="inline-flex bg-slate-100/80 p-1 rounded-xl border border-slate-200 shadow-inner">
           <button 
             onClick={() => setView('upload')}
-            style={{ 
-              padding: '6px 16px', fontSize: 13, fontWeight: 500, border: 'none', borderRadius: 7, cursor: 'pointer',
-              background: view === 'upload' ? 'var(--icon-pill-blue-bg)' : 'transparent',
-              color: view === 'upload' ? 'var(--icon-pill-blue-stroke)' : 'var(--color-muted)',
-              transition: 'all 0.2s'
-            }}
+            className={cn(
+              "px-4 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all",
+              view === 'upload' 
+                ? "bg-white text-blue-600 shadow-sm border border-slate-100" 
+                : "text-slate-500 hover:text-slate-700"
+            )}
           >
             Bulk Upload
           </button>
           <button 
             onClick={() => setView('records')}
-            style={{ 
-              padding: '6px 16px', fontSize: 13, fontWeight: 500, border: 'none', borderRadius: 7, cursor: 'pointer',
-              background: view === 'records' ? 'var(--icon-pill-blue-bg)' : 'transparent',
-              color: view === 'records' ? 'var(--icon-pill-blue-stroke)' : 'var(--color-muted)',
-              transition: 'all 0.2s'
-            }}
+            className={cn(
+              "px-4 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all",
+              view === 'records' 
+                ? "bg-white text-blue-600 shadow-sm border border-slate-100" 
+                : "text-slate-500 hover:text-slate-700"
+            )}
           >
             View Directory
           </button>
         </div>
       </div>
 
-      <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+      <motion.div 
+        key={view}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+      >
         {view === 'upload' ? <HolidayUploadView /> : <HolidayRecordsView 
           holidays={holidays} 
           isLoading={isLoading} 
@@ -121,7 +123,7 @@ export function HolidayManagerTab() {
           onUpdate={(data: any) => updateMutation.mutate(data)}
           isUpdating={updateMutation.isPending}
         />}
-      </div>
+      </motion.div>
     </div>
   )
 }
@@ -182,115 +184,185 @@ function HolidayUploadView() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: '14px 18px' }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: '#1D4ED8', marginBottom: 8 }}>📋 CSV/Excel Structure</p>
-        <code style={{ fontSize: 12, color: '#1D4ED8', background: '#DBEAFE', padding: '4px 10px', borderRadius: 6 }}>
-          name, date (DD-MM-YYYY), type (PUBLIC/FLOATER), notes
-        </code>
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 shadow-inner">
+        <p className="text-[11px] font-bold text-blue-600 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+          <FileText size={14} />
+          CSV/Excel Structure
+        </p>
+        <div className="bg-white/80 border border-blue-100 rounded-xl p-3">
+          <code className="text-xs font-bold text-blue-700 tracking-tighter">
+            name, date (DD-MM-YYYY), type (PUBLIC/FLOATER), notes
+          </code>
+        </div>
       </div>
 
       <div 
         onClick={() => document.getElementById('holiday-file')?.click()}
-        style={{ border: '2px dashed var(--color-card-border)', borderRadius: 16, padding: '48px', textAlign: 'center', cursor: 'pointer', background: 'var(--color-page-bg)' }}
+        className="border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group active:scale-[0.99]"
       >
         <input id="holiday-file" type="file" hidden onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} accept=".csv,.xlsx,.xls" />
-        <Upload size={32} style={{ color: '#1D4ED8', margin: '0 auto 12px' }} />
-        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-heading)' }}>{fileName || 'Click to upload holiday schedule'}</p>
-        <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4 }}>Supports CSV and Excel files</p>
+        <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 mx-auto mb-6 group-hover:scale-110 transition-transform shadow-inner">
+          <Upload size={28} />
+        </div>
+        <p className="text-lg font-bold text-slate-900 leading-tight">
+          {fileName || 'Click to upload holiday schedule'}
+        </p>
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-2">
+          Supports CSV and Excel files
+        </p>
       </div>
 
       {parsed.length > 0 && (
-        <div style={{ background: 'var(--color-card-bg)', border: '1px solid var(--color-card-border)', borderRadius: 14, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-heading)' }}>{parsed.length} holidays detected</span>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 flex items-center justify-between shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
+              <CheckCircle2 size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-emerald-900">{parsed.length} holidays detected</p>
+              <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Ready for import</p>
+            </div>
+          </div>
           <button 
             onClick={() => uploadMutation.mutate(parsed)}
             disabled={uploadMutation.isPending}
-            style={{ background: '#1D4ED8', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: uploadMutation.isPending ? 0.6 : 1 }}
+            className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50"
           >
             {uploadMutation.isPending ? 'Importing...' : 'Start Import'}
           </button>
-        </div>
+        </motion.div>
       )}
     </div>
   )
 }
 
 function HolidayRecordsView({ holidays, isLoading, onDelete, isDeleting, editingId, setEditingId, editForm, setEditForm, onUpdate, isUpdating }: any) {
-  if (isLoading) return <div style={{ color: 'var(--color-muted)', fontSize: 14 }}>Loading holidays...</div>
+  if (isLoading) return <div className="text-slate-400 font-bold uppercase tracking-widest text-xs p-12 text-center">Loading holidays...</div>
   
   return (
-    <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead>
-          <tr style={{ background: 'var(--color-page-bg)' }}>
-            {['Date', 'Holiday Name', 'Type', 'Notes', 'Actions'].map(h => (
-              <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--color-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {holidays.map((h: any, idx: number) => {
-            const isEditing = editingId === h.id
-            return (
-              <tr key={h.id} style={{ borderTop: '1px solid var(--color-card-border)', background: idx % 2 === 0 ? 'transparent' : 'var(--color-page-bg)' }}>
-                <td style={{ padding: '12px 16px' }}>
-                  {isEditing ? (
-                    <input type="date" value={editForm.date.split('T')[0]} onChange={e => setEditForm({ ...editForm, date: e.target.value })} style={{ fontSize: 12, padding: '4px', border: '1px solid var(--color-card-border)', borderRadius: 4 }} />
-                  ) : (
-                    <span style={{ color: 'var(--color-heading)', whiteSpace: 'nowrap' }}>{format(parseISO(h.date), 'EEE, MMM d yyyy')}</span>
-                  )}
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  {isEditing ? (
-                    <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} style={{ fontSize: 12, padding: '4px', border: '1px solid var(--color-card-border)', borderRadius: 4, width: '100%' }} />
-                  ) : (
-                    <span style={{ fontWeight: 600, color: 'var(--color-heading)' }}>{h.name}</span>
-                  )}
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  {isEditing ? (
-                    <select value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value as any })} style={{ fontSize: 12, padding: '4px', border: '1px solid var(--color-card-border)', borderRadius: 4 }}>
-                      <option value="PUBLIC">Public</option>
-                      <option value="FLOATER">Floater</option>
-                    </select>
-                  ) : (
-                    <span style={{
-                      background: h.type === 'PUBLIC' ? '#FEE2E2' : '#FEF9C3',
-                      color: h.type === 'PUBLIC' ? '#991B1B' : '#854D0E',
-                      borderRadius: 6, padding: '2px 10px', fontSize: 11, fontWeight: 600,
-                    }}>
-                      {h.type === 'PUBLIC' ? 'Public' : 'Floater'}
-                    </span>
-                  )}
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  {isEditing ? (
-                    <input value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} style={{ fontSize: 12, padding: '4px', border: '1px solid var(--color-card-border)', borderRadius: 4, width: '100%' }} />
-                  ) : (
-                    <span style={{ color: 'var(--color-muted)', fontSize: 12 }}>{h.notes || '—'}</span>
-                  )}
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-slate-50/80 border-b border-slate-100">
+              {['Date', 'Holiday Name', 'Type', 'Notes', 'Actions'].map(h => (
+                <th key={h} className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {holidays.map((h: any) => {
+              const isEditing = editingId === h.id
+              return (
+                <tr key={h.id} className="group hover:bg-slate-50/30 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     {isEditing ? (
-                      <>
-                        <button onClick={() => onUpdate({ id: h.id, ...editForm })} style={{ background: '#1D4ED8', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 8px', fontSize: 11, cursor: 'pointer' }}>Save</button>
-                        <button onClick={() => setEditingId(null)} style={{ background: '#E2E8F0', color: '#475569', border: 'none', borderRadius: 4, padding: '4px 8px', fontSize: 11, cursor: 'pointer' }}>Cancel</button>
-                      </>
+                      <input 
+                        type="date" 
+                        value={editForm.date.split('T')[0]} 
+                        onChange={e => setEditForm({ ...editForm, date: e.target.value })} 
+                        className="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
                     ) : (
-                      <>
-                        <button onClick={() => { setEditingId(h.id); setEditForm({ ...h }) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1D4ED8', padding: '4px', borderRadius: 4 }} title="Edit"><Pencil size={15} /></button>
-                        <button onClick={() => { if (confirm('Remove holiday?')) onDelete(h.id) }} disabled={isDeleting} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B91C1C', padding: '4px', borderRadius: 4 }} title="Delete"><Trash2 size={15} /></button>
-                      </>
+                      <span className="text-[13px] font-bold text-slate-900">
+                        {format(parseISO(h.date), 'EEE, MMM d yyyy')}
+                      </span>
                     )}
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                  </td>
+                  <td className="px-6 py-4">
+                    {isEditing ? (
+                      <input 
+                        value={editForm.name} 
+                        onChange={e => setEditForm({ ...editForm, name: e.target.value })} 
+                        className="w-full text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    ) : (
+                      <span className="text-[13px] font-bold text-slate-700">{h.name}</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {isEditing ? (
+                      <select 
+                        value={editForm.type} 
+                        onChange={e => setEditForm({ ...editForm, type: e.target.value as any })} 
+                        className="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="PUBLIC">Public</option>
+                        <option value="FLOATER">Floater</option>
+                      </select>
+                    ) : (
+                      <span className={cn(
+                        "inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-tight border",
+                        h.type === 'PUBLIC' 
+                          ? "bg-red-50 text-red-700 border-red-100" 
+                          : "bg-amber-50 text-amber-700 border-amber-100"
+                      )}>
+                        {h.type}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {isEditing ? (
+                      <input 
+                        value={editForm.notes} 
+                        onChange={e => setEditForm({ ...editForm, notes: e.target.value })} 
+                        className="w-full text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    ) : (
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tight truncate block max-w-[200px]">
+                        {h.notes || '—'}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isEditing ? (
+                        <>
+                          <button 
+                            onClick={() => onUpdate({ id: h.id, ...editForm })} 
+                            className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700"
+                          >
+                            Save
+                          </button>
+                          <button 
+                            onClick={() => setEditingId(null)} 
+                            className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => { setEditingId(h.id); setEditForm({ ...h }) }} 
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button 
+                            onClick={() => { if (confirm('Remove holiday?')) onDelete(h.id) }} 
+                            disabled={isDeleting} 
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

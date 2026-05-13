@@ -9,6 +9,9 @@ import { parseISO, isWeekend } from 'date-fns'
 import { calculateLeaveDays } from '@/lib/leave/leaveValidator'
 import { HalfDaySelector } from '@/components/leave/HalfDaySelector'
 import type { PublicHoliday } from '@/types/holiday'
+import { cn } from '@/lib/utils/cn'
+import { AlertCircle, CheckCircle2, Info, Send } from 'lucide-react'
+import { HEADING_STYLES } from '@/constants/tailwind'
 
 interface LeaveFormData {
   title: string
@@ -67,7 +70,6 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
   const publicHolidayDates = holidays.map((h) => h.date)
   const balance = currentUserData?.balance
 
-  // Recalculate days whenever dates change
   useEffect(() => {
     if (!form.startDate || !form.endDate) {
       setCalculatedDays(null)
@@ -101,7 +103,6 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
       errors.endDate = 'End date must be after start date'
     }
 
-    // Balance check
     if (calculatedDays !== null && balance) {
       if (form.isEmergency) {
         if (calculatedDays > balance.availableEmergency) {
@@ -114,7 +115,6 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
       }
     }
 
-    // Overlap check (client-side advisory)
     if (form.startDate && form.endDate) {
       const start = parseISO(form.startDate)
       const end = parseISO(form.endDate)
@@ -140,50 +140,81 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
   const availableBalance = form.isEmergency ? (balance?.availableEmergency ?? 2) : (balance?.availableStandard ?? 0)
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {autoApproved && (
-        <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800 font-medium">
-          ℹ️ As a manager, your leave is automatically approved.
+        <div className="rounded-2xl bg-blue-50 border border-blue-100 p-4 flex gap-3 shadow-inner">
+          <Info className="text-blue-600 shrink-0 mt-0.5" size={18} />
+          <p className="text-[13px] font-medium text-blue-800 leading-snug">
+            As a manager, your leave request will be <strong>automatically approved</strong> by the system.
+          </p>
         </div>
       )}
 
       {/* Title */}
-      <div>
-        <label className="text-xs font-medium text-slate-700">Leave Title <span className="text-red-500">*</span></label>
-        <input
-          type="text"
-          maxLength={100}
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          placeholder="e.g. Family function, Medical appointment"
-          className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
-        />
-        {inlineErrors.title && <p className="text-xs text-red-500 mt-1">{inlineErrors.title}</p>}
+      <div className="space-y-2">
+        <label className={HEADING_STYLES.cardSubtitle + " ml-1"}>
+          Purpose of Leave <span className="text-red-500">*</span>
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            maxLength={100}
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="e.g. Family function, Medical appointment"
+            className={cn(
+              "w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none bg-slate-50/30",
+              inlineErrors.title 
+                ? "border-red-200 focus:border-red-400 focus:ring-4 focus:ring-red-500/5" 
+                : "border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/5"
+            )}
+          />
+          {inlineErrors.title && (
+            <div className="flex items-center gap-1.5 mt-2 ml-1 text-red-500">
+              <AlertCircle size={12} />
+              <p className="text-[11px] font-bold uppercase tracking-tight">{inlineErrors.title}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Dates */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs font-medium text-slate-700">Start Date <span className="text-red-500">*</span></label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className={HEADING_STYLES.cardSubtitle + " ml-1"}>
+            Start Date <span className="text-red-500">*</span>
+          </label>
           <input
             type="date"
             value={form.startDate}
             onChange={(e) => setForm({ ...form, startDate: e.target.value })}
             min={new Date().toISOString().split('T')[0]}
-            className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={cn(
+              "w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none bg-slate-50/30",
+              inlineErrors.startDate ? "border-red-200" : "border-slate-200 focus:border-blue-400"
+            )}
           />
-          {inlineErrors.startDate && <p className="text-xs text-red-500 mt-1">{inlineErrors.startDate}</p>}
+          {inlineErrors.startDate && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight ml-1">{inlineErrors.startDate}</p>
+          )}
         </div>
-        <div>
-          <label className="text-xs font-medium text-slate-700">End Date <span className="text-red-500">*</span></label>
+        <div className="space-y-2">
+          <label className={HEADING_STYLES.cardSubtitle + " ml-1"}>
+            End Date <span className="text-red-500">*</span>
+          </label>
           <input
             type="date"
             value={form.endDate}
             onChange={(e) => setForm({ ...form, endDate: e.target.value })}
             min={form.startDate || new Date().toISOString().split('T')[0]}
-            className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={cn(
+              "w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none bg-slate-50/30",
+              inlineErrors.endDate ? "border-red-200" : "border-slate-200 focus:border-blue-400"
+            )}
           />
-          {inlineErrors.endDate && <p className="text-xs text-red-500 mt-1">{inlineErrors.endDate}</p>}
+          {inlineErrors.endDate && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight ml-1">{inlineErrors.endDate}</p>
+          )}
         </div>
       </div>
 
@@ -198,59 +229,126 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
         />
       )}
 
-      {/* Live day count */}
+      {/* Live day count info card */}
       {calculatedDays !== null && (
-        <div className={`rounded-xl px-4 py-3 text-sm font-medium ${
+        <div className={cn(
+          "rounded-2xl p-5 flex items-center justify-between border transition-all shadow-sm",
           calculatedDays > availableBalance
-            ? 'bg-red-50 border border-red-200 text-red-700'
-            : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-        }`}>
-          This will use <strong>{calculatedDays}</strong> day{calculatedDays !== 1 ? 's' : ''}.
-          You have <strong>{availableBalance}</strong> {form.isEmergency ? 'emergency' : 'standard'} days remaining.
+            ? "bg-red-50 border-red-100"
+            : "bg-emerald-50 border-emerald-100"
+        )}>
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-12 h-12 rounded-xl flex items-center justify-center border shadow-inner",
+              calculatedDays > availableBalance
+                ? "bg-red-100 border-red-200 text-red-600"
+                : "bg-emerald-100 border-emerald-200 text-emerald-600"
+            )}>
+              {calculatedDays > availableBalance ? <AlertCircle size={24} /> : <CheckCircle2 size={24} />}
+            </div>
+            <div>
+              <p className={cn(
+                "text-lg font-extrabold leading-none",
+                calculatedDays > availableBalance ? "text-red-900" : "text-emerald-900"
+              )}>
+                {calculatedDays} Day{calculatedDays !== 1 ? 's' : ''}
+              </p>
+              <p className={cn(
+                "text-[10px] font-bold uppercase tracking-widest mt-1",
+                calculatedDays > availableBalance ? "text-red-600" : "text-emerald-600"
+              )}>
+                {form.isEmergency ? 'Emergency' : 'Standard'} Leave
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">Remaining Balance</p>
+            <p className="text-sm font-bold text-slate-700">{availableBalance} days</p>
+          </div>
         </div>
       )}
 
-      {inlineErrors.balance && (
-        <p className="text-xs text-red-500">{inlineErrors.balance}</p>
-      )}
-      {inlineErrors.overlap && (
-        <p className="text-xs text-red-500">{inlineErrors.overlap}</p>
+      {(inlineErrors.balance || inlineErrors.overlap) && (
+        <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-3 text-red-700">
+          <AlertCircle size={16} className="shrink-0" />
+          <p className="text-[11px] font-bold uppercase tracking-tight">
+            {inlineErrors.balance || inlineErrors.overlap}
+          </p>
+        </div>
       )}
 
-      {/* Emergency toggle */}
-      <label className="flex items-center gap-3 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={form.isEmergency}
-          onChange={(e) => setForm({ ...form, isEmergency: e.target.checked })}
-          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-400"
-        />
-        <span className="text-sm text-slate-700">
-          Mark as Emergency Leave
-          <span className="ml-1 text-xs text-slate-400">(uses your emergency balance of {balance?.availableEmergency ?? 2} days)</span>
-        </span>
-      </label>
+      {/* Emergency toggle card */}
+      <div 
+        className={cn(
+          "group relative overflow-hidden rounded-2xl border transition-all cursor-pointer select-none p-5",
+          form.isEmergency 
+            ? "bg-red-50/50 border-red-200 shadow-sm" 
+            : "bg-slate-50/50 border-slate-200 hover:border-slate-300"
+        )}
+        onClick={() => setForm({ ...form, isEmergency: !form.isEmergency })}
+      >
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
+              form.isEmergency 
+                ? "bg-red-600 border-red-600 text-white" 
+                : "bg-white border-slate-300"
+            )}>
+              {form.isEmergency && <CheckCircle2 size={12} strokeWidth={3} />}
+            </div>
+            <div>
+              <p className={cn(
+                "text-sm font-bold transition-colors",
+                form.isEmergency ? "text-red-900" : "text-slate-700"
+              )}>
+                Emergency Leave
+              </p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                Uses emergency quota • {balance?.availableEmergency ?? 0} days left
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Reason */}
-      <div>
-        <label className="text-xs font-medium text-slate-700">Reason <span className="text-red-500">*</span></label>
+      <div className="space-y-2">
+        <label className={HEADING_STYLES.cardSubtitle + " ml-1"}>
+          Extended Justification <span className="text-red-500">*</span>
+        </label>
         <textarea
           value={form.reason}
           onChange={(e) => setForm({ ...form, reason: e.target.value })}
           rows={4}
           minLength={10}
-          placeholder="Please provide a brief reason for your leave (min 10 characters)"
-          className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+          placeholder="Please provide a brief justification for your leave request (min. 10 characters)"
+          className={cn(
+            "w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none bg-slate-50/30 resize-none",
+            inlineErrors.reason ? "border-red-200 focus:border-red-400" : "border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/5"
+          )}
         />
-        {inlineErrors.reason && <p className="text-xs text-red-500 mt-1">{inlineErrors.reason}</p>}
+        {inlineErrors.reason && (
+          <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight ml-1">{inlineErrors.reason}</p>
+        )}
       </div>
 
       <button
         type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-xl bg-blue-600 text-white py-3 text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition-colors"
+        disabled={isSubmitting || (calculatedDays !== null && calculatedDays > availableBalance)}
+        className="w-full flex items-center justify-center gap-3 rounded-xl bg-blue-600 text-white py-4 text-[13px] font-bold uppercase tracking-[0.2em] hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-100 active:scale-[0.98]"
       >
-        {isSubmitting ? 'Submitting...' : 'Submit Leave Request'}
+        {isSubmitting ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            <span>Processing...</span>
+          </>
+        ) : (
+          <>
+            <Send size={16} />
+            <span>Submit Leave Request</span>
+          </>
+        )}
       </button>
     </form>
   )

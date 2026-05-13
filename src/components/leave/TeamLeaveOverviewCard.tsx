@@ -1,13 +1,14 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { format, isWithinInterval, parseISO } from 'date-fns'
-import { CalendarDays, ChevronRight, Users } from 'lucide-react'
+import { CalendarDays, ChevronRight, Users, Activity } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useTeamLeaveOverview } from '@/hooks/useTeamLeaveOverview'
 import type { TeamLeaveOverviewRecord } from '@/types/teamLeaveOverview'
+import { cn } from '@/lib/utils/cn'
+import { HEADING_STYLES } from '@/constants/tailwind'
 
 function formatRangeLabel(from: Date, to: Date) {
   return `${format(from, 'MMM d')} \u2013 ${format(to, 'MMM d')}`
@@ -21,59 +22,37 @@ function isCurrentLeave(rec: TeamLeaveOverviewRecord, now: Date) {
 
 function badgeStyles(leaveType: TeamLeaveOverviewRecord['leaveType'], status: TeamLeaveOverviewRecord['status']) {
   if (status === 'pending') {
-    return 'bg-slate-100 text-slate-600 border border-slate-200'
+    return 'bg-slate-100 text-slate-500 border-slate-200'
   }
 
   switch (leaveType) {
     case 'annual':
-      return 'bg-blue-50 text-blue-700 border border-blue-100'
+      return 'bg-blue-50 text-blue-700 border-blue-100'
     case 'sick':
-      return 'bg-red-50 text-red-700 border border-red-100'
+      return 'bg-red-50 text-red-700 border-red-100'
     case 'floater':
-      return 'bg-green-50 text-green-700 border border-green-100'
+      return 'bg-emerald-50 text-emerald-700 border-emerald-100'
     case 'emergency':
-      return 'bg-amber-50 text-amber-800 border border-amber-100'
+      return 'bg-amber-50 text-amber-700 border-amber-100'
     default:
-      return 'bg-slate-100 text-slate-600 border border-slate-200'
-  }
-}
-
-function avatarClasses(color: string) {
-  switch (color) {
-    case 'blue':
-      return 'bg-blue-100 text-blue-700'
-    case 'green':
-      return 'bg-green-100 text-green-700'
-    case 'amber':
-      return 'bg-amber-100 text-amber-800'
-    case 'red':
-      return 'bg-red-100 text-red-700'
-    case 'purple':
-      return 'bg-purple-100 text-purple-700'
-    default:
-      return 'bg-slate-100 text-slate-700'
+      return 'bg-slate-50 text-slate-600 border-slate-100'
   }
 }
 
 function leaveTypeLabel(t: TeamLeaveOverviewRecord['leaveType']) {
   switch (t) {
-    case 'annual':
-      return 'Annual'
-    case 'sick':
-      return 'Sick'
-    case 'floater':
-      return 'Floater'
-    case 'emergency':
-      return 'Emergency'
-    default:
-      return 'Leave'
+    case 'annual': return 'Annual'
+    case 'sick': return 'Sick'
+    case 'floater': return 'Floater'
+    case 'emergency': return 'Emergency'
+    default: return 'Leave'
   }
 }
 
 export function TeamLeaveOverviewCard(props: {
   from: Date
   to: Date
-  calendarHref: string
+  calendarHref?: string
   variant?: 'card' | 'embedded'
 }) {
   const { data: currentUser } = useCurrentUser()
@@ -107,7 +86,7 @@ export function TeamLeaveOverviewCard(props: {
   const remaining = Math.max(0, sorted.length - visible.length)
 
   const departmentOptions = useMemo(() => {
-    if (role !== 'HR' && role !== 'ADMIN') return []
+    if (role !== 'HR') return []
     const unique = new Map<string, string>()
     for (const rec of records) {
       const key = (rec.department ?? '').trim()
@@ -118,117 +97,93 @@ export function TeamLeaveOverviewCard(props: {
   }, [records, role])
 
   const content = (
-    <div aria-label="Team on Leave overview">
-      <div className="flex items-start justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h3
-            className={[
-              'font-semibold',
-              variant === 'embedded' ? 'text-slate-700 text-sm' : 'text-slate-900 text-base',
-            ].join(' ')}
-          >
-            Team on Leave
+          <h3 className={HEADING_STYLES.cardHeader + " mb-1 flex items-center gap-2"}>
+            <Activity size={14} className="text-blue-500" />
+            Teammates on Leave
           </h3>
-          <p className="text-slate-500 text-xs mt-1 flex items-center gap-1.5">
-            <CalendarDays size={12} className="text-slate-400" />
+          <p className="text-[13px] font-medium text-slate-500 leading-none">
             {format(props.from, 'MMMM yyyy')}
-            {variant === 'card' ? (
-              <>
-                <span className="text-slate-300">\u00b7</span>
-                {formatRangeLabel(props.from, props.to)}
-              </>
-            ) : null}
           </p>
         </div>
 
-        {(role === 'HR' || role === 'HR') && departmentOptions.length > 0 && (
-          <div className="flex items-center gap-2">
-            <label className="sr-only" htmlFor="team-overview-dept">
-              Department filter
-            </label>
-            <select
-              id="team-overview-dept"
-              className="input !h-9 !py-1.5 !px-3 text-xs"
-              value={department ?? ''}
-              onChange={(e) => setDepartment(e.target.value || null)}
-            >
-              <option value="">All departments</option>
-              {departmentOptions.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
+        {role === 'HR' && departmentOptions.length > 0 && (
+          <select
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-600 outline-none focus:ring-2 focus:ring-blue-500/10 transition-all"
+            value={department ?? ''}
+            onChange={(e) => setDepartment(e.target.value || null)}
+          >
+            <option value="">All Departments</option>
+            {departmentOptions.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
         )}
       </div>
 
-      <div className="mt-4">
+      <div className="space-y-3">
         {isLoading ? (
-          <div className="text-sm text-slate-500">Loading team leave\u2026</div>
+          <div className="py-12 text-center">
+            <div className="w-6 h-6 border-2 border-slate-100 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">Checking records...</p>
+          </div>
         ) : error ? (
-          <div className="text-sm text-slate-600">Unable to load team leave overview.</div>
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
+            <p className="text-[11px] font-bold text-red-600 uppercase tracking-widest">Failed to load overview</p>
+          </div>
         ) : visible.length === 0 ? (
-          <div className="border border-slate-100 rounded-lg p-4 text-center">
-            <div className="mx-auto w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
-              <Users size={18} className="text-slate-400" />
+          <div className="bg-slate-50/50 border border-slate-100 border-dashed rounded-2xl py-12 px-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-white border border-slate-100 flex items-center justify-center mx-auto mb-4 text-slate-300 shadow-sm">
+              <Users size={20} />
             </div>
-            <p className="text-slate-700 text-sm font-medium mt-3">
-              {variant === 'embedded'
-                ? 'No teammates on leave this month'
-                : 'No teammates on leave this window'}
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto">
+              {variant === 'embedded' ? 'No teammates on leave this month' : 'No teammates on leave in this period'}
             </p>
-            <p className="text-slate-500 text-xs mt-1">Try changing the month on the calendar.</p>
           </div>
         ) : (
           <div className="space-y-2">
             {visible.map((rec) => {
-              const muted = rec.status === 'pending'
+              const isPending = rec.status === 'pending'
               return (
                 <div
                   key={`${rec.employeeId}:${rec.startDate}:${rec.endDate}`}
-                  className={[
-                    'flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2',
-                    muted ? 'bg-slate-50/60' : 'bg-white',
-                  ].join(' ')}
+                  className={cn(
+                    "group flex items-center justify-between gap-4 rounded-xl border p-3 transition-all",
+                    isPending ? "bg-slate-50/30 border-slate-100" : "bg-white border-slate-100 hover:border-blue-100 hover:shadow-sm"
+                  )}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={[
-                        'w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0',
-                        avatarClasses(rec.avatarColor),
-                        muted ? 'opacity-75' : '',
-                      ].join(' ')}
-                      aria-label={`Avatar for ${rec.name}`}
-                    >
+                    <div className="w-10 h-10 rounded-full bg-blue-50 border-2 border-white shadow-sm flex items-center justify-center text-blue-600 text-[13px] font-bold shrink-0">
                       {rec.avatarInitials}
                     </div>
 
                     <div className="min-w-0">
-                      <p className={['text-sm font-medium truncate', muted ? 'text-slate-700' : 'text-slate-900'].join(' ')}>
+                      <p className="text-[13px] font-bold text-slate-900 leading-tight group-hover:text-blue-700 transition-colors truncate">
                         {rec.name}
                       </p>
-                      <p className="text-xs text-slate-500 truncate">{rec.designation}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
+                        {rec.designation}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
-                      <p className={['text-xs font-medium', muted ? 'text-slate-600' : 'text-slate-800'].join(' ')}>
-                        {format(parseISO(rec.startDate), 'MMM d')} \u2013 {format(parseISO(rec.endDate), 'MMM d')}
+                      <p className="text-[11px] font-bold text-slate-700 leading-none">
+                        {format(parseISO(rec.startDate), 'dd MMM')} — {format(parseISO(rec.endDate), 'dd MMM')}
                       </p>
-                      <p className="text-[11px] text-slate-500">{rec.status === 'pending' ? 'Pending approval' : 'Approved'}</p>
+                      <span className={cn(
+                        "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter mt-1.5 border",
+                        badgeStyles(rec.leaveType, rec.status)
+                      )}>
+                        {isPending ? 'Pending' : leaveTypeLabel(rec.leaveType)}
+                      </span>
                     </div>
-
-                    <span
-                      className={[
-                        'text-[11px] px-2 py-1 rounded-full font-medium whitespace-nowrap',
-                        badgeStyles(rec.leaveType, rec.status),
-                      ].join(' ')}
-                      aria-label={rec.status === 'pending' ? 'Pending leave' : `${leaveTypeLabel(rec.leaveType)} leave`}
-                    >
-                      {rec.status === 'pending' ? 'Pending' : leaveTypeLabel(rec.leaveType)}
-                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 group-hover:text-blue-600 group-hover:border-blue-100 transition-all">
+                      <ChevronRight size={14} />
+                    </div>
                   </div>
                 </div>
               )
@@ -238,15 +193,14 @@ export function TeamLeaveOverviewCard(props: {
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
-                className="text-sm text-blue-700 hover:text-blue-800 font-medium flex items-center gap-1"
+                className="w-full mt-2 py-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-[0.2em] bg-blue-50/50 rounded-xl border border-blue-100/50 transition-all active:scale-[0.99]"
               >
-                View {remaining} more <ChevronRight size={16} />
+                + Show {remaining} more teammates
               </button>
             )}
           </div>
         )}
       </div>
-
     </div>
   )
 
@@ -254,10 +208,9 @@ export function TeamLeaveOverviewCard(props: {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white rounded-xl border border-slate-200 p-6"
+      className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm"
     >
       {content}
     </motion.div>

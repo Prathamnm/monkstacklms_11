@@ -35,20 +35,10 @@ export const ROUTES = {
     REPORTS:     '/hr/reports',
     AUDIT:       '/hr/audit',
   },
-
-  ADMIN: {
-    DASHBOARD: '/hr/dashboard',
-    USERS:     '/hr/users',
-    SETTINGS:  '/hr/settings',
-    APPROVALS: '/hr/leaves',
-    REPORTS:   '/hr/reports',
-    AUDIT:     '/hr/audit',
-  },
 } as const
 
 export const ROLE_DEFAULT_ROUTES = {
   EMPLOYEE: ROUTES.EMPLOYEE.DASHBOARD,
   MANAGER:  ROUTES.MANAGER.DASHBOARD,
   HR:       ROUTES.HR.DASHBOARD,
-  ADMIN:    ROUTES.HR.DASHBOARD,
 } as const

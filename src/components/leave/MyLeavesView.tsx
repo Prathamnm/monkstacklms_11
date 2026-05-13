@@ -30,6 +30,7 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
 
   const { data: response, isLoading } = useQuery<{ data: LeaveRequest[], total: number }>({
     queryKey: ['myLeaves', 'self', filter],
+    enabled: !!currentUserData?.user.id,
     queryFn: async () => {
       const token = await getAccessToken(instance)
       const res = await fetch(`/api/leave/requests?userId=${currentUserData?.user.id}&status=${filter}`, { 
@@ -56,8 +57,8 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
   const cancelMutation = useMutation({
     mutationFn: async (leaveId: string) => {
       const token = await getAccessToken(instance)
-      const res = await fetch(`/api/leave/requests/${leaveId}/status`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/leave/cancel/${leaveId}`, {
+        method: 'POST',
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -166,7 +167,7 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
                         {' · '}{leave.totalDays} day{leave.totalDays !== 1 ? 's' : ''}
                         {Array.isArray(leave.dayOverrides) && leave.dayOverrides.length > 0 && (
                           <span className="text-blue-500 block mt-0.5">
-                            Half days: {leave.dayOverrides.filter((o: any) => o.type === 'half').map((o: any) => format(parseISO(o.date), 'dd MMM')).join(', ')}
+                            Half days: {leave.dayOverrides.filter((o) => o.type === 'half').map((o) => format(parseISO(o.date), 'dd MMM')).join(', ')}
                           </span>
                         )}
                       </p>

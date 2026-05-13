@@ -43,6 +43,11 @@ export interface LeaveRequest {
   updatedAt: string
 }
 
+export interface DayOverride {
+  date: string
+  type: 'full' | 'half'
+}
+
 export interface ApplyLeavePayload {
   title: string
   startDate: string

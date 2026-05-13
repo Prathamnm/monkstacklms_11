@@ -3,19 +3,18 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
-import { Search, Trash2 } from 'lucide-react'
+import { Search, Trash2, UserCircle, Filter } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { ROLE_LABELS, ROLE_COLORS } from '@/constants/roles'
-import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils/cn'
 import { getInitials } from '@/lib/utils/formatters'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import type { Role } from '@/types/auth'
+import type { Role } from '@/constants/roles'
 
 interface AdminUser {
   id: string
@@ -28,7 +27,7 @@ interface AdminUser {
   joinDate: string
 }
 
-const ROLE_OPTIONS: Role[] = ['EMPLOYEE', 'MANAGER', 'HR', 'ADMIN']
+const ROLE_OPTIONS: Role[] = ['EMPLOYEE', 'MANAGER', 'HR']
 
 export default function AdminUsersPage() {
   const { instance } = useMsal()
@@ -88,86 +87,84 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} style={{ padding: '24px 32px', background: 'var(--color-page-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <PageHeader title="User Management" description="View synced tenant users and manage system access." badge={users.length} />
+    <div className="p-6 md:p-8 bg-[var(--color-page-bg)] min-h-screen space-y-6">
+      <PageHeader 
+        title="User & Access Management" 
+        description="Configure system access and manage synced workforce accounts." 
+        badge={users.length} 
+      />
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            minWidth: 220,
-            flex: '1 1 220px',
-            maxWidth: 360,
-            background: 'var(--color-card-bg)',
-            border: '0.5px solid var(--color-card-border)',
-            borderRadius: 10,
-            padding: '8px 12px',
-          }}
-        >
-          <Search size={16} color="var(--color-muted)" aria-hidden />
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex items-center gap-4 flex-1 min-w-[300px] bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm focus-within:ring-4 focus-within:ring-blue-500/5 focus-within:border-blue-300 transition-all group">
+          <Search size={18} className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name or email…"
-            aria-label="Search users"
-            style={{
-              flex: 1,
-              border: 'none',
-              outline: 'none',
-              fontSize: 13,
-              background: 'transparent',
-              color: 'var(--color-heading)',
-            }}
+            placeholder="Search name, email, or job title..."
+            className="flex-1 bg-transparent border-none outline-none text-sm font-semibold text-slate-700 placeholder:text-slate-400"
           />
         </div>
-        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
-          style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--color-heading)', outline: 'none' }}>
-          <option value="ALL">All Roles</option>
-          {ROLE_OPTIONS.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-        </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--color-heading)', outline: 'none' }}>
-          <option value="ALL">All Statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-          <option value="TERMINATED">Terminated</option>
-        </select>
+        
+        <div className="flex items-center gap-2 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
+          <div className="flex items-center gap-2 px-3 text-slate-400 border-r border-slate-200 mr-1">
+            <Filter size={14} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Filters</span>
+          </div>
+          <select 
+            value={roleFilter} 
+            onChange={e => setRoleFilter(e.target.value)}
+            className="bg-transparent text-[11px] font-bold uppercase tracking-widest text-slate-600 outline-none cursor-pointer hover:text-blue-600 transition-colors"
+          >
+            <option value="ALL">All Roles</option>
+            {ROLE_OPTIONS.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+          </select>
+          <select 
+            value={statusFilter} 
+            onChange={e => setStatusFilter(e.target.value)}
+            className="bg-transparent text-[11px] font-bold uppercase tracking-widest text-slate-600 outline-none cursor-pointer hover:text-blue-600 transition-colors ml-4 mr-2"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="TERMINATED">Terminated</option>
+          </select>
+        </div>
       </div>
 
       {isLoading ? (
-        <p style={{ fontSize: 13, color: 'var(--color-muted)' }}>Loading users...</p>
+        <div className="text-center py-20">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] animate-pulse">Loading system users...</p>
+        </div>
       ) : filtered.length === 0 ? (
-        <EmptyState icon="👤" title="No users found" description="No users match the current filters." />
+        <EmptyState icon="👤" title="No users found" description="No workforce accounts match the current filters." />
       ) : (
-        <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
               <thead>
-                <tr style={{ borderBottom: '0.5px solid var(--color-card-border)', background: 'var(--color-page-bg)' }}>
-                  <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Employee</th>
-                  <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Entra ID</th>
-                  <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Role</th>
-                  <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Join Date</th>
-                  <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
+                <tr className="bg-slate-50/80 border-b border-slate-100">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Employee</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Entra ID</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Role</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Status</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Join Date</th>
+                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {filtered.map(user => (
-                  <tr key={user.id} style={{ borderBottom: '0.5px solid var(--color-card-border)' }}>
-                    <td style={{ padding: '12px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--icon-pill-blue-bg)', color: 'var(--icon-pill-blue-stroke)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500, flexShrink: 0 }}>
+                  <tr key={user.id} className="group hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-blue-50 border-2 border-white shadow-sm flex items-center justify-center text-blue-600 text-[13px] font-bold shrink-0 transition-transform group-hover:scale-105">
                           {getInitials(user.displayName)}
                         </div>
                         <div>
-                          <p style={{ fontWeight: 500, color: 'var(--color-heading)' }}>{user.displayName}</p>
+                          <p className="text-[13px] font-bold text-slate-900 leading-tight group-hover:text-blue-700 transition-colors">{user.displayName}</p>
                           <a
                             href={`mailto:${user.email}`}
-                            style={{ fontSize: 12, color: 'var(--icon-pill-blue-stroke)', textDecoration: 'none' }}
+                            className="text-[11px] font-medium text-slate-400 hover:text-blue-600 transition-colors"
                             onClick={e => e.stopPropagation()}
                           >
                             {user.email}
@@ -175,34 +172,45 @@ export default function AdminUsersPage() {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 20px' }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-muted)' }}>
-                        {user.entraObjectId?.startsWith('pending-') ? '⏳ Pending sync' : (user.entraObjectId?.slice(0, 8) + '...')}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <UserCircle size={14} className="text-slate-300" />
+                        <span className="font-mono text-[11px] text-slate-500 font-medium">
+                          {user.entraObjectId?.startsWith('pending-') ? '⏳ PENDING SYNC' : (user.entraObjectId?.slice(0, 12).toUpperCase() + '...')}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        'text-[10px] px-2 py-0.5 rounded-lg font-black uppercase tracking-widest border shadow-sm', 
+                        ROLE_COLORS[user.role] || 'bg-slate-50 text-slate-500'
+                      )}>
+                        {ROLE_LABELS[user.role] || user.role}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 20px' }}>
-                      <span className={cn('text-xs px-2 py-0.5 rounded font-medium', ROLE_COLORS[user.role])}>
-                        {ROLE_LABELS[user.role]}
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        "inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-tight border",
+                        user.employmentStatus === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                        user.employmentStatus === 'TERMINATED' ? 'bg-red-50 text-red-700 border-red-100' :
+                        'bg-slate-50 text-slate-500 border-slate-100'
+                      )}>
+                        {user.employmentStatus}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 20px' }}>
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        user.employmentStatus === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                        user.employmentStatus === 'TERMINATED' ? 'bg-red-100 text-red-700' :
-                        'bg-slate-100 text-slate-500'
-                      }`}>{user.employmentStatus}</span>
+                    <td className="px-6 py-4">
+                      <span className="text-[12px] font-bold text-slate-500">
+                        {(() => { try { return format(new Date(user.joinDate), 'dd MMM yyyy') } catch { return '—' } })()}
+                      </span>
                     </td>
-                    <td style={{ padding: '12px 20px', fontSize: 12, color: 'var(--color-muted)' }}>
-                      {(() => { try { return format(new Date(user.joinDate), 'dd MMM yyyy') } catch { return '—' } })()}
-                    </td>
-                    <td style={{ padding: '12px 20px' }}>
-                      {user.role !== 'ADMIN' && user.id !== currentUserId && (
+                    <td className="px-6 py-4 text-right">
+                      {user.role !== 'HR' && user.id !== currentUserId && (
                         <button
                           onClick={() => setUserToDelete(user)}
-                          style={{ padding: 6, borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)' }}
+                          className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                           title="Remove from system"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={16} />
                         </button>
                       )}
                     </td>
@@ -211,8 +219,10 @@ export default function AdminUsersPage() {
               </tbody>
             </table>
           </div>
-          <div style={{ padding: '10px 20px', borderTop: '0.5px solid var(--color-card-border)', fontSize: 12, color: 'var(--color-muted)' }}>
-            Showing {filtered.length} of {users.length} users
+          <div className="px-6 py-3 bg-slate-50/50 border-t border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Showing {filtered.length} of {users.length} workforce accounts
+            </p>
           </div>
         </div>
       )}
@@ -221,12 +231,12 @@ export default function AdminUsersPage() {
         isOpen={!!userToDelete}
         onClose={() => setUserToDelete(null)}
         onConfirm={handleDeleteUser}
-        title="Remove Employee from System"
-        description={`This will permanently remove ${userToDelete?.displayName ?? 'this user'} and all their leave records from Monkstack HRM. Their Azure Entra ID account will NOT be affected. They will be re-added to the system automatically on their next login if still present in Azure.`}
-        confirmLabel="Remove from System"
+        title="Permanently Remove Account"
+        description={`This will immediately remove ${userToDelete?.displayName ?? 'this user'} and all associated records from the HRM system. Their Azure Entra ID credentials will remain untouched, but they will lose all historical LMS data.`}
+        confirmLabel="Remove Permanently"
         variant="danger"
         isLoading={isDeleting}
       />
-    </motion.div>
+    </div>
   )
 }
