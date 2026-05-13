@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { useRouter } from 'next/navigation'
-import { Download, Search } from 'lucide-react'
+import { Download, Search, Filter, Calendar, Users, ArrowRight } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -13,6 +13,8 @@ import { TableSkeleton } from '@/components/shared/LoadingSkeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { formatDateRange } from '@/lib/utils/dateUtils'
 import { getInitials } from '@/lib/utils/formatters'
+import { SectionHeader, Card, FormField, Badge } from '@/components/shared/DesignSystem'
+import { cn } from '@/lib/utils/cn'
 import type { LeaveRequest } from '@/types/leave'
 
 export default function HRLeavesPage() {
@@ -47,113 +49,145 @@ export default function HRLeavesPage() {
   }, [leaves, search])
 
   return (
-    <div style={{ padding: '24px 32px', background: 'var(--color-page-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="p-6 md:p-8 bg-[var(--color-page-bg)] min-h-screen space-y-6">
       <PageHeader
-        title="All Leaves"
-        description="View and manage all leave requests across the organization"
+        title="Leave Management"
+        description="Monitor and manage all leave requests across the organization"
         badge={filtered.length}
         actions={
-          <button className="btn-secondary flex items-center gap-2">
-            <Download size={16} /> Export
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
+            <Download size={14} /> Export
           </button>
         }
       />
 
-      {/* Filters */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            minWidth: 260,
-            flex: '1 1 260px',
-            maxWidth: 420,
-            background: 'var(--color-card-bg)',
-            border: '1px solid var(--color-card-border)',
-            borderRadius: 10,
-            padding: '8px 12px',
-          }}
-        >
-          <Search size={16} color="var(--color-muted)" aria-hidden />
+      <div className="flex flex-col md:flex-row md:items-center gap-4">
+        <div className="relative flex-1 max-w-md group">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search employee, title, reason…"
-            aria-label="Search leave requests"
-            style={{
-              flex: 1,
-              border: 'none',
-              outline: 'none',
-              fontSize: 13,
-              background: 'transparent',
-              color: 'var(--color-heading)',
-            }}
+            placeholder="Search employee, title, or reason..."
+            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-[13px] font-medium placeholder:text-slate-400 focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all shadow-sm"
           />
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-          style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--color-heading)', outline: 'none' }}>
-          <option value="">All Statuses</option>
-          <option value="PENDING">Pending</option>
-          <option value="APPROVED">Approved</option>
-          <option value="REJECTED">Rejected</option>
-          <option value="CANCELLED">Cancelled</option>
-          <option value="REVOKED">Revoked</option>
-        </select>
+
+        <div className="flex items-center gap-2 bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-2 px-3 text-slate-400 border-r border-slate-100">
+            <Filter size={14} />
+            <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Filter Status</span>
+          </div>
+          <select 
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-transparent text-[11px] font-bold uppercase tracking-widest text-slate-600 outline-none cursor-pointer hover:text-blue-600 transition-colors px-2 py-1"
+          >
+            <option value="">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="CANCELLED">Cancelled</option>
+            <option value="REVOKED">Revoked</option>
+          </select>
+        </div>
       </div>
 
-      <div style={{ background: 'var(--color-card-bg)', border: '0.5px solid var(--color-card-border)', borderRadius: 12, overflow: 'hidden' }}>
+      <Card className="overflow-hidden border-slate-200 shadow-sm">
         {isLoading ? (
-          <TableSkeleton />
+          <div className="p-8">
+            <TableSkeleton rows={8} />
+          </div>
         ) : filtered.length === 0 ? (
-          <EmptyState icon="📋" title="No leave requests found" />
+          <div className="p-20 text-center">
+            <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mx-auto mb-4">
+              <Users size={32} />
+            </div>
+            <p className="text-sm font-bold text-slate-900 uppercase tracking-widest">No requests found</p>
+            <p className="text-xs text-slate-400 mt-1">Try adjusting your search or status filter</p>
+          </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '0.5px solid var(--color-card-border)', background: 'var(--color-page-bg)' }}>
-                <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Employee</th>
-                <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Period</th>
-                <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Days</th>
-                <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Submitted</th>
-                <th style={{ textAlign: 'right', padding: '10px 20px', fontSize: 11, fontWeight: 500, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((leave) => (
-                <tr
-                  key={leave.id}
-                  style={{ borderBottom: '0.5px solid var(--color-card-border)', cursor: 'pointer' }}
-                  onClick={() => router.push(`/hr/leaves/${leave.id}`)}
-                >
-                  <td style={{ padding: '12px 20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--icon-pill-blue-bg)', color: 'var(--icon-pill-blue-stroke)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500, flexShrink: 0 }}>
-                        {getInitials(leave.employee?.displayName ?? 'U')}
-                      </div>
-                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-heading)' }}>{leave.employee?.displayName}</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-100">
+                  <th className="px-6 py-4 text-left">
+                    <div className="flex items-center gap-2">
+                      <Users size={12} />
+                      Employee
                     </div>
-                  </td>
-                  <td style={{ padding: '12px 20px', fontSize: 13, color: 'var(--color-heading)' }}>
-                    {formatDateRange(leave.startDate, leave.endDate)}
-                  </td>
-                  <td style={{ padding: '12px 20px', fontSize: 13, color: 'var(--color-heading)' }}>{leave.totalDays}</td>
-                  <td style={{ padding: '12px 20px' }}>
-                    <LeaveStatusBadge status={leave.status} />
-                  </td>
-                  <td style={{ padding: '12px 20px', fontSize: 13, color: 'var(--color-muted)' }}>
-                    {format(parseISO(leave.createdAt), 'MMM d, yyyy')}
-                  </td>
-                  <td style={{ padding: '12px 20px', textAlign: 'right' }}>
-                    <span style={{ fontSize: 12, color: 'var(--icon-pill-blue-stroke)', fontWeight: 500 }}>View →</span>
-                  </td>
+                  </th>
+                  <th className="px-6 py-4 text-left">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={12} />
+                      Leave Period
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-center whitespace-nowrap">Days</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                  <th className="px-6 py-4 text-left">Submitted</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filtered.map((leave, index) => (
+                  <tr
+                    key={leave.id}
+                    onClick={() => router.push(`/hr/leaves/${leave.id}`)}
+                    className={cn(
+                      "group cursor-pointer hover:bg-slate-50/80 transition-all",
+                      index % 2 === 1 && "bg-slate-50/20"
+                    )}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-blue-50 border-2 border-white shadow-sm flex items-center justify-center text-blue-600 text-[11px] font-bold group-hover:scale-105 transition-transform">
+                          {getInitials(leave.employee?.displayName ?? 'U')}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-bold text-slate-900 group-hover:text-blue-700 transition-colors truncate">
+                            {leave.employee?.displayName}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-semibold truncate">
+                            {leave.employee?.email}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <p className="font-bold text-slate-800">
+                          {leave.title}
+                        </p>
+                        <p className="text-slate-500 font-medium whitespace-nowrap">
+                          {formatDateRange(leave.startDate, leave.endDate)}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-black text-[11px] group-hover:bg-white group-hover:shadow-sm transition-all border border-transparent group-hover:border-slate-200">
+                        {leave.totalDays}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <LeaveStatusBadge status={leave.status} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-400 font-bold uppercase tracking-tighter text-[10px]">
+                      {format(parseISO(leave.createdAt), 'MMM d, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all text-[10px] font-black uppercase tracking-widest border border-slate-100 group-hover:border-blue-500 group-hover:shadow-lg group-hover:shadow-blue-200">
+                        Details
+                        <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }
