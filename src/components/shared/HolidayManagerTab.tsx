@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
@@ -10,6 +11,7 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
 import { cn } from '@/lib/utils/cn'
+import { getString, isRecord } from '@/lib/utils/typeGuards'
 
 interface PublicHoliday {
   id: string
@@ -17,6 +19,19 @@ interface PublicHoliday {
   date: string
   type: 'PUBLIC' | 'FLOATER'
   notes?: string | null
+}
+
+type HolidayType = PublicHoliday['type']
+
+interface HolidayUploadRow {
+  name: string
+  date: string
+  type: HolidayType
+  notes?: string
+}
+
+function normalizeHolidayType(value: unknown): HolidayType {
+  return String(value).trim().toUpperCase() === 'FLOATER' ? 'FLOATER' : 'PUBLIC'
 }
 
 export function HolidayManagerTab() {
@@ -120,7 +135,7 @@ export function HolidayManagerTab() {
           setEditingId={setEditingId}
           editForm={editForm}
           setEditForm={setEditForm}
-          onUpdate={(data: any) => updateMutation.mutate(data)}
+          onUpdate={(data: { id: string; name: string; date: string; type: HolidayType; notes: string }) => updateMutation.mutate(data)}
           isUpdating={updateMutation.isPending}
         />}
       </motion.div>
@@ -131,11 +146,11 @@ export function HolidayManagerTab() {
 function HolidayUploadView() {
   const { instance } = useMsal()
   const queryClient = useQueryClient()
-  const [parsed, setParsed] = useState<any[]>([])
+  const [parsed, setParsed] = useState<HolidayUploadRow[]>([])
   const [fileName, setFileName] = useState('')
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: any[]) => {
+    mutationFn: async (data: HolidayUploadRow[]) => {
       const token = await getAccessToken(instance)
       const res = await fetch('/api/hr/holidays/upload', {
         method: 'POST',
@@ -164,22 +179,27 @@ function HolidayUploadView() {
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
       const rows = lines.slice(1).map(line => {
         const vals = line.split(',').map(v => v.trim())
-        const row: any = {}
-        headers.forEach((h, i) => { row[h] = vals[i] })
-        return { name: row.name, date: row.date, type: row.type, notes: row.notes }
+        const row: Record<string, string> = {}
+        headers.forEach((h, i) => { row[h] = vals[i] ?? '' })
+        return { name: row.name ?? '', date: row.date ?? '', type: normalizeHolidayType(row.type), notes: row.notes ?? '' }
       })
       setParsed(rows.filter(r => r.name && r.date))
     } else if (ext === 'xlsx' || ext === 'xls') {
       const buffer = await file.arrayBuffer()
       const wb = XLSX.read(buffer, { type: 'array' })
       const ws = wb.Sheets[wb.SheetNames[0]]
-      const rows: any[] = XLSX.utils.sheet_to_json(ws)
-      setParsed(rows.map(row => ({
-        name: row.name || row.Name,
-        date: row.date || row.Date,
-        type: row.type || row.Type || 'PUBLIC',
-        notes: row.notes || row.Notes
-      })).filter(r => r.name && r.date))
+      const rowsUnknown = XLSX.utils.sheet_to_json(ws) as unknown[]
+      const parsedRows: HolidayUploadRow[] = []
+      for (const rowUnknown of rowsUnknown) {
+        if (!isRecord(rowUnknown)) continue
+        const name = getString(rowUnknown, 'name') ?? getString(rowUnknown, 'Name') ?? ''
+        const date = getString(rowUnknown, 'date') ?? getString(rowUnknown, 'Date') ?? ''
+        const typeRaw = getString(rowUnknown, 'type') ?? getString(rowUnknown, 'Type') ?? 'PUBLIC'
+        const notes = getString(rowUnknown, 'notes') ?? getString(rowUnknown, 'Notes') ?? ''
+        if (!name || !date) continue
+        parsedRows.push({ name, date, type: normalizeHolidayType(typeRaw), notes })
+      }
+      setParsed(parsedRows)
     }
   }
 
@@ -241,7 +261,19 @@ function HolidayUploadView() {
   )
 }
 
-function HolidayRecordsView({ holidays, isLoading, onDelete, isDeleting, editingId, setEditingId, editForm, setEditForm, onUpdate, isUpdating }: any) {
+function HolidayRecordsView(props: {
+  holidays: PublicHoliday[]
+  isLoading: boolean
+  onDelete: (id: string) => void
+  isDeleting: boolean
+  editingId: string | null
+  setEditingId: (id: string | null) => void
+  editForm: { name: string; date: string; type: HolidayType; notes: string }
+  setEditForm: Dispatch<SetStateAction<{ name: string; date: string; type: HolidayType; notes: string }>>
+  onUpdate: (data: { id: string; name: string; date: string; type: HolidayType; notes: string }) => void
+  isUpdating: boolean
+}) {
+  const { holidays, isLoading, onDelete, isDeleting, editingId, setEditingId, editForm, setEditForm, onUpdate, isUpdating } = props
   if (isLoading) return <div className="text-slate-400 font-bold uppercase tracking-widest text-xs p-12 text-center">Loading holidays...</div>
   
   return (
@@ -258,7 +290,7 @@ function HolidayRecordsView({ holidays, isLoading, onDelete, isDeleting, editing
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {holidays.map((h: any) => {
+            {holidays.map((h) => {
               const isEditing = editingId === h.id
               return (
                 <tr key={h.id} className="group hover:bg-slate-50/30 transition-colors">
@@ -291,7 +323,7 @@ function HolidayRecordsView({ holidays, isLoading, onDelete, isDeleting, editing
                     {isEditing ? (
                       <select 
                         value={editForm.type} 
-                        onChange={e => setEditForm({ ...editForm, type: e.target.value as any })} 
+                        onChange={(e) => setEditForm({ ...editForm, type: normalizeHolidayType(e.target.value) })} 
                         className="text-xs font-semibold px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
                       >
                         <option value="PUBLIC">Public</option>
@@ -327,9 +359,13 @@ function HolidayRecordsView({ holidays, isLoading, onDelete, isDeleting, editing
                         <>
                           <button 
                             onClick={() => onUpdate({ id: h.id, ...editForm })} 
-                            className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700"
+                            disabled={isUpdating}
+                            className={cn(
+                              "bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50",
+                              isUpdating && "cursor-not-allowed"
+                            )}
                           >
-                            Save
+                            {isUpdating ? 'Saving...' : 'Save'}
                           </button>
                           <button 
                             onClick={() => setEditingId(null)} 
@@ -341,7 +377,15 @@ function HolidayRecordsView({ holidays, isLoading, onDelete, isDeleting, editing
                       ) : (
                         <>
                           <button 
-                            onClick={() => { setEditingId(h.id); setEditForm({ ...h }) }} 
+                            onClick={() => {
+                              setEditingId(h.id)
+                              setEditForm({
+                                name: h.name,
+                                date: h.date,
+                                type: h.type,
+                                notes: h.notes ?? '',
+                              })
+                            }} 
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           >
                             <Pencil size={15} />

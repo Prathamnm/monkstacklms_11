@@ -1,6 +1,5 @@
-export type EmploymentStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED'
-export type Role = 'EMPLOYEE' | 'MANAGER' | 'HR'
-export type AvailabilityStatus = 'AVAILABLE' | 'ON_LEAVE' | 'HALF_DAY_AM' | 'HALF_DAY_PM'
+import { Role, EmploymentStatus, AvailabilityStatus } from '@/constants'
+import { Guid } from './guid'
 
 export interface Employee {
   id: string
@@ -18,33 +17,31 @@ export interface Employee {
   profilePictureUrl?: string | null
   role: Role
   employmentStatus: EmploymentStatus
-  managerId?: string | null
+  managerId?: Guid | null
   manager?: Pick<Employee, 'id' | 'displayName' | 'workEmail'> | null
-  joinDate: string
-  terminationDate?: string | null
-  createdAt: string
-  updatedAt: string
+  joinDate: Date
+  terminationDate?: Date | null
+  timeZone: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface EmployeeWithAvailability extends Employee {
   availabilityStatus: AvailabilityStatus
-  currentLeaveEnd?: string | null
+  currentLeaveEnd?: Date | null
   managerName?: string | null
+}
+
+import { LeaveType } from '@/constants'
+
+export interface LeaveTypeBalance {
+  type: LeaveType
+  total: number
+  consumed: number
+  inApproval: number // Leaves currently in 'PENDING' status
 }
 
 export interface LeaveBalanceSummary {
   year: number
-  standardTotal: number
-  standardAccrued: number
-  standardUsed: number
-  standardCarryForward: number
-  floaterTotal: number
-  floaterUsed: number
-  emergencyTotal: number
-  emergencyUsed: number
-  availableStandard: number
-  availableFloater: number
-  availableEmergency: number
-  pendingDays: number
-  effectiveAvailable: number
+  balances: LeaveTypeBalance[]
 }

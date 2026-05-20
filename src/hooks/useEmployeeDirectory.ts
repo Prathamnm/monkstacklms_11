@@ -14,7 +14,8 @@ export interface ApiEmployee {
   jobTitle?: string | null
   profilePictureUrl?: string | null
   employmentStatus?: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED'
-  availabilityStatus: 'AVAILABLE' | 'ON_LEAVE' | 'HALF_DAY_AM' | 'HALF_DAY_PM'
+  availabilityStatus: 'AVAILABLE' | 'UNAVAILABLE' | 'HALF_DAY'
+  timeZone?: string
   createdAt?: string
 }
 
@@ -46,9 +47,8 @@ export function useEmployeeDirectory() {
   const stats = useMemo(() => {
     const onLeaveCount = employees.filter(
       (e) =>
-        e.availabilityStatus === 'ON_LEAVE' ||
-        e.availabilityStatus === 'HALF_DAY_AM' ||
-        e.availabilityStatus === 'HALF_DAY_PM'
+        e.availabilityStatus === 'UNAVAILABLE' ||
+        e.availabilityStatus === 'HALF_DAY'
     ).length
 
     const thisMonthStart = startOfMonth(new Date()).toISOString()

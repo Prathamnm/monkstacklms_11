@@ -39,6 +39,7 @@ export function HREmployeeDetailPanel({ employee }: { employee: EmployeeWithAvai
     emergencyPhone: '',
     notificationEmail: '',
     employmentStatus: '',
+    timeZone: 'UTC',
   })
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export function HREmployeeDetailPanel({ employee }: { employee: EmployeeWithAvai
         emergencyPhone: data.emergencyPhone ?? '',
         notificationEmail: data.notificationEmail ?? '',
         employmentStatus: data.employmentStatus ?? 'ACTIVE',
+        timeZone: data.timeZone ?? 'UTC',
       })
     }
   }, [data])

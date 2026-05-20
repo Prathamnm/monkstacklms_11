@@ -4,13 +4,9 @@ import { useMemo, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useMsal } from '@azure/msal-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { DateRange } from 'react-day-picker'
 import {
   eachDayOfInterval,
   format,
-  isEqual,
-  isSameDay,
-  isWeekend,
   parseISO,
   startOfMonth,
   endOfMonth,
@@ -19,10 +15,13 @@ import toast from 'react-hot-toast'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useTeamLeaveOverview } from '@/hooks/useTeamLeaveOverview'
-import type { HalfDayType, LeaveRequest, DayOverride } from '@/types/leave'
+import type { LeaveRequest, DayOverride } from '@/types/leave'
 import type { PublicHoliday } from '@/types/holiday'
+import { getString, isRecord } from '@/lib/utils/typeGuards'
 
-export function useLeaveManagement() {
+type CodedError = Error & { code?: string }
+
+export function useLeaveManagement(options?: { onSuccess?: () => void }) {
   const searchParams = useSearchParams()
   const { instance } = useMsal()
   const queryClient = useQueryClient()
@@ -33,12 +32,9 @@ export function useLeaveManagement() {
     if (tab === 'requests') setActiveTab('requests')
   }, [searchParams])
 
-  const [range, setRange] = useState<DateRange | undefined>()
+  const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [visibleMonth, setVisibleMonth] = useState<Date>(new Date())
-  const [startHalfDay, setStartHalfDay] = useState<HalfDayType>('NONE')
-  const [endHalfDay, setEndHalfDay] = useState<HalfDayType>('NONE')
   const [reason, setReason] = useState('')
-  const [title, setTitle] = useState('')
   const [isEmergency, setIsEmergency] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
   const [dayOverrides, setDayOverrides] = useState<DayOverride[]>([])
@@ -91,41 +87,20 @@ export function useLeaveManagement() {
     [existingLeaves]
   )
 
-  const isSingleDay = range?.from && range?.to
-    ? isEqual(range.from, range.to)
-    : !!range?.from && !range?.to
-
   const totalDays = useMemo(() => {
-    if (!range?.from) return 0
-    const start = range.from
-    const end = range.to || range.from
-    const days = eachDayOfInterval({ start, end })
-    const businessDaysCount = days.filter((day) => !isWeekend(day)).length
-
-    const startStr = format(start, 'yyyy-MM-dd')
-    const endStr = format(end, 'yyyy-MM-dd')
-
-    const halfDayDates = new Set<string>()
-    if (startHalfDay === 'HALF_DAY') halfDayDates.add(startStr)
-    if (endHalfDay === 'HALF_DAY' && range.to && !isSameDay(range.from, range.to)) halfDayDates.add(endStr)
-    dayOverrides.forEach(o => {
-      if (o.type === 'half') halfDayDates.add(o.date)
-    })
-
-    const halfDayCount = Array.from(halfDayDates).filter(dStr => {
-      const d = parseISO(dStr)
-      const isInRange = d >= start && d <= end
-      return isInRange && !isWeekend(d)
-    }).length
-
-    const total = businessDaysCount - (halfDayCount * 0.5)
-    return Math.max(0.5, total)
-  }, [range, startHalfDay, endHalfDay, dayOverrides])
+    return dayOverrides.reduce((sum, o) => sum + (o.type === 'half' ? 0.5 : 1.0), 0)
+  }, [dayOverrides])
 
   const applyMutation = useMutation({
     mutationFn: async () => {
-      if (!range?.from) throw new Error('Select a date range')
+      if (dayOverrides.length === 0) throw new Error('Select at least one date')
       const token = await getAccessToken(instance)
+      
+      // Calculate min/max for legacy range fields, though overrides carry the real data
+      const sortedDates = dayOverrides.map(o => parseISO(o.date)).sort((a, b) => a.getTime() - b.getTime())
+      const startDate = format(sortedDates[0], 'yyyy-MM-dd')
+      const endDate = format(sortedDates[sortedDates.length - 1], 'yyyy-MM-dd')
+
       const res = await fetch('/api/leave/apply', {
         method: 'POST',
         headers: {
@@ -133,11 +108,9 @@ export function useLeaveManagement() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: title.trim() || 'Leave Request',
-          startDate: format(range.from, 'yyyy-MM-dd'),
-          endDate: format(range.to ?? range.from, 'yyyy-MM-dd'),
-          startDateType: startHalfDay === 'HALF_DAY' ? 'half' : 'full',
-          endDateType: isSingleDay ? 'full' : (endHalfDay === 'HALF_DAY' ? 'half' : 'full'),
+          title: 'Leave Request',
+          startDate,
+          endDate,
           dayOverrides,
           totalDays,
           reason,
@@ -146,10 +119,13 @@ export function useLeaveManagement() {
         }),
       })
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        const err = new Error(data.error ?? 'Failed to submit leave request') as any
-        err.code = data.code
-        throw err
+        const dataUnknown = await res.json().catch(() => ({} as unknown))
+        const message = isRecord(dataUnknown) ? getString(dataUnknown, 'error') : undefined
+        const code = isRecord(dataUnknown) ? getString(dataUnknown, 'code') : undefined
+
+        const error: CodedError = new Error(message ?? 'Failed to submit leave request')
+        error.code = code
+        throw error
       }
       return res.json()
     },
@@ -157,47 +133,48 @@ export function useLeaveManagement() {
       toast.success('Leave request submitted successfully.')
       queryClient.invalidateQueries({ queryKey: ['leaveBalance'] })
       queryClient.invalidateQueries({ queryKey: ['myLeaves', 'self'] })
-      setRange(undefined)
-      setReason('')
-      setTitle('')
-      setIsEmergency(false)
+      setSelectedDates([])
       setDayOverrides([])
+      setReason('')
+      setIsEmergency(false)
       setActiveTab('requests')
+      options?.onSuccess?.()
     },
-    onError: (err: any) => {
-      if (err.code === 'SANDWICH_RULE') {
-        setErrors([err.message])
+    onError: (err: unknown) => {
+      const codedErr = err as Partial<CodedError>
+      const code = typeof codedErr.code === 'string' ? codedErr.code : undefined
+
+      if (code === 'SANDWICH_RULE') {
+        setErrors([codedErr instanceof Error ? codedErr.message : 'Request blocked by rule'])
         return
       }
-      toast.error(err.message)
+      toast.error(err instanceof Error ? err.message : 'Failed to submit leave request')
     },
   })
 
   const conflictCount = useMemo(() => {
-    if (!range?.from) return 0
-    const singleDay = range.to ? isEqual(range.from, range.to) : true
-    const interval = { start: range.from, end: range.to ?? range.from }
-
+    if (dayOverrides.length === 0) return 0
     const overlapping = new Set<string>()
+    const selectedDateStrs = new Set(dayOverrides.map(o => o.date))
+
     for (const rec of teamOverview) {
       const start = parseISO(rec.startDate)
       const end = parseISO(rec.endDate)
-      if (
-        (interval.start >= start && interval.start <= end) ||
-        (start >= interval.start && start <= interval.end) ||
-        (end >= interval.start && end <= interval.end)
-      ) {
+      const days = eachDayOfInterval({ start, end })
+      
+      const hasOverlap = days.some(d => selectedDateStrs.has(format(d, 'yyyy-MM-dd')))
+      if (hasOverlap) {
         overlapping.add(rec.employeeId)
       }
     }
     return overlapping.size
-  }, [range, teamOverview])
+  }, [dayOverrides, teamOverview])
 
   const validate = () => {
     const errs: string[] = []
-    if (!range?.from) errs.push('Please select start and end dates')
+    if (dayOverrides.length === 0) errs.push('Please select at least one date')
     if (reason.trim().length < 10) errs.push('Reason must be at least 10 characters')
-    if (totalDays <= 0) errs.push('Selected date range contains no business days')
+    if (totalDays <= 0) errs.push('Selection contains no valid days')
     setErrors(errs)
     return errs.length === 0
   }
@@ -210,18 +187,12 @@ export function useLeaveManagement() {
   return {
     activeTab,
     setActiveTab,
-    range,
-    setRange,
+    selectedDates,
+    setSelectedDates,
     visibleMonth,
     setVisibleMonth,
-    startHalfDay,
-    setStartHalfDay,
-    endHalfDay,
-    setEndHalfDay,
     reason,
     setReason,
-    title,
-    setTitle,
     isEmergency,
     setIsEmergency,
     errors,
@@ -233,7 +204,7 @@ export function useLeaveManagement() {
     pendingCount,
     totalDays,
     conflictCount,
-    isSubmitDisabled: applyMutation.isPending || !range?.from || reason.trim().length < 10 || totalDays <= 0,
+    isSubmitDisabled: applyMutation.isPending || dayOverrides.length === 0 || reason.trim().length < 10 || totalDays <= 0,
     isSubmitting: applyMutation.isPending,
     handleSubmit,
     windowFrom,

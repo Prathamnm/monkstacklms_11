@@ -35,7 +35,7 @@ export default function ManagerDashboardPage() {
           value={stats.teamSize}
           icon={<Users size={18} className="text-blue-600" />}
           description="Active members"
-          color="bg-blue-500"
+          color="bg-slate-800"
           href="/manager/employees"
         />
         <StatCard 

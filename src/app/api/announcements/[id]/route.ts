@@ -65,8 +65,6 @@ export async function DELETE(
       where: { id: params.id },
       data: {
         isActive: false,
-        deletedAt: new Date(),
-        deletedBy: token.userId,
       },
     })
 

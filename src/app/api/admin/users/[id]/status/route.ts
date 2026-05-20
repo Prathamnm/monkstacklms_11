@@ -10,7 +10,7 @@ export async function PATCH(
 ) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN'])
+    requireRole(token, ['HR'])
 
     if (params.id === token.userId) {
       return NextResponse.json({ error: 'Cannot deactivate your own account' }, { status: 403 })

@@ -10,7 +10,7 @@ export async function DELETE(
 ) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN'])
+    requireRole(token, ['HR'])
 
     const { id } = params
 
@@ -28,7 +28,7 @@ export async function DELETE(
     }
 
     // Role check: Admin cannot delete other Admins via this route for safety
-    if (employee.role === 'ADMIN') {
+    if (employee.role === 'HR') {
        return NextResponse.json({ error: 'Cannot delete another Admin' }, { status: 403 })
     }
 

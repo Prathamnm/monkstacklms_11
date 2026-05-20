@@ -17,7 +17,7 @@ export function PageHeader({ title, description, badge, actions, className }: Pa
             {title}
           </h1>
           {badge !== undefined && (
-            <span className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
+            <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider border border-slate-200">
               {badge}
             </span>
           )}

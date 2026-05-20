@@ -12,7 +12,7 @@ export async function PATCH(
 ) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN'])
+    requireRole(token, ['HR'])
 
     const body = await req.json()
     const { action, reason } = body

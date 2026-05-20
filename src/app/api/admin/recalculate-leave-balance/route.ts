@@ -14,7 +14,7 @@ import { calculateProratedLeaves, calculateProratedFloaterLeaves, calculateProra
 export async function POST(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['HR', 'ADMIN'])
+    requireRole(token, ['HR'])
 
     const body = await req.json()
     const { employeeId, force } = body

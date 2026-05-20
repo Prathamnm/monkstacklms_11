@@ -1,9 +1,8 @@
 export function formatDays(days: number): string {
-  if (days === 0) return '0 days'
-  if (days === 0.5) return '0.5 days (half day)'
-  if (days === 1) return '1 day'
-  if (days % 1 === 0.5) return `${days} days`
-  return `${days} days`
+  if (days === 0) return '0 days';
+  if (days === 0.5) return '0.5 days (half day)';
+
+  return `${days} day${days === 1 ? '' : 's'}`;
 }
 
 export function formatName(firstName: string, lastName: string): string {
@@ -48,3 +47,20 @@ export function getCleanFirstName(firstName?: string, displayName?: string): str
   return fName
 }
 
+export function formatZonedDate(date: Date | string | null | undefined, timeZone: string = "UTC"): string {
+  if (!date) return "—"
+  const d = typeof date === "string" ? new Date(date) : date
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timeZone || "UTC",
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(d)
+  } catch {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(d)
+  }
+}

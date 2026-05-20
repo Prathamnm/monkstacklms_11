@@ -14,13 +14,13 @@ export async function PATCH(
 ) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN'])
+    requireRole(token, ['HR'])
 
     const body = await req.json()
     const { role } = body
     const nextRole = role as Role
 
-    if (!['EMPLOYEE', 'MANAGER', 'HR', 'ADMIN'].includes(nextRole)) {
+    if (!['EMPLOYEE', 'MANAGER', 'HR'].includes(nextRole)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
 

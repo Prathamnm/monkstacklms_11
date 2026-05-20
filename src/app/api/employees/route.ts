@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
         { workEmail: { contains: search, mode: 'insensitive' } }
       )
       const upper = search.toUpperCase()
-      if (['EMPLOYEE', 'MANAGER', 'HR', 'ADMIN'].includes(upper)) {
+      if (['EMPLOYEE', 'MANAGER', 'HR'].includes(upper)) {
         orConditions.push({ role: upper as Role })
       }
     }

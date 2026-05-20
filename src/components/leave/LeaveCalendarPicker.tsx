@@ -1,29 +1,26 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
-import { DayPicker, DateRange } from 'react-day-picker'
+import { useMemo, useState } from 'react'
+import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
 import {
   eachDayOfInterval,
   format,
   isSameDay,
-  isWeekend,
   parseISO,
 } from 'date-fns'
 import type { PublicHoliday } from '@/types/holiday'
 import type { LeaveRequest, DayOverride } from '@/types/leave'
 
 interface LeaveCalendarPickerProps {
-  selected?: DateRange
-  onSelect?: (range: DateRange | undefined) => void
+  selected?: Date[]
+  onSelect?: (dates: Date[]) => void
   month?: Date
   onMonthChange?: (date: Date) => void
   holidays: PublicHoliday[]
   existingLeaves: LeaveRequest[]
-  dayOverrides?: DayOverride[]
-  onDayOverrideChange?: (overrides: DayOverride[]) => void
-  startHalfDay?: 'NONE' | 'HALF_DAY'
-  endHalfDay?: 'NONE' | 'HALF_DAY'
+  dayOverrides: DayOverride[]
+  onDayOverrideChange: (overrides: DayOverride[]) => void
 
   disabled?: [{ dayOfWeek: [0, 6] }]
   showOutsideDays?: boolean
@@ -32,7 +29,7 @@ interface LeaveCalendarPickerProps {
 }
 
 export function LeaveCalendarPicker({
-  selected,
+  selected = [],
   onSelect,
   month,
   onMonthChange,
@@ -40,8 +37,6 @@ export function LeaveCalendarPicker({
   existingLeaves,
   dayOverrides = [],
   onDayOverrideChange,
-  startHalfDay = 'NONE',
-  endHalfDay = 'NONE',
   disabled = [{ dayOfWeek: [0, 6] }],
 
   showOutsideDays = true,
@@ -49,11 +44,6 @@ export function LeaveCalendarPicker({
   className = '',
 }: LeaveCalendarPickerProps) {
   const [hoveredDayInfo, setHoveredDayInfo] = useState<string | null>(null)
-
-  // Clear day overrides ONLY when the range start changes (new selection)
-  useEffect(() => {
-    onDayOverrideChange?.([])
-  }, [selected?.from, onDayOverrideChange])
 
   const publicHolidays = useMemo(
     () => holidays.filter((h) => h.type === 'PUBLIC').map((h) => parseISO(h.date)),
@@ -85,71 +75,50 @@ export function LeaveCalendarPicker({
     [existingLeaves]
   )
 
-  const handleDayToggle = (date: Date) => {
-    if (isWeekend(date)) return
-    const dateStr = format(date, 'yyyy-MM-dd')
-    const isSelected = (selected?.from && selected?.to && date >= selected.from && date <= selected.to) ||
-      (selected?.from && isSameDay(date, selected.from))
-
-    if (!isSelected) return
-
-    const newOverrides = [...dayOverrides]
-    const existingIndex = newOverrides.findIndex((o) => o.date === dateStr)
-
-    if (existingIndex >= 0) {
-      newOverrides.splice(existingIndex, 1)
-    } else {
-      newOverrides.push({ date: dateStr, type: 'half' })
+  const handleDaySelect = (dates: Date[] | undefined) => {
+    if (!dates) {
+      onSelect?.([])
+      onDayOverrideChange([])
+      return
     }
-    onDayOverrideChange?.(newOverrides)
+
+    onSelect?.(dates)
+    
+    // Sync dayOverrides: remove overrides for deselected dates, add full for new ones
+    const dateStrs = dates.map(d => format(d, 'yyyy-MM-dd'))
+    const newOverrides = dayOverrides.filter(o => dateStrs.includes(o.date))
+    
+    dateStrs.forEach(dStr => {
+      if (!newOverrides.some(o => o.date === dStr)) {
+        newOverrides.push({ date: dStr, type: 'full' })
+      }
+    })
+    
+    onDayOverrideChange(newOverrides)
   }
 
   const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
     const target = e.target as HTMLElement
-    let dateStr = target.getAttribute('data-date') || target.closest('[data-date]')?.getAttribute('data-date')
+    const dateStr = target.getAttribute('data-date') || target.closest('[data-date]')?.getAttribute('data-date')
     
-    // If we clicked the button but not the inner span, look downwards
-    if (!dateStr && target.querySelector) {
-      dateStr = target.querySelector('[data-date]')?.getAttribute('data-date')
-    }
-
     if (dateStr) {
-      e.preventDefault()
-      handleDayToggle(parseISO(dateStr))
+      const newOverrides = [...dayOverrides]
+      const idx = newOverrides.findIndex(o => o.date === dateStr)
+      if (idx >= 0) {
+        // Toggle between full and half
+        newOverrides[idx] = { 
+          ...newOverrides[idx], 
+          type: newOverrides[idx].type === 'full' ? 'half' : 'full' 
+        }
+        onDayOverrideChange(newOverrides)
+      }
     }
   }
 
-  // Calculate original business days count
-  const originalCount = useMemo(() => {
-    if (!selected?.from) return 0
-    const end = selected.to || selected.from
-    const days = eachDayOfInterval({ start: selected.from, end })
-    return days.filter((day) => !isWeekend(day)).length
-  }, [selected])
-
-  // Calculate final totalDays with half-day adjustments
   const totalDays = useMemo(() => {
-    if (originalCount === 0 || !selected?.from) return 0
-
-    const startStr = format(selected.from, 'yyyy-MM-dd')
-    const endStr = selected.to ? format(selected.to, 'yyyy-MM-dd') : startStr
-
-    const halfDayDates = new Set<string>()
-    if (startHalfDay === 'HALF_DAY') halfDayDates.add(startStr)
-    if (endHalfDay === 'HALF_DAY' && selected.to && !isSameDay(selected.from, selected.to)) halfDayDates.add(endStr)
-    dayOverrides.forEach(o => {
-      if (o.type === 'half') halfDayDates.add(o.date)
-    })
-
-    const halfDayCount = Array.from(halfDayDates).filter(dStr => {
-      const d = parseISO(dStr)
-      const isInRange = d >= selected.from! && d <= (selected.to || selected.from!)
-      return isInRange && !isWeekend(d)
-    }).length
-
-    const total = originalCount - (halfDayCount * 0.5)
-    return Math.max(0.5, total)
-  }, [originalCount, startHalfDay, endHalfDay, dayOverrides, selected])
+    return dayOverrides.reduce((sum, o) => sum + (o.type === 'half' ? 0.5 : 1.0), 0)
+  }, [dayOverrides])
 
   return (
     <div
@@ -169,9 +138,9 @@ export function LeaveCalendarPicker({
       <div className="flex justify-center w-full">
         <DayPicker
           style={{ margin: '0 auto' }}
-          mode="range"
+          mode="multiple"
           selected={selected}
-          onSelect={onSelect}
+          onSelect={handleDaySelect}
           month={month}
           onMonthChange={onMonthChange}
           disabled={disabled}
@@ -228,14 +197,8 @@ export function LeaveCalendarPicker({
             pendingLeave: pendingLeaveDays,
             approvedLeave: approvedLeaveDays,
             halfDay: (day) => {
-              if (!selected?.from) return false
               const dStr = format(day, 'yyyy-MM-dd')
-              if (dayOverrides.some(o => o.date === dStr && o.type === 'half')) return true
-              const startStr = format(selected.from, 'yyyy-MM-dd')
-              const endStr = selected.to ? format(selected.to, 'yyyy-MM-dd') : startStr
-              if (dStr === startStr) return startHalfDay === 'HALF_DAY'
-              if (selected.to && dStr === endStr) return endHalfDay === 'HALF_DAY'
-              return false
+              return dayOverrides.some(o => o.date === dStr && o.type === 'half')
             },
             weekend: (day) => day.getDay() === 0 || day.getDay() === 6,
           }}
@@ -263,22 +226,15 @@ export function LeaveCalendarPicker({
               borderRadius: '50%',
             },
             selected: {
-              backgroundColor: '#2563eb',
+              backgroundColor: '#1e293b',
               color: 'white',
-            },
-            range_start: {
-              backgroundColor: '#2563eb',
-              color: 'white',
-            },
-            range_end: {
-              backgroundColor: '#2563eb',
-              color: 'white',
+              borderRadius: '50%',
             },
             halfDay: {
-              background: 'linear-gradient(90deg, #3b82f6 50%, #ffffff 50%)',
+              background: 'linear-gradient(90deg, #64748b 50%, #f8fafc 50%)',
               backgroundSize: '100% 100%',
-              color: '#1d4ed8',
-              border: '2px solid #3b82f6',
+              color: '#1e293b',
+              border: '2px solid #64748b',
               borderRadius: '50%',
             },
             weekend: {
@@ -287,31 +243,26 @@ export function LeaveCalendarPicker({
           }}
           classNames={{
             months: 'flex justify-center w-full',
-            day_selected: '!rounded-full',
-            day_range_middle: '!bg-blue-50 !text-blue-700',
-            day_range_start: '!rounded-l-full',
-            day_range_end: '!rounded-r-full',
-            day_today: '!font-bold !text-blue-600',
+            day_selected: '!bg-slate-800 !text-white !rounded-full',
+            day_today: '!font-bold !text-slate-800',
             day_disabled: '!text-slate-300 !cursor-not-allowed',
           }}
           footer={
-            selected?.from && (
+            dayOverrides.length > 0 && (
               <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-slate-700 text-sm font-medium text-center">
-                  {selected.to && !isSameDay(selected.from, selected.to)
-                    ? `${format(selected.from, 'MMM d')} – ${format(selected.to, 'MMM d, yyyy')} · ${totalDays} day${totalDays !== 1 ? 's' : ''}`
-                    : `${format(selected.from, 'MMMM d, yyyy')} · ${totalDays} day${totalDays !== 1 ? 's' : ''}`}
+                <p className="text-slate-700 text-sm font-bold text-center">
+                  Total Duration: {totalDays} day{totalDays !== 1 ? 's' : ''}
                 </p>
-                {dayOverrides.length > 0 && (
-                  <p className="text-blue-600 text-[11px] text-center mt-1">
-                    Half days: {dayOverrides.map(d => format(parseISO(d.date), 'd MMM')).join(', ')}
-                  </p>
-                )}
-                {selected.to && !isSameDay(selected.from, selected.to) && (
-                  <p className="text-slate-400 text-[10px] text-center mt-2 italic">
-                    Tip: Right-click any weekday within the range to toggle it as half-day
-                  </p>
-                )}
+                <div className="flex flex-wrap justify-center gap-1 mt-2">
+                  {dayOverrides.map(o => (
+                    <span key={o.date} className={`px-2 py-0.5 rounded text-[10px] font-bold ${o.type === 'half' ? 'bg-slate-100 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>
+                      {format(parseISO(o.date), 'd MMM')}{o.type === 'half' ? ' (Half)' : ''}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-slate-400 text-[10px] text-center mt-3 italic">
+                  Tip: Right-click on a selected date to toggle it as half-day
+                </p>
               </div>
             )
           }
@@ -319,112 +270,12 @@ export function LeaveCalendarPicker({
       </div>
 
       {hoveredDayInfo && (
-        <div
-          style={{
-            background: '#1E293B',
-            color: '#F8FAFC',
-            borderRadius: 8,
-            padding: '6px 12px',
-            fontSize: 12,
-            marginTop: 8,
-          }}
-        >
-          {hoveredDayInfo}
+        <div className="mt-3 w-full">
+          <p className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-center">
+            {hoveredDayInfo}
+          </p>
         </div>
       )}
-
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: 12,
-          marginTop: 12,
-          fontSize: 11,
-          color: 'var(--color-muted)',
-          width: '100%',
-        }}
-      >
-        <span>
-          <span
-            style={{
-              display: 'inline-block',
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: '#FEE2E2',
-              marginRight: 4,
-            }}
-          />
-          Public Holiday
-        </span>
-        <span>
-          <span
-            style={{
-              display: 'inline-block',
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: '#FEF9C3',
-              marginRight: 4,
-            }}
-          />
-          Floater
-        </span>
-        <span>
-          <span
-            style={{
-              display: 'inline-block',
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: '#BFDBFE',
-              marginRight: 4,
-            }}
-          />
-          Selected
-        </span>
-        <span>
-          <span
-            style={{
-              display: 'inline-block',
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: 'linear-gradient(90deg, #378ADD 50%, #E6F1FB 50%)',
-              border: '1.5px solid #378ADD',
-              marginRight: 4,
-            }}
-          />
-          Half Day
-        </span>
-        <span>
-          <span
-            style={{
-              display: 'inline-block',
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: '#FED7AA',
-              marginRight: 4,
-            }}
-          />
-          Pending
-        </span>
-        <span>
-          <span
-            style={{
-              display: 'inline-block',
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: '#BBF7D0',
-              marginRight: 4,
-            }}
-          />
-          Approved
-        </span>
-      </div>
     </div>
   )
 }

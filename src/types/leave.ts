@@ -1,5 +1,6 @@
-export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'REVOKED'
-export type HalfDayType = 'NONE' | 'HALF_DAY'
+import type { LeaveStatus, HalfDayType } from '@/constants'
+import { Guid } from './guid'
+export type { LeaveStatus, HalfDayType }
 
 export interface LeaveRequest {
   id: string
@@ -10,7 +11,6 @@ export interface LeaveRequest {
     displayName: string
     email: string
     jobTitle?: string | null
-
     profilePictureUrl?: string | null
     role?: string
   }
@@ -59,7 +59,7 @@ export interface ApplyLeavePayload {
   totalDays: number
   reason: string
   isEmergency?: boolean
-  managerId?: string | null
+  managerId?: Guid | null
 }
 
 export interface AccrualRule {
@@ -72,7 +72,7 @@ export interface AccrualRule {
   carryForwardEnabled: boolean
   carryForwardMaxDays: number
   isActive: boolean
-  effectiveFrom: string
-  createdAt: string
-  updatedAt: string
+  effectiveFrom: Date
+  createdAt: Date
+  updatedAt: Date
 }

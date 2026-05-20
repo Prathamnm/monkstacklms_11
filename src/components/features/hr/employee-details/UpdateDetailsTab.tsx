@@ -73,6 +73,21 @@ export function UpdateDetailsTab({
                 <option value="TERMINATED">Terminated</option>
               </select>
             </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">TimeZone</label>
+              <select
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500/20 outline-none bg-white transition-all shadow-sm"
+                value={editForm.timeZone}
+                onChange={(e) => setEditForm({ ...editForm, timeZone: e.target.value })}
+              >
+                <option value="UTC">UTC (GMT+0)</option>
+                <option value="Asia/Kolkata">IST (GMT+5:30)</option>
+                <option value="America/New_York">EST (GMT-5)</option>
+                <option value="Europe/London">GMT (GMT+0/1)</option>
+                <option value="Asia/Dubai">GST (GMT+4)</option>
+                <option value="Asia/Singapore">SGT (GMT+8)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>

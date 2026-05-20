@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils/cn'
 import { LEAVE_STATUS_LABELS, LEAVE_STATUS_STYLES } from '@/constants/leaveStatus'
-import type { LeaveStatus } from '@/types/leave'
+import { LeaveStatus } from '@/constants'
 
 interface LeaveStatusBadgeProps {
   status: LeaveStatus
@@ -12,11 +12,11 @@ export function LeaveStatusBadge({ status, className }: LeaveStatusBadgeProps) {
     <span
       className={cn(
         'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium',
-        LEAVE_STATUS_STYLES[status],
+        LEAVE_STATUS_STYLES[status as LeaveStatus],
         className
       )}
     >
-      {LEAVE_STATUS_LABELS[status]}
+      {LEAVE_STATUS_LABELS[status as LeaveStatus]}
     </span>
   )
 }

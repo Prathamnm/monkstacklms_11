@@ -90,7 +90,7 @@ export function LeaveRulesModal({ open, onClose }: { open: boolean; onClose: () 
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {RULES.map((rule, i) => (
-                <div key={i} style={{ borderLeft: '3px solid #2563EB', paddingLeft: 14 }}>
+                <div key={i} style={{ borderLeft: '3px solid #1e293b', paddingLeft: 14 }}>
                   <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', marginBottom: 4 }}>{rule.title}</p>
                   <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>{rule.body}</p>
                 </div>

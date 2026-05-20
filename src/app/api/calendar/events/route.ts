@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json([])
     }
 
-    const token = await validateToken(req)
+    await validateToken(req)
 
     // Get user's Outlook access token from the header
     const graphToken = req.headers.get('x-graph-token')

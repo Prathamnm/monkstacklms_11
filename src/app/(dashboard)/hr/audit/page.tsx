@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { ChevronDown, ChevronUp, Clock, User, Shield, Activity, Filter } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
@@ -124,7 +124,7 @@ export default function AdminAuditPage() {
                   )}
                 >
                   <span className="text-[12px] font-bold text-slate-400 whitespace-nowrap">
-                    {format(parseISO(log.createdAt), 'MMM d, HH:mm:ss')}
+                    {format(log.createdAt, 'MMM d, HH:mm:ss')}
                   </span>
                   <div>
                     <span className={cn(

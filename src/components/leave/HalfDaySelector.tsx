@@ -1,4 +1,4 @@
-import type { HalfDayType } from '@/types/leave'
+import { HalfDayType } from '@/constants'
 import { cn } from '@/lib/utils/cn'
 import { HEADING_STYLES } from '@/constants/tailwind'
 
@@ -33,8 +33,8 @@ export function HalfDaySelector({
       className={cn(
         "flex-1 py-2.5 px-4 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all border",
         isSelected 
-          ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100" 
-          : "bg-white border-slate-200 text-slate-500 hover:border-blue-200 hover:text-slate-700"
+          ? "bg-slate-800 border-slate-800 text-white shadow-lg shadow-slate-200" 
+          : "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
       )}
     >
       {label}

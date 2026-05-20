@@ -8,19 +8,15 @@ import {
   LayoutDashboard,
   CheckSquare,
   BarChart2,
-  Settings,
   ScrollText,
   LogOut,
-  CalendarPlus,
   Clock,
   Menu,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react'
 import { useMsal } from '@azure/msal-react'
 import { cn } from '@/lib/utils/cn'
 import { getInitials } from '@/lib/utils/formatters'
-import { ROLE_LABELS, ROLE_COLORS } from '@/constants/roles'
+import { ROLE_LABELS } from '@/constants/roles'
 import { clearClientAuthState } from '@/lib/auth/clientSession'
 import type { CurrentUser } from '@/types/auth'
 
@@ -159,7 +155,7 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
                 )}
               </AnimatePresence>
               {!collapsed && item.badge !== undefined && item.badge > 0 && (
-                <span className="bg-blue-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="bg-slate-700 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">
                   {item.badge > 9 ? '9+' : item.badge}
                 </span>
               )}
@@ -184,7 +180,7 @@ export function Sidebar({ user, collapsed, onToggle, pendingCount = 0 }: Sidebar
       {/* User card */}
       <div className="border-t border-[rgba(255,255,255,0.07)] p-3 flex-shrink-0">
         <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
             {user.profilePictureUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

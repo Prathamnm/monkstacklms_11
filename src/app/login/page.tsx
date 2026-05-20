@@ -18,7 +18,9 @@ function LoginContent() {
   const reason = searchParams.get('reason')
 
   useEffect(() => {
-    if (isAuthenticated && reason !== 'unauthorized') {
+    // Avoid bouncing authenticated users back into callback when they landed here
+    // due to sync/backend failure reasons from the callback page.
+    if (isAuthenticated && !reason) {
       router.replace('/auth/callback')
     }
   }, [isAuthenticated, router, reason])
@@ -63,9 +65,12 @@ function LoginContent() {
           {/* Card Header */}
           <div className="px-8 pt-10 pb-2">
             <div className="mb-8">
-              <img
+              <Image
                 src="/monkstack-logo.png"
                 alt="Monkstack"
+                width={196}
+                height={56}
+                priority
                 className="h-14 w-auto object-contain object-left [filter:invert(1)] mix-blend-multiply"
               />
             </div>

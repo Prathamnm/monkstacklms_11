@@ -159,18 +159,18 @@ export function AttendanceRecordsTab() {
 
         <div className="flex items-center gap-3">
           <div className="relative group">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-500 transition-colors" />
             <input
               placeholder="Search employee..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none w-64 transition-all shadow-sm"
+              className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:ring-4 focus:ring-slate-500/5 focus:border-slate-500 outline-none w-64 transition-all shadow-sm"
             />
           </div>
           <button
             onClick={() => downloadCSV(filtered)}
             disabled={filtered.length === 0}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-[11px] font-bold uppercase tracking-widest rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-100"
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 text-white text-[11px] font-bold uppercase tracking-widest rounded-xl hover:bg-slate-900 disabled:opacity-50 transition-all shadow-lg shadow-slate-200"
           >
             <Download size={16} /> Export
           </button>
@@ -179,7 +179,7 @@ export function AttendanceRecordsTab() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Logs', value: records.length, variant: 'blue' as const },
+          { label: 'Total Logs', value: records.length, variant: 'slate' as const },
           { label: 'Filtered', value: filtered.length, variant: 'slate' as const },
           { label: 'Full Days', value: filtered.filter((r) => (r.hoursWorked ?? 0) >= 6).length, variant: 'emerald' as const },
           { label: 'Half Days', value: filtered.filter((r) => (r.hoursWorked ?? 0) >= 3 && (r.hoursWorked ?? 0) < 6).length, variant: 'amber' as const },
@@ -194,7 +194,7 @@ export function AttendanceRecordsTab() {
       <Card className="overflow-hidden border-slate-200 shadow-sm">
         {isLoading ? (
           <div className="p-20 flex flex-col items-center justify-center gap-4 text-slate-400">
-            <div className="w-8 h-8 border-4 border-slate-100 border-t-blue-500 rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-slate-100 border-t-slate-500 rounded-full animate-spin" />
             <p className="text-xs font-bold uppercase tracking-widest">Loading Records...</p>
           </div>
         ) : filtered.length === 0 ? (
@@ -242,7 +242,7 @@ export function AttendanceRecordsTab() {
                                 type="datetime-local" 
                                 value={editForm.punchIn.slice(0, 16)} 
                                 onChange={e => setEditForm({ ...editForm, punchIn: e.target.value })}
-                                className="px-2 py-1 rounded border border-blue-200 outline-none focus:ring-2 focus:ring-blue-100"
+                                className="px-2 py-1 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-slate-500/10"
                               />
                             </td>
                             <td className="px-6 py-4">
@@ -250,7 +250,7 @@ export function AttendanceRecordsTab() {
                                 type="datetime-local" 
                                 value={editForm.punchOut.slice(0, 16)} 
                                 onChange={e => setEditForm({ ...editForm, punchOut: e.target.value })}
-                                className="px-2 py-1 rounded border border-blue-200 outline-none focus:ring-2 focus:ring-blue-100"
+                                className="px-2 py-1 rounded border border-slate-200 outline-none focus:ring-2 focus:ring-slate-500/10"
                               />
                             </td>
                           </>
@@ -275,7 +275,7 @@ export function AttendanceRecordsTab() {
                               <>
                                 <button 
                                   onClick={() => updateMutation.mutate({ id: record.id, ...editForm })}
-                                  className="p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100"
+                                  className="p-1.5 rounded-lg bg-slate-800 text-white hover:bg-slate-900 transition-colors shadow-lg shadow-slate-200"
                                 >
                                   <CheckCircle size={14} />
                                 </button>
@@ -290,7 +290,7 @@ export function AttendanceRecordsTab() {
                               <>
                                 <button 
                                   onClick={() => { setEditingId(record.id); setEditForm({ punchIn: record.punchIn || record.date, punchOut: record.punchOut || record.date }); }}
-                                  className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                                  className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"
                                 >
                                   <Pencil size={14} />
                                 </button>

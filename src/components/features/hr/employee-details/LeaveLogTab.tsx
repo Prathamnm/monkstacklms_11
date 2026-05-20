@@ -10,13 +10,20 @@ interface LeaveLogTabProps {
 }
 
 export function LeaveLogTab({ balance, leaves }: LeaveLogTabProps) {
+  const getBal = (type: string) => 
+    balance?.balances?.find((b: any) => b.type === type) || { total: 0, consumed: 0, inApproval: 0 }
+
+  const std = getBal('ANNUAL')
+  const flt = getBal('FLOATER')
+  const emg = getBal('EMERGENCY')
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <BalanceCard label="Available Standard" value={balance ? (balance.standardTotal + balance.standardCarryForward - balance.standardUsed) : undefined} highlight />
-        <BalanceCard label="Floater Remaining" value={balance ? (balance.floaterTotal - balance.floaterUsed) : undefined} />
-        <BalanceCard label="Emergency Remaining" value={balance ? (balance.emergencyTotal - balance.emergencyUsed) : undefined} />
-        <BalanceCard label="Carry Forward" value={balance?.standardCarryForward} />
+        <BalanceCard label="Available Standard" value={balance ? (std.total - std.consumed - std.inApproval) : undefined} highlight />
+        <BalanceCard label="Floater Remaining" value={balance ? (flt.total - flt.consumed - flt.inApproval) : undefined} />
+        <BalanceCard label="Emergency Remaining" value={balance ? (emg.total - emg.consumed - emg.inApproval) : undefined} />
+        <BalanceCard label="In Approval" value={std.inApproval + flt.inApproval + emg.inApproval} />
       </div>
       
       <div>
@@ -58,9 +65,9 @@ function BalanceCard({ label, value, highlight }: { label: string, value: number
   return (
     <div className={cn(
       "border p-6 rounded-2xl shadow-sm transition-all",
-      highlight ? "bg-blue-600 border-blue-700 shadow-blue-100" : "bg-white border-slate-200"
+      highlight ? "bg-slate-800 border-slate-900 shadow-slate-200" : "bg-white border-slate-200"
     )}>
-      <p className={cn("text-[10px] mb-3 uppercase font-bold tracking-widest", highlight ? "text-blue-100" : "text-slate-400")}>{label}</p>
+      <p className={cn("text-[10px] mb-3 uppercase font-bold tracking-widest", highlight ? "text-slate-300" : "text-slate-400")}>{label}</p>
       <p className={cn("text-3xl font-extrabold tracking-tight", highlight ? "text-white" : "text-slate-900")}>{value ?? '—'}</p>
     </div>
   )

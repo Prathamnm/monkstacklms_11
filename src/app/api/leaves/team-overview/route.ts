@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     if (!currentUser) return NextResponse.json([])
 
     const role = token.role
-    const includePending = role === 'MANAGER' || role === 'HR' || role === 'HR'
+    const includePending = role === 'MANAGER' || role === 'HR'
 
     let employeeWhere: Prisma.EmployeeWhereInput = {
       employmentStatus: 'ACTIVE',

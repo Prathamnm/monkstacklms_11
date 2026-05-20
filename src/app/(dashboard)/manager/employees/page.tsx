@@ -80,7 +80,7 @@ export default function ManagerEmployeesPage() {
                           </div>
                           <div>
                             <p className="text-[13px] font-bold text-slate-900 leading-tight group-hover:text-blue-700 transition-colors">{emp.displayName}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">EMP-ID: {emp.employeeId || '—'}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">EMP-ID: {emp.id.slice(0, 8) || '—'}</p>
                           </div>
                         </div>
                       </td>

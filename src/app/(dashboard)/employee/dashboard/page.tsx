@@ -12,7 +12,7 @@ import { EmployeeWelcomeBanner } from '@/components/features/employee/EmployeeWe
 import { AnnouncementList } from '@/components/features/shared/AnnouncementList'
 
 export default function EmployeeDashboardPage() {
-  const { user, balance, stats, announcements, isLoading } = useEmployeeDashboard()
+  const { user, stats, announcements, isLoading } = useEmployeeDashboard()
 
   if (isLoading || !user) return <PageSkeleton />
 

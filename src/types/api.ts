@@ -31,8 +31,8 @@ export interface Notification {
   } | null
   referenceId?: string | null
   isRead: boolean
-  readAt?: string | null
-  createdAt: string
+  readAt?: Date | null
+  createdAt: Date
 }
 
 export interface AuditLog {
@@ -57,7 +57,7 @@ export interface AuditLog {
   }
   ipAddress?: string | null
   userAgent?: string | null
-  createdAt: string
+  createdAt: Date
 }
 
 export interface SystemSetting {
@@ -66,5 +66,5 @@ export interface SystemSetting {
   value: string
   description?: string | null
   updatedBy?: string | null
-  updatedAt: string
+  updatedAt: Date
 }

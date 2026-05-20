@@ -12,7 +12,6 @@ model Employee {
   id                    String             @id @default(cuid())
   entraObjectId         String             @unique
   workEmail             String             @unique @map("email")
-  notificationEmail     String?
   displayName           String
   firstName             String
   lastName              String
@@ -27,9 +26,12 @@ model Employee {
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
   emergencyName         String?
-  emergencyRelation     String?
   emergencyPhone        String?
+  emergencyRelation     String?
+  notificationEmail     String?            @map("notification_email")
+  timeZone              String             @default("UTC")
   announcements         Announcement[]
+  attendanceRecords     AttendanceRecord[]
   auditLogsPerformed    AuditLog[]         @relation("AuditPerformer")
   auditLogsTargeted     AuditLog[]         @relation("AuditTarget")
   manager               Employee?          @relation("ManagerSubordinates", fields: [managerId], references: [id])
@@ -40,7 +42,6 @@ model Employee {
   leaveRequests         LeaveRequest[]     @relation("EmployeeLeaveRequests")
   receivedNotifications Notification[]     @relation("NotificationRecipient")
   sentNotifications     Notification[]     @relation("NotificationSender")
-  attendanceRecords     AttendanceRecord[]
 
   @@map("employees")
 }
@@ -48,23 +49,17 @@ model Employee {
 model LeaveRequest {
   id               String      @id @default(cuid())
   employeeId       String
-  title            String      @default("Leave Request")
   startDate        DateTime
   endDate          DateTime
   startHalfDay     HalfDayType @default(NONE)
   endHalfDay       HalfDayType @default(NONE)
   totalDays        Float
   reason           String
-  isEmergency      Boolean     @default(false)
-  halfDayDates     Json?
-  dayOverrides     Json?       // Array of {date: string, type: "full" | "half"}
   status           LeaveStatus @default(PENDING)
-  managerId        String?
   approverId       String?
   approvedAt       DateTime?
   rejectedAt       DateTime?
   rejectionReason  String?
-  approverComments String?
   revokedAt        DateTime?
   revokedBy        String?
   revocationReason String?
@@ -72,6 +67,13 @@ model LeaveRequest {
   emailsSent       Json?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  isEmergency      Boolean     @default(false)
+  title            String      @default("Leave Request")
+  approverComments String?
+  halfDayDates     Json?
+  dayOverrides     Json?
+  managerId        String?
+  updatedBy        String?
   approver         Employee?   @relation("ApproverLeaveRequests", fields: [approverId], references: [id])
   employee         Employee    @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id])
 
@@ -91,6 +93,7 @@ model LeaveBalance {
   updatedAt            DateTime @updatedAt
   floaterTotal         Float    @default(2)
   floaterUsed          Float    @default(0)
+  updatedBy            String?
   employee             Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@map("leave_balances")
@@ -107,6 +110,8 @@ model LeaveLedgerEntry {
   year        Int
   month       Int?
   createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  updatedBy   String?
   employee    Employee        @relation(fields: [employeeId], references: [id])
 
   @@map("leave_ledger_entries")
@@ -125,6 +130,7 @@ model AccrualRule {
   effectiveFrom          DateTime @default(now())
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+  updatedBy              String?
 
   @@map("accrual_rules")
 }
@@ -140,6 +146,8 @@ model Notification {
   isRead      Boolean          @default(false)
   readAt      DateTime?
   createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  updatedBy   String?
   recipient   Employee         @relation("NotificationRecipient", fields: [recipientId], references: [id])
   sender      Employee?        @relation("NotificationSender", fields: [senderId], references: [id])
 
@@ -155,7 +163,8 @@ model AuditLog {
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime    @default(now())
-  performer   Employee?   @relation("AuditPerformer", fields: [performedBy], references: [id])
+  updatedAt   DateTime    @updatedAt
+  performer   Employee    @relation("AuditPerformer", fields: [performedBy], references: [id])
   target      Employee?   @relation("AuditTarget", fields: [targetId], references: [id])
 
   @@map("audit_logs")
@@ -180,20 +189,22 @@ model PublicHoliday {
   notes     String?
   createdBy String
   createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  updatedBy String?
 
   @@map("public_holidays")
 }
 
 model Announcement {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   title     String
   content   String
   postedBy  String
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
-  deletedBy String?
-  poster    Employee  @relation(fields: [postedBy], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  poster    Employee @relation(fields: [postedBy], references: [id])
 
   @@map("announcements")
 }
@@ -206,6 +217,7 @@ model Policy {
   uploadedBy String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  updatedBy  String?
 
   @@map("policies")
 }
@@ -220,6 +232,7 @@ model AttendanceRecord {
   uploadBatch String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  updatedBy   String?
   employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@unique([employeeId, date])
@@ -232,6 +245,7 @@ enum Role {
   EMPLOYEE
   MANAGER
   HR
+  ADMIN
 }
 
 enum EmploymentStatus {
@@ -281,13 +295,9 @@ enum NotificationType {
 enum AuditAction {
   LEAVE_APPLY
   LEAVE_APPROVE
-  LEAVE_APPROVED
   LEAVE_REJECT
-  LEAVE_REJECTED
   LEAVE_CANCEL
-  LEAVE_CANCELLED
   LEAVE_REVOKE
-  LEAVE_REVOKED
   BALANCE_ADJUST
   EMPLOYEE_UPDATE
   RULES_UPDATE
@@ -298,6 +308,10 @@ enum AuditAction {
   ANNOUNCEMENT_DELETE
   ADMIN_OVERRIDE
   ACCOUNT_DEACTIVATE
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+  LEAVE_CANCELLED
+  LEAVE_REVOKED
 }
 
 enum HolidayType {

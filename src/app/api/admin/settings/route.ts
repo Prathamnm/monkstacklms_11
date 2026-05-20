@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db/prisma'
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN'])
+    requireRole(token, ['HR'])
 
     const settings = await prisma.systemSettings.findMany({
       orderBy: { key: 'asc' },
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN'])
+    requireRole(token, ['HR'])
 
     const body = await req.json()
 

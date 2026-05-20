@@ -18,9 +18,10 @@ interface Policy {
 
 interface PoliciesSectionProps {
   canUpload?: boolean
+  className?: string
 }
 
-export function PoliciesSection({ canUpload = false }: PoliciesSectionProps) {
+export function PoliciesSection({ canUpload = false, className }: PoliciesSectionProps) {
   const { instance } = useMsal()
   const queryClient = useQueryClient()
   const [uploadForm, setUploadForm] = useState({ open: false, title: '' })
@@ -111,13 +112,13 @@ export function PoliciesSection({ canUpload = false }: PoliciesSectionProps) {
       const blob = new Blob([byteArray], { type: 'application/pdf' })
       const fileURL = URL.createObjectURL(blob)
       window.open(fileURL, '_blank')
-    } catch (err) {
+    } catch {
       window.open(base64Data, '_blank')
     }
   }
 
   return (
-    <div className="bg-[var(--color-card-bg)] border border-[var(--color-card-border)] rounded-2xl p-5 shadow-sm h-full flex flex-col">
+    <div className={cn("bg-[var(--color-card-bg)] border border-[var(--color-card-border)] rounded-2xl p-5 shadow-sm flex flex-col", className)}>
       <div className="flex items-center justify-between mb-4">
         <h3 className={HEADING_STYLES.cardHeader}>Company Policies</h3>
         {canUpload && (
@@ -189,7 +190,9 @@ export function PoliciesSection({ canUpload = false }: PoliciesSectionProps) {
           </div>
         ) : (
           policies.map((p) => (
-              <div className="group flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-sm hover:border-blue-100 transition-all"
+            <div
+              key={p.id}
+              className="group flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-sm hover:border-blue-100 transition-all"
             >
               <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors">
                 <FileText size={16} />

@@ -121,7 +121,7 @@ export async function runYearlyFlatGrant(): Promise<{ processed: number; errors:
 export async function grantProRatedLeaves(
   employeeId: string,
   joinDate: Date,
-  performedBy: string
+  _performedBy: string
 ): Promise<void> {
   const year = joinDate.getFullYear()
   const joinMonth = joinDate.getMonth() + 1 // 1-12

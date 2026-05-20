@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils/cn'
-import type { AvailabilityStatus } from '@/types/employee'
+import { AvailabilityStatus } from '@/constants'
 
 interface AvailabilityBadgeProps {
   status: AvailabilityStatus
@@ -13,18 +13,13 @@ const statusConfig = {
     dot: 'bg-emerald-500', 
     class: 'bg-emerald-50 text-emerald-700 border-emerald-100' 
   },
-  ON_LEAVE: { 
-    label: 'On Leave', 
+  UNAVAILABLE: { 
+    label: 'Unavailable', 
     dot: 'bg-red-500', 
     class: 'bg-red-50 text-red-700 border-red-100' 
   },
-  HALF_DAY_AM: { 
-    label: 'Half Day (AM)', 
-    dot: 'bg-amber-500', 
-    class: 'bg-amber-50 text-amber-700 border-amber-100' 
-  },
-  HALF_DAY_PM: { 
-    label: 'Half Day (PM)', 
+  HALF_DAY: { 
+    label: 'Half Day', 
     dot: 'bg-amber-500', 
     class: 'bg-amber-50 text-amber-700 border-amber-100' 
   },

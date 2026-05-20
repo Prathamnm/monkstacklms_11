@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ userId: str
 
     // Users can always read their own profile; elevated roles can read any.
     const isSelf = requestedId === token.userId
-    const isElevated = token.role === 'HR' || token.role === 'HR'
+    const isElevated = token.role === 'HR'
     if (!isSelf && !isElevated) {
       return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 })
     }

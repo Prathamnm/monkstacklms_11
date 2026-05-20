@@ -65,13 +65,13 @@ export function ExportEmployeesModal({ isOpen, onClose, totalCount }: ExportEmpl
         const blob = await res.blob()
         const url = URL.createObjectURL(blob)
         const filename = `employees_${new Date().toISOString().split('T')[0]}`
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${filename}.${selected}`
-        document.body.appendChild(a)
-        a.click()
+        const downloadLink = document.createElement('a')
+        downloadLink.href = url
+        downloadLink.download = `${filename}.${selected}`
+        document.body.appendChild(downloadLink)
+        downloadLink.click()
         URL.revokeObjectURL(url)
-        document.body.removeChild(a)
+        document.body.removeChild(downloadLink)
         toast.success(`Downloaded ${filename}.${selected}`)
       }
       onClose()
@@ -133,7 +133,7 @@ export function ExportEmployeesModal({ isOpen, onClose, totalCount }: ExportEmpl
                   </div>
                   <div className="ml-auto flex-shrink-0">
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      selected === opt.format ? 'border-blue-500 bg-blue-500' : 'border-slate-300'
+                      selected === opt.format ? 'border-slate-800 bg-slate-800' : 'border-slate-300'
                     }`}>
                       {selected === opt.format && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </div>

@@ -58,7 +58,7 @@ export function getAvailabilityForDate(
     status: string
   }>,
   date: Date
-): 'AVAILABLE' | 'ON_LEAVE' | 'HALF_DAY_AM' | 'HALF_DAY_PM' {
+): 'AVAILABLE' | 'UNAVAILABLE' | 'HALF_DAY' {
   const approvedLeave = leaveRequests.find((lr) => {
     if (lr.status !== 'APPROVED') return false
     const start = typeof lr.startDate === 'string' ? parseISO(lr.startDate) : lr.startDate
@@ -78,14 +78,14 @@ export function getAvailabilityForDate(
     ? parseISO(approvedLeave.endDate)
     : approvedLeave.endDate
 
-  if (isEqual(date, start) && approvedLeave.startHalfDay === 'HALF_DAY') return 'HALF_DAY_AM'
-  if (isEqual(date, end) && approvedLeave.endHalfDay === 'HALF_DAY') return 'HALF_DAY_PM'
+  if (isEqual(date, start) && approvedLeave.startHalfDay === 'HALF_DAY') return 'HALF_DAY'
+  if (isEqual(date, end) && approvedLeave.endHalfDay === 'HALF_DAY') return 'HALF_DAY'
 
-  return 'ON_LEAVE'
+  return 'UNAVAILABLE'
 }
 
-export function timeAgo(dateStr: string): string {
-  const date = parseISO(dateStr)
+export function timeAgo(dateInput: string | Date): string {
+  const date = typeof dateInput === 'string' ? parseISO(dateInput) : dateInput
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffMins = Math.floor(diffMs / 60000)

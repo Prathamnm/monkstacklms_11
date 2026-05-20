@@ -5,16 +5,30 @@ node_modules/
 .next/
 out/
 
-# Environment variables
+# TypeScript incremental build info
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Environment variables (keep .env.example and .env.development in Git)
 .env
 .env.local
+.env.production
+.env.test
+.env.test.local
 .env.*.local
 
 # Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # System files
 .DS_Store
 Thumbs.db
+
+# Misc
+*.bak
+coverage/
+.vercel/
+.turbo/

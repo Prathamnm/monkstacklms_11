@@ -100,6 +100,9 @@ export async function POST(req: NextRequest) {
     // Emergency leave is not additional quota; it is a flagged leave
     // that must still come from standard balance and can be max 2 consecutive days.
     const balance = await getLeaveBalance(token.userId)
+    const annual = balance.balances.find(b => b.type === 'ANNUAL')!
+    const effectiveAvailable = annual.total - (annual.consumed + annual.inApproval)
+
     if (isEmergency) {
       if (calculatedTotalDays > 2) {
         return NextResponse.json(
@@ -107,12 +110,12 @@ export async function POST(req: NextRequest) {
           { status: 422 }
         )
       }
-      const balanceValidation = validateBalance(calculatedTotalDays, balance.effectiveAvailable)
+      const balanceValidation = validateBalance(calculatedTotalDays, effectiveAvailable)
       if (!balanceValidation.valid) {
         return NextResponse.json({ error: balanceValidation.errors.join('; '), code: 'INSUFFICIENT_BALANCE' }, { status: 422 })
       }
     } else {
-      const balanceValidation = validateBalance(calculatedTotalDays, balance.effectiveAvailable)
+      const balanceValidation = validateBalance(calculatedTotalDays, effectiveAvailable)
       if (!balanceValidation.valid) {
         return NextResponse.json({ error: balanceValidation.errors.join('; '), code: 'INSUFFICIENT_BALANCE' }, { status: 422 })
       }

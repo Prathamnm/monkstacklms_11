@@ -1,5 +1,5 @@
-export type TeamLeaveType = 'annual' | 'sick' | 'floater' | 'emergency'
-export type TeamLeaveStatus = 'approved' | 'pending'
+import { LeaveType } from '@/constants/leaveTypes'
+import { LeaveStatus } from '@/constants/leaveStatus'
 
 export interface TeamLeaveOverviewRecord {
   employeeId: string
@@ -7,10 +7,10 @@ export interface TeamLeaveOverviewRecord {
   designation: string
   avatarInitials: string
   avatarColor: string
-  leaveType: TeamLeaveType
-  startDate: string // YYYY-MM-DD
-  endDate: string // YYYY-MM-DD
-  status: TeamLeaveStatus
+  leaveType: LeaveType
+  startDate: string
+  endDate: string
+  status: LeaveStatus
   department?: string | null
 }
 

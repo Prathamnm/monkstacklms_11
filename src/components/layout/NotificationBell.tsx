@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Bell, X, Info } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNotifications, useMarkAllNotificationsRead, useMarkNotificationRead } from '@/hooks/useNotifications'
 import { timeAgo } from '@/lib/utils/dateUtils'
@@ -126,7 +126,7 @@ export function NotificationBell() {
                         <p className="text-slate-400 text-[10px] mt-0.5">{timeAgo(notification.createdAt)}</p>
                       </div>
                       {!notification.isRead && (
-                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0" />
+                        <span className="w-1.5 h-1.5 bg-slate-500 rounded-full flex-shrink-0" />
                       )}
                     </div>
                   </div>

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing managerId', code: 'BAD_REQUEST' }, { status: 400 })
     }
 
-    if (token.role !== 'ADMIN' && managerId !== token.userId) {
+    if (token.role !== 'HR' && managerId !== token.userId) {
       return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 })
     }
 

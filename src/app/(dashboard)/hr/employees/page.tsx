@@ -8,7 +8,7 @@ import { TableSkeleton } from '@/components/shared/LoadingSkeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ExportEmployeesModal } from '@/components/hr/ExportEmployeesModal'
 import { AvailabilityBadge } from '@/components/employee/AvailabilityBadge'
-import { getInitials } from '@/lib/utils/formatters'
+import { getInitials, formatZonedDate } from '@/lib/utils/formatters'
 import { HREmployeeDetailPanel } from '@/components/features/hr/HREmployeeDetailPanel'
 import { useHREmployees } from '@/hooks/useHREmployees'
 import { cn } from '@/lib/utils/cn'
@@ -71,6 +71,8 @@ export default function HREmployeesPage() {
                   <th className="text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 px-6 py-4">Employee</th>
                   <th className="text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 px-6 py-4">Work Email</th>
                   <th className="text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 px-6 py-4">Job Title</th>
+                  <th className="text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 px-6 py-4">TimeZone</th>
+                  <th className="text-left text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 px-6 py-4">Local Time</th>
                   <th className="text-right text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 px-6 py-4">Availability</th>
                 </tr>
               </thead>
@@ -101,12 +103,22 @@ export default function HREmployeesPage() {
                       <td className="px-6 py-4">
                         <span className="text-[13px] text-slate-600 font-bold">{emp.jobTitle || '—'}</span>
                       </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[11px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg font-bold uppercase tracking-tight">
+                          {emp.timeZone || 'UTC'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[12px] text-slate-600 font-medium">
+                          {formatZonedDate(new Date(), emp.timeZone || 'UTC')}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-right">
                         <AvailabilityBadge status={emp.availabilityStatus} />
                       </td>
                     </tr>
                     <tr>
-                      <td colSpan={4} className="p-0 border-none">
+                      <td colSpan={6} className="p-0 border-none">
                         <AnimatePresence>
                           {selectedId === emp.id && (
                             <motion.div

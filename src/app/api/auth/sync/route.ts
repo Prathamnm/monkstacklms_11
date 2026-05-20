@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma, Role } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import { Role } from '@/constants/roles'
 import { prisma } from '@/lib/db/prisma'
 import { verifyIdTokenFromRequest } from '@/lib/auth/validateToken'
 import { userExistsInAzureTenant } from '@/lib/auth/azureTenantSync'
@@ -11,11 +12,10 @@ const DEFAULT_ROLE: Role = 'EMPLOYEE'
 
 function normalizeRole(role: unknown): Role {
   if (role === 'HR') return 'HR'
-  return role === 'MANAGER' || role === 'HR' ? role : DEFAULT_ROLE
+  return (role === 'MANAGER' || role === 'HR' ? role : DEFAULT_ROLE) as Role
 }
 
 function pickHighestPrivilegeRole(roles: Role[]): Role {
-  if (roles.includes('ADMIN')) return 'HR'
   if (roles.includes('HR')) return 'HR'
   if (roles.includes('MANAGER')) return 'MANAGER'
   return DEFAULT_ROLE

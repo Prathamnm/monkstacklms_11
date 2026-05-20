@@ -7,7 +7,7 @@ async function main() {
   const tables = ['Employee', 'LeaveBalance', 'LeaveRequest', 'LeaveLedgerEntry', 'AccrualRule', 'SystemSettings']
   
   for (const table of tables) {
-    // @ts-ignore
+    // @ts-expect-error - dynamic Prisma delegate access (debug script)
     const records = await prisma[table.charAt(0).toLowerCase() + table.slice(1)].findMany()
     for (const record of records) {
       const json = JSON.stringify(record)

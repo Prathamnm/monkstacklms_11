@@ -168,7 +168,7 @@ export default function AuthCallbackPage() {
             syncParts.slice(3).join(':') ||
             'You are not authorized. Contact your manager to be added to the LMS groups in Azure.'
           toast.error(userMsg, { id: TOAST_ID.notAuthorized, duration: 8000 })
-          router.replace('/login')
+          router.replace('/login?reason=unauthorized')
         } else if (isBackendUnavailable) {
           // Database / server temporarily unreachable.
           // The user IS authenticated with Azure — do NOT call logoutRedirect().
@@ -177,15 +177,15 @@ export default function AuthCallbackPage() {
             'Sign-in succeeded, but the server database is temporarily unavailable. Please wait a moment and try again.',
             { id: TOAST_ID.dbUnavailable, duration: 8000 }
           )
-          router.replace('/login')
+          router.replace('/login?reason=db-unavailable')
         } else if (isSyncFailed) {
           toast.error('Sign-in completed, but server sync failed. Please retry sign-in.', {
             id: TOAST_ID.syncFailed,
           })
-          router.replace('/login')
+          router.replace('/login?reason=sync-failed')
         } else {
           toast.error('Authentication failed. Please try signing in again.', { id: TOAST_ID.generic })
-          router.replace('/login')
+          router.replace('/login?reason=auth-error')
         }
       }
     }

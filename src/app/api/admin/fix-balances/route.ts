@@ -6,7 +6,7 @@ import { calculateProratedLeaves, calculateProratedFloaterLeaves, calculateProra
 export async function POST(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN', 'HR'])
+    requireRole(token, ['HR'])
 
     const year = new Date().getFullYear()
     const employees = await prisma.employee.findMany({

@@ -30,7 +30,7 @@ interface ApplyLeaveFormProps {
   autoApproved?: boolean // true for MANAGER
 }
 
-export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = false }: ApplyLeaveFormProps) {
+export function ApplyLeaveForm({ role: _role, onSubmit, isSubmitting, autoApproved = false }: ApplyLeaveFormProps) {
   const { instance } = useMsal()
   const { data: currentUserData } = useCurrentUser()
 
@@ -69,6 +69,17 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
 
   const publicHolidayDates = holidays.map((h) => h.date)
   const balance = currentUserData?.balance
+  const availableStandard = balance?.balances?.find(b => b.type === 'ANNUAL') 
+    ? (balance.balances.find(b => b.type === 'ANNUAL')!.total - 
+       (balance.balances.find(b => b.type === 'ANNUAL')!.consumed + 
+        balance.balances.find(b => b.type === 'ANNUAL')!.inApproval))
+    : 0
+
+  const availableEmergency = balance?.balances?.find(b => b.type === 'EMERGENCY') 
+    ? (balance.balances.find(b => b.type === 'EMERGENCY')!.total - 
+       (balance.balances.find(b => b.type === 'EMERGENCY')!.consumed + 
+        balance.balances.find(b => b.type === 'EMERGENCY')!.inApproval))
+    : 0
 
   useEffect(() => {
     if (!form.startDate || !form.endDate) {
@@ -105,12 +116,12 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
 
     if (calculatedDays !== null && balance) {
       if (form.isEmergency) {
-        if (calculatedDays > balance.availableEmergency) {
-          errors.balance = `Insufficient emergency balance. You have ${balance.availableEmergency} days remaining.`
+        if (calculatedDays > availableEmergency) {
+          errors.balance = `Insufficient emergency balance. You have ${availableEmergency} days remaining.`
         }
       } else {
-        if (calculatedDays > balance.availableStandard) {
-          errors.balance = `Insufficient balance. You have ${balance.availableStandard} days remaining.`
+        if (calculatedDays > availableStandard) {
+          errors.balance = `Insufficient balance. You have ${availableStandard} days remaining.`
         }
       }
     }
@@ -137,14 +148,14 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
     await onSubmit(form)
   }
 
-  const availableBalance = form.isEmergency ? (balance?.availableEmergency ?? 2) : (balance?.availableStandard ?? 0)
+  const availableBalance = form.isEmergency ? availableEmergency : availableStandard
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {autoApproved && (
-        <div className="rounded-2xl bg-blue-50 border border-blue-100 p-4 flex gap-3 shadow-inner">
-          <Info className="text-blue-600 shrink-0 mt-0.5" size={18} />
-          <p className="text-[13px] font-medium text-blue-800 leading-snug">
+        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 flex gap-3 shadow-inner">
+          <Info className="text-slate-400 shrink-0 mt-0.5" size={18} />
+          <p className="text-[13px] font-medium text-slate-800 leading-snug">
             As a manager, your leave request will be <strong>automatically approved</strong> by the system.
           </p>
         </div>
@@ -166,7 +177,7 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
               "w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none bg-slate-50/30",
               inlineErrors.title 
                 ? "border-red-200 focus:border-red-400 focus:ring-4 focus:ring-red-500/5" 
-                : "border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/5"
+                : "border-slate-200 focus:border-slate-400 focus:ring-4 focus:ring-slate-500/5"
             )}
           />
           {inlineErrors.title && (
@@ -191,7 +202,7 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
             min={new Date().toISOString().split('T')[0]}
             className={cn(
               "w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none bg-slate-50/30",
-              inlineErrors.startDate ? "border-red-200" : "border-slate-200 focus:border-blue-400"
+              inlineErrors.startDate ? "border-red-200" : "border-slate-200 focus:border-slate-400"
             )}
           />
           {inlineErrors.startDate && (
@@ -209,7 +220,7 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
             min={form.startDate || new Date().toISOString().split('T')[0]}
             className={cn(
               "w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none bg-slate-50/30",
-              inlineErrors.endDate ? "border-red-200" : "border-slate-200 focus:border-blue-400"
+              inlineErrors.endDate ? "border-red-200" : "border-slate-200 focus:border-slate-400"
             )}
           />
           {inlineErrors.endDate && (
@@ -305,7 +316,7 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
                 Emergency Leave
               </p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Uses emergency quota • {balance?.availableEmergency ?? 0} days left
+                Uses emergency quota • {availableEmergency} days left
               </p>
             </div>
           </div>
@@ -325,7 +336,7 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
           placeholder="Please provide a brief justification for your leave request (min. 10 characters)"
           className={cn(
             "w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-all outline-none bg-slate-50/30 resize-none",
-            inlineErrors.reason ? "border-red-200 focus:border-red-400" : "border-slate-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/5"
+            inlineErrors.reason ? "border-red-200 focus:border-red-400" : "border-slate-200 focus:border-slate-400 focus:ring-4 focus:ring-slate-500/5"
           )}
         />
         {inlineErrors.reason && (
@@ -336,7 +347,7 @@ export function ApplyLeaveForm({ role, onSubmit, isSubmitting, autoApproved = fa
       <button
         type="submit"
         disabled={isSubmitting || (calculatedDays !== null && calculatedDays > availableBalance)}
-        className="w-full flex items-center justify-center gap-3 rounded-xl bg-blue-600 text-white py-4 text-[13px] font-bold uppercase tracking-[0.2em] hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-100 active:scale-[0.98]"
+        className="w-full flex items-center justify-center gap-3 rounded-xl bg-slate-800 text-white py-4 text-[13px] font-bold uppercase tracking-[0.2em] hover:bg-slate-900 disabled:opacity-50 transition-all shadow-lg shadow-slate-200 active:scale-[0.98]"
       >
         {isSubmitting ? (
           <>

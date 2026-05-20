@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LeaveBalanceCard } from '@/components/leave/LeaveBalanceCard'
 import { TableSkeleton } from '@/components/shared/LoadingSkeleton'

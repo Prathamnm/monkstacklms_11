@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const authorizedBySecret = isCronAuthorized(req)
     if (!authorizedBySecret) {
       const token = await validateToken(req)
-      requireRole(token, ['ADMIN'])
+      requireRole(token, ['HR'])
     }
 
     const result = await syncGraphUsersToDatabase({ removeOrphans: true })

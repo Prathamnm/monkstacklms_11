@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import type { Announcement } from '@/types/announcement'
+import type { AuditLog } from '@/types/api'
 import toast from 'react-hot-toast'
+import { toErrorMessage } from '@/lib/utils/typeGuards'
 
 export interface HRStats {
   totalActive: number
@@ -94,7 +96,7 @@ export function useAnnouncements() {
       queryClient.invalidateQueries({ queryKey: ['announcements'] })
       toast.success('Announcement posted')
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(toErrorMessage(err)),
   })
 
   const updateMutation = useMutation({
@@ -112,7 +114,7 @@ export function useAnnouncements() {
       queryClient.invalidateQueries({ queryKey: ['announcements'] })
       toast.success('Announcement updated')
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(toErrorMessage(err)),
   })
 
   const deleteMutation = useMutation({
@@ -129,7 +131,7 @@ export function useAnnouncements() {
       queryClient.invalidateQueries({ queryKey: ['announcements'] })
       toast.success('Announcement deleted')
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(toErrorMessage(err)),
   })
 
   return {
@@ -141,53 +143,16 @@ export function useAnnouncements() {
   }
 }
 
-export function useAccrualManagement() {
-  const { instance } = useMsal()
-  const queryClient = useQueryClient()
-
-  const query = useQuery<string>({
-    queryKey: ['lastAccrualRun'],
-    queryFn: async () => {
-      const token = await getAccessToken(instance)
-      const res = await fetch('/api/admin/settings', { headers: { Authorization: `Bearer ${token}` } })
-      if (!res.ok) return ''
-      const settings = await res.json()
-      const entry = settings.find?.((s: { key: string; value: string }) => s.key === 'LAST_ACCRUAL_RUN')
-      return entry?.value ?? ''
-    },
-  })
-
-  const runMutation = useMutation({
-    mutationFn: async () => {
-      const token = await getAccessToken(instance)
-      const res = await fetch('/api/accrual/run', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
-      if (!res.ok) throw new Error('Accrual run failed')
-      return res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lastAccrualRun'] })
-      toast.success('Leave accrual run completed')
-    },
-    onError: (err: any) => toast.error(err.message),
-  })
-
-  return {
-    lastRun: query.data,
-    runAccrual: runMutation.mutate,
-    isProcessing: runMutation.isPending,
-  }
-}
-
 export function useAuditLogs(limit = 10) {
   const { instance } = useMsal()
 
-  return useQuery({
+  return useQuery<AuditLog[]>({
     queryKey: ['auditLogs', limit],
     queryFn: async () => {
       const token = await getAccessToken(instance)
       const res = await fetch(`/api/admin/audit?limit=${limit}`, { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) return []
-      return res.json()
+      return (await res.json()) as AuditLog[]
     },
   })
 }

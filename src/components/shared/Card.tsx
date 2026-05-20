@@ -22,14 +22,14 @@ export function Card({
 }: CardProps) {
   return (
     <div className={cn(
-      "bg-[var(--color-card-bg)] border border-[var(--color-card-border)] rounded-xl overflow-hidden",
+      "bg-[var(--color-card-bg)] border border-[var(--color-card-border)] rounded-2xl overflow-hidden shadow-sm transition-all duration-200",
       className
     )}>
       {(title || headerAction) && (
-        <div className="px-6 py-5 border-b border-[var(--color-card-border)] flex items-center justify-between">
+        <div className="px-6 py-4.5 border-b border-[var(--color-card-border)] flex items-center justify-between bg-slate-50/20">
           <div>
-            {title && <h3 className="text-sm font-bold text-slate-950">{title}</h3>}
-            {description && <p className="text-xs text-[var(--color-muted)] mt-1">{description}</p>}
+            {title && <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest leading-none">{title}</h3>}
+            {description && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1.5 leading-none">{description}</p>}
           </div>
           {headerAction}
         </div>

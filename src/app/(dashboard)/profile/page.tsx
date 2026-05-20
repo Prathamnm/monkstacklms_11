@@ -30,6 +30,13 @@ export default function ProfilePage() {
   const { user, balance } = data
   const firstName = getCleanFirstName(user?.firstName, user?.displayName)
 
+  const getBal = (type: string) => 
+    balance.balances.find((b) => b.type === type) || { total: 0, consumed: 0, inApproval: 0 }
+
+  const std = getBal('ANNUAL')
+  const emg = getBal('EMERGENCY')
+  const flt = getBal('FLOATER')
+
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -46,8 +53,8 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error('Upload failed')
       await queryClient.invalidateQueries({ queryKey: ['currentUser'] })
       toast.success('Profile photo updated')
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to upload photo')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload photo')
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -71,7 +78,7 @@ export default function ProfilePage() {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             {/* Avatar Section */}
             <div
-              className="relative w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-white text-3xl font-bold overflow-hidden cursor-pointer group shadow-lg"
+              className="relative w-24 h-24 rounded-full bg-slate-800 flex items-center justify-center text-white text-3xl font-bold overflow-hidden cursor-pointer group shadow-lg"
               onClick={() => !uploading && fileInputRef.current?.click()}
             >
               {uploading ? (
@@ -114,7 +121,7 @@ export default function ProfilePage() {
             />
             <ProfileField 
               label="Manager" 
-              value={(user as any).manager?.displayName} 
+              value={user.manager?.displayName} 
               icon={<UserCheck size={14} />} 
             />
             <ProfileField label="Role Permissions" value={ROLE_LABELS[user.role]} icon={<Shield size={14} />} />
@@ -127,9 +134,9 @@ export default function ProfilePage() {
               Emergency Contact
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <MiniField label="Name" value={(user as any).emergencyName} />
-              <MiniField label="Relation" value={(user as any).emergencyRelation} />
-              <MiniField label="Phone" value={(user as any).emergencyPhone} />
+              <MiniField label="Name" value={user.emergencyName} />
+              <MiniField label="Relation" value={user.emergencyRelation} />
+              <MiniField label="Phone" value={user.emergencyPhone} />
             </div>
           </div>
         </section>
@@ -139,22 +146,22 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <BalanceCard 
               label="Standard Leave" 
-              value={balance.availableStandard} 
-              subtext={`${balance.standardUsed} used of ${balance.standardTotal}`} 
+              value={std.total - (std.consumed + std.inApproval)} 
+              subtext={`${std.consumed} used of ${std.total}`} 
             />
             <BalanceCard 
               label="Emergency Leave" 
-              value={balance.availableEmergency} 
-              subtext={`${balance.emergencyUsed} used of ${balance.emergencyTotal}`} 
+              value={emg.total - (emg.consumed + emg.inApproval)} 
+              subtext={`${emg.consumed} used of ${emg.total}`} 
             />
             <BalanceCard 
               label="Floater Leave" 
-              value={balance.availableFloater ?? 2} 
-              subtext={`${balance.floaterUsed ?? 0} used of ${balance.floaterTotal ?? 2}`} 
+              value={flt.total - (flt.consumed + flt.inApproval)} 
+              subtext={`${flt.consumed} used of ${flt.total}`} 
             />
             <BalanceCard 
-              label="Pending Days" 
-              value={balance.pendingDays} 
+              label="In Approval" 
+              value={std.inApproval + emg.inApproval + flt.inApproval} 
               subtext="Awaiting approval"
               highlight 
             />
@@ -227,12 +234,12 @@ function ActionButton({ label, onClick, primary = false }: { label: string, onCl
       onClick={onClick}
       className={`w-full py-4 px-6 rounded-xl text-sm font-bold transition-all flex items-center justify-between group ${
         primary 
-          ? 'bg-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-[0.98]' 
+          ? 'bg-slate-800 text-white shadow-lg shadow-slate-200 hover:bg-slate-900 active:scale-[0.98]' 
           : 'bg-white border border-[var(--color-card-border)] text-[var(--color-heading)] hover:bg-slate-50 active:scale-[0.98]'
       }`}
     >
       {label}
-      <ChevronRight size={16} className={`transition-transform group-hover:translate-x-1 ${primary ? 'text-blue-200' : 'text-slate-300'}`} />
+      <ChevronRight size={16} className={`transition-transform group-hover:translate-x-1 ${primary ? 'text-slate-200' : 'text-slate-300'}`} />
     </button>
   )
 }

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const limit = limitRaw ? Math.max(1, Math.min(50, Number(limitRaw))) : null
 
     const announcements = await prisma.announcement.findMany({
-      where: { isActive: true, deletedAt: null },
+      where: { isActive: true },
       include: {
         poster: { select: { displayName: true, role: true } },
       },

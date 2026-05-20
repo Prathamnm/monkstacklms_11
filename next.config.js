@@ -7,15 +7,11 @@ const nextConfig = {
     NEXT_PUBLIC_AZURE_AD_TENANT_ID:
       process.env.NEXT_PUBLIC_AZURE_AD_TENANT_ID || process.env.AZURE_AD_TENANT_ID,
   },
-
-  // 🔥 ADD THIS (fix build failure)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+ 
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
-
+ 
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.microsoft.com' },
@@ -23,7 +19,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'graph.microsoft.com' },
     ],
   },
-
+ 
   async headers() {
     return [
       {
@@ -37,5 +33,5 @@ const nextConfig = {
     ]
   },
 }
-
+ 
 module.exports = nextConfig

@@ -35,7 +35,7 @@ body {
     --color-background-primary: #ffffff;
     --color-background-secondary: #f1f5f9;
     --color-background-info: #EFF6FF;
-    --color-text-info: #3B82F6;
+    --color-text-info: #475569;
     --color-background-warning: #FEF3C7;
     --color-text-warning: #D97706;
     --color-border-tertiary: #e2e8f0;
@@ -151,7 +151,7 @@ body {
   /* Input styles */
   .input {
     @apply border border-slate-300 rounded-lg px-3.5 py-3 text-base;
-    @apply focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white;
+    @apply focus:ring-2 focus:ring-slate-500 focus:border-slate-500 bg-white;
     @apply outline-none transition-all duration-150;
     @apply placeholder:text-slate-400;
   }
@@ -626,11 +626,11 @@ body {
 
 /* Half-day calendar styles */
 .cal-day-half {
-  background: linear-gradient(90deg, #378ADD 50%, transparent 50%) !important;
-  border: 1.5px solid #378ADD !important;
+  background: linear-gradient(90deg, #64748b 50%, transparent 50%) !important;
+  border: 1.5px solid #64748b !important;
   border-radius: 50% !important;
   color: #fff !important;
 }
 .cal-day-half.cal-day-in-range {
-  background: linear-gradient(90deg, #378ADD 50%, #E6F1FB 50%) !important;
+  background: linear-gradient(90deg, #64748b 50%, #f8fafc 50%) !important;
 }

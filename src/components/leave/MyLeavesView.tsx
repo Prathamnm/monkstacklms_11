@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
+import { cn } from '@/lib/utils/cn'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { format, parseISO, isToday, isBefore } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
-import { LeaveBalanceCard } from '@/components/leave/LeaveBalanceCard'
 import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
@@ -31,6 +31,7 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
   const { data: response, isLoading } = useQuery<{ data: LeaveRequest[], total: number }>({
     queryKey: ['myLeaves', 'self', filter],
     enabled: !!currentUserData?.user.id,
+    initialData: initialLeaves ? { data: initialLeaves, total: initialLeaves.length } : undefined,
     queryFn: async () => {
       const token = await getAccessToken(instance)
       const res = await fetch(`/api/leave/requests?userId=${currentUserData?.user.id}&status=${filter}`, { 
@@ -112,7 +113,6 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
   }
 
   const contactEmailStr = contactEmails.map((c) => c.email).join(';')
-  const user = currentUserData?.user
 
   return (
     <div className="space-y-6">
@@ -122,11 +122,12 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              filter === f
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                filter === f
+                ? 'bg-slate-800 text-white shadow-md shadow-slate-200'
+                : 'text-slate-500 hover:bg-slate-50'
+              )}
           >
             {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
           </button>
@@ -160,13 +161,13 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
                       </div>
                       <p className="text-xs text-slate-500 mt-1">
                         {format(parseISO(leave.startDate), 'dd MMM yyyy')} 
-                        {leave.startHalfDay === 'HALF_DAY' && <span className="text-blue-500 font-medium ml-1">(Half Day)</span>}
+                        {leave.startHalfDay === 'HALF_DAY' && <span className="text-slate-500 font-medium ml-1">(Half Day)</span>}
                         {' → '}
                         {format(parseISO(leave.endDate), 'dd MMM yyyy')}
-                        {leave.endHalfDay === 'HALF_DAY' && <span className="text-blue-500 font-medium ml-1">(Half Day)</span>}
+                        {leave.endHalfDay === 'HALF_DAY' && <span className="text-slate-500 font-medium ml-1">(Half Day)</span>}
                         {' · '}{leave.totalDays} day{leave.totalDays !== 1 ? 's' : ''}
                         {Array.isArray(leave.dayOverrides) && leave.dayOverrides.length > 0 && (
-                          <span className="text-blue-500 block mt-0.5">
+                          <span className="text-slate-500 block mt-0.5">
                             Half days: {leave.dayOverrides.filter((o) => o.type === 'half').map((o) => format(parseISO(o.date), 'dd MMM')).join(', ')}
                           </span>
                         )}
@@ -193,11 +194,20 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
                         </button>
                       )}
                       {action === 'contact_hr' && (
-                        <p className="text-xs text-slate-400 italic">
-                          {role === 'EMPLOYEE'
-                            ? 'Contact HR to reverse this leave'
-                            : 'Contact Admin to reverse this leave'}
-                        </p>
+                        <div className="text-xs text-slate-400 italic">
+                          {contactEmailStr ? (
+                            <a
+                              href={`mailto:${contactEmailStr}?subject=${encodeURIComponent('Leave reversal request')}`}
+                              className="hover:text-blue-600 transition-colors"
+                            >
+                              {role === 'EMPLOYEE' ? 'Contact HR to reverse this leave' : 'Contact Admin to reverse this leave'}
+                            </a>
+                          ) : (
+                            <span>
+                              {role === 'EMPLOYEE' ? 'Contact HR to reverse this leave' : 'Contact Admin to reverse this leave'}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}

@@ -6,7 +6,6 @@ import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
 import { getInitials, formatDays } from '@/lib/utils/formatters'
 import { formatDateRange } from '@/lib/utils/dateUtils'
 import type { LeaveRequest } from '@/types/leave'
-import { cn } from '@/lib/utils/cn'
 import { HEADING_STYLES } from '@/constants/tailwind'
 
 interface LeaveApprovalCardProps {

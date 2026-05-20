@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
-import { Role } from '@prisma/client'
 import { getAvailabilityForDate } from '@/lib/utils/dateUtils'
 import { logAudit } from '@/lib/audit/auditLogger'
 
@@ -14,6 +13,48 @@ export async function GET(
     requireRole(token, ['HR'])
 
     const { id } = params
+
+    if (id === '0') {
+      const today = new Date()
+      const employees = await prisma.employee.findMany({
+        include: {
+          manager: { select: { id: true, displayName: true } },
+          leaveRequests: {
+            where: { status: 'APPROVED', startDate: { lte: today }, endDate: { gte: today } },
+          },
+        },
+        orderBy: { firstName: 'asc' },
+      })
+
+      const result = employees.map((emp) => {
+        const availabilityStatus = getAvailabilityForDate(
+          emp.leaveRequests.map((lr) => ({
+            startDate: lr.startDate,
+            endDate: lr.endDate,
+            startHalfDay: lr.startHalfDay,
+            endHalfDay: lr.endHalfDay,
+            status: lr.status,
+          })),
+          today
+        )
+
+        return {
+          id: emp.id,
+          displayName: emp.displayName,
+          email: emp.workEmail,
+          workEmail: emp.workEmail,
+          role: emp.role,
+          jobTitle: emp.jobTitle,
+          employmentStatus: emp.employmentStatus,
+          managerName: emp.manager?.displayName ?? null,
+          availabilityStatus,
+          timeZone: emp.timeZone,
+          joinDate: emp.joinDate.toISOString(),
+          createdAt: emp.createdAt.toISOString(),
+        }
+      })
+      return NextResponse.json(result)
+    }
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -73,6 +114,7 @@ export async function PATCH(
       emergencyPhone,
       employmentStatus,
       notificationEmail,
+      timeZone,
     } = body
     // Azure-synced fields (jobTitle, managerId, phoneNumber, firstName, lastName, displayName) 
     // are NOT accepted here.
@@ -84,23 +126,24 @@ export async function PATCH(
     const updatedEmployee = await prisma.employee.update({
       where: { id: employeeId },
       data: {
-        emergencyName:     emergencyName     ?? undefined,
+        emergencyName: emergencyName ?? undefined,
         emergencyRelation: emergencyRelation ?? undefined,
-        emergencyPhone:    emergencyPhone    ?? undefined,
-        employmentStatus:  employmentStatus  ?? undefined,
+        emergencyPhone: emergencyPhone ?? undefined,
+        employmentStatus: employmentStatus ?? undefined,
         notificationEmail: notificationEmail !== undefined ? notificationEmail : undefined,
+        timeZone: timeZone ?? undefined,
       },
     })
 
     await logAudit('EMPLOYEE_UPDATE', token.userId, employeeId, {
       before: {
-        emergencyName:     prevEmployee.emergencyName,
+        emergencyName: prevEmployee.emergencyName,
         emergencyRelation: prevEmployee.emergencyRelation,
-        emergencyPhone:    prevEmployee.emergencyPhone,
-        employmentStatus:  prevEmployee.employmentStatus,
+        emergencyPhone: prevEmployee.emergencyPhone,
+        employmentStatus: prevEmployee.employmentStatus,
       },
       after: {
-        emergencyName, emergencyRelation, emergencyPhone, employmentStatus, notificationEmail,
+        emergencyName, emergencyRelation, emergencyPhone, employmentStatus, notificationEmail, timeZone,
       },
       params: { reason: 'HR update of non-synced fields' }
     }, req)

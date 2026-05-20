@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import toast from 'react-hot-toast'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Announcement } from '@/types/announcement'
+import { toErrorMessage } from '@/lib/utils/typeGuards'
 
 export function useManagerDashboard() {
   const { instance } = useMsal()
@@ -97,7 +98,7 @@ export function useManagerDashboard() {
       queryClient.invalidateQueries({ queryKey: ['announcements'] })
       toast.success('Announcement posted')
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(toErrorMessage(err)),
   })
 
   const deleteAnnouncement = useMutation({
@@ -114,7 +115,7 @@ export function useManagerDashboard() {
       queryClient.invalidateQueries({ queryKey: ['announcements'] })
       toast.success('Announcement deleted')
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: unknown) => toast.error(toErrorMessage(err)),
   })
 
   const isLoading = Object.values(statsQueries).some(q => q.isLoading) || announcementsQuery.isLoading

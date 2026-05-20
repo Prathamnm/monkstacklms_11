@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     await validateToken(req)
 
     const admins = await prisma.employee.findMany({
-      where: { role: 'ADMIN', employmentStatus: 'ACTIVE' },
+      where: { role: 'HR', employmentStatus: 'ACTIVE' },
       select: { workEmail: true, displayName: true },
     })
 

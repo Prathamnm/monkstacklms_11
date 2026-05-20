@@ -3,16 +3,12 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { format, isWithinInterval, parseISO } from 'date-fns'
-import { CalendarDays, ChevronRight, Users, Activity } from 'lucide-react'
+import { CalendarDays, Users, Activity } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useTeamLeaveOverview } from '@/hooks/useTeamLeaveOverview'
 import type { TeamLeaveOverviewRecord } from '@/types/teamLeaveOverview'
 import { cn } from '@/lib/utils/cn'
 import { HEADING_STYLES } from '@/constants/tailwind'
-
-function formatRangeLabel(from: Date, to: Date) {
-  return `${format(from, 'MMM d')} \u2013 ${format(to, 'MMM d')}`
-}
 
 function isCurrentLeave(rec: TeamLeaveOverviewRecord, now: Date) {
   const start = parseISO(rec.startDate)
@@ -21,18 +17,18 @@ function isCurrentLeave(rec: TeamLeaveOverviewRecord, now: Date) {
 }
 
 function badgeStyles(leaveType: TeamLeaveOverviewRecord['leaveType'], status: TeamLeaveOverviewRecord['status']) {
-  if (status === 'pending') {
+  if (status === 'PENDING') {
     return 'bg-slate-100 text-slate-500 border-slate-200'
   }
 
   switch (leaveType) {
-    case 'annual':
-      return 'bg-blue-50 text-blue-700 border-blue-100'
-    case 'sick':
+    case 'ANNUAL':
+      return 'bg-slate-50 text-slate-700 border-slate-200'
+    case 'SICK':
       return 'bg-red-50 text-red-700 border-red-100'
-    case 'floater':
+    case 'FLOATER':
       return 'bg-emerald-50 text-emerald-700 border-emerald-100'
-    case 'emergency':
+    case 'EMERGENCY':
       return 'bg-amber-50 text-amber-700 border-amber-100'
     default:
       return 'bg-slate-50 text-slate-600 border-slate-100'
@@ -41,10 +37,10 @@ function badgeStyles(leaveType: TeamLeaveOverviewRecord['leaveType'], status: Te
 
 function leaveTypeLabel(t: TeamLeaveOverviewRecord['leaveType']) {
   switch (t) {
-    case 'annual': return 'Annual'
-    case 'sick': return 'Sick'
-    case 'floater': return 'Floater'
-    case 'emergency': return 'Emergency'
+    case 'ANNUAL': return 'Annual'
+    case 'SICK': return 'Sick'
+    case 'FLOATER': return 'Floater'
+    case 'EMERGENCY': return 'Emergency'
     default: return 'Leave'
   }
 }
@@ -98,11 +94,11 @@ export function TeamLeaveOverviewCard(props: {
 
   const content = (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
           <h3 className={HEADING_STYLES.cardHeader + " mb-1 flex items-center gap-2"}>
-            <Activity size={14} className="text-blue-500" />
-            Teammates on Leave
+            <Activity size={14} className="text-slate-500 shrink-0" />
+            <span className="truncate">Teammates on Leave</span>
           </h3>
           <p className="text-[13px] font-medium text-slate-500 leading-none">
             {format(props.from, 'MMMM yyyy')}
@@ -111,11 +107,11 @@ export function TeamLeaveOverviewCard(props: {
 
         {role === 'HR' && departmentOptions.length > 0 && (
           <select
-            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-600 outline-none focus:ring-2 focus:ring-blue-500/10 transition-all"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 outline-none focus:ring-2 focus:ring-blue-500/10 transition-all min-w-[120px]"
             value={department ?? ''}
             onChange={(e) => setDepartment(e.target.value || null)}
           >
-            <option value="">All Departments</option>
+            <option value="">All Teams</option>
             {departmentOptions.map((d) => (
               <option key={d} value={d}>{d}</option>
             ))}
@@ -126,7 +122,7 @@ export function TeamLeaveOverviewCard(props: {
       <div className="space-y-3">
         {isLoading ? (
           <div className="py-12 text-center">
-            <div className="w-6 h-6 border-2 border-slate-100 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-6 h-6 border-2 border-slate-100 border-t-slate-500 rounded-full animate-spin mx-auto mb-3" />
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">Checking records...</p>
           </div>
         ) : error ? (
@@ -143,47 +139,45 @@ export function TeamLeaveOverviewCard(props: {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {visible.map((rec) => {
-              const isPending = rec.status === 'pending'
+              const isPending = rec.status === 'PENDING'
               return (
                 <div
                   key={`${rec.employeeId}:${rec.startDate}:${rec.endDate}`}
                   className={cn(
-                    "group flex items-center justify-between gap-4 rounded-xl border p-3 transition-all",
-                    isPending ? "bg-slate-50/30 border-slate-100" : "bg-white border-slate-100 hover:border-blue-100 hover:shadow-sm"
+                    "group flex flex-col gap-3 rounded-2xl border p-4 transition-all",
+                    isPending ? "bg-slate-50/50 border-slate-100" : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-md"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 border-2 border-white shadow-sm flex items-center justify-center text-blue-600 text-[13px] font-bold shrink-0">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-800 shadow-sm flex items-center justify-center text-white text-[12px] font-black shrink-0">
                       {rec.avatarInitials}
                     </div>
 
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-bold text-slate-900 leading-tight group-hover:text-blue-700 transition-colors truncate">
-                        {rec.name}
-                      </p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight truncate mt-0.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[13px] font-bold text-slate-900 leading-tight truncate">
+                          {rec.name}
+                        </p>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter border shrink-0",
+                          badgeStyles(rec.leaveType, rec.status)
+                        )}>
+                          {isPending ? 'Pending' : leaveTypeLabel(rec.leaveType)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight truncate mt-1">
                         {rec.designation}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div className="text-right">
-                      <p className="text-[11px] font-bold text-slate-700 leading-none">
-                        {format(parseISO(rec.startDate), 'dd MMM')} — {format(parseISO(rec.endDate), 'dd MMM')}
-                      </p>
-                      <span className={cn(
-                        "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter mt-1.5 border",
-                        badgeStyles(rec.leaveType, rec.status)
-                      )}>
-                        {isPending ? 'Pending' : leaveTypeLabel(rec.leaveType)}
-                      </span>
-                    </div>
-                    <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 group-hover:text-blue-600 group-hover:border-blue-100 transition-all">
-                      <ChevronRight size={14} />
-                    </div>
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
+                    <CalendarDays size={12} className="text-slate-500" />
+                    <p className="text-[11px] font-bold text-slate-600">
+                      {format(parseISO(rec.startDate), 'dd MMM')} — {format(parseISO(rec.endDate), 'dd MMM, yyyy')}
+                    </p>
                   </div>
                 </div>
               )
@@ -193,7 +187,7 @@ export function TeamLeaveOverviewCard(props: {
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
-                className="w-full mt-2 py-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-[0.2em] bg-blue-50/50 rounded-xl border border-blue-100/50 transition-all active:scale-[0.99]"
+                className="w-full mt-2 py-2 text-[10px] font-bold text-slate-600 hover:text-slate-800 uppercase tracking-[0.2em] bg-slate-50 rounded-xl border border-slate-200 transition-all active:scale-[0.99]"
               >
                 + Show {remaining} more teammates
               </button>

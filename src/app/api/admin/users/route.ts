@@ -6,7 +6,7 @@ import { syncGraphUsersToDatabase } from '@/lib/auth/azureTenantSync'
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN'])
+    requireRole(token, ['HR'])
 
     try {
       await syncGraphUsersToDatabase({ removeOrphans: true })

@@ -20,7 +20,6 @@ import {
 import { Clock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { cn } from '@/lib/utils/cn'
-import { HEADING_STYLES } from '@/constants/tailwind'
 
 interface AttendanceRecord {
   id: string
@@ -207,7 +206,7 @@ export function AttendanceCard() {
                       {format(day, 'EEE, MMM d')}
                     </span>
                     {isToday && (
-                      <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded-md font-black uppercase">Today</span>
+                      <span className="text-[9px] bg-slate-800 text-white px-1.5 py-0.5 rounded-md font-black uppercase">Today</span>
                     )}
                   </div>
                   

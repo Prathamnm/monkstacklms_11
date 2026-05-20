@@ -1,4 +1,5 @@
-export type Role = 'EMPLOYEE' | 'MANAGER' | 'HR'
+import { Role, EmploymentStatus } from '@/constants'
+import { Guid } from './guid'
 
 export interface CurrentUser {
   id: string
@@ -8,16 +9,17 @@ export interface CurrentUser {
   firstName: string
   lastName: string
   jobTitle?: string | null
-
   phoneNumber?: string | null
   profilePictureUrl?: string | null
+  manager?: { id: string; displayName: string; workEmail?: string } | null
   emergencyName?: string | null
   emergencyRelation?: string | null
   emergencyPhone?: string | null
   role: Role
-  employmentStatus: string
-  joinDate?: string | Date | null
-  managerId?: string | null
+  employmentStatus: EmploymentStatus
+  joinDate?: Date | null
+  timeZone?: string
+  managerId?: Guid | null
 }
 
 export interface AuthSyncPayload {

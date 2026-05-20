@@ -2,24 +2,29 @@
 
 import { Card } from '@/components/shared/Card'
 import { cn } from '@/lib/utils/cn'
+import type { LeaveType } from '@/constants'
+import type { LeaveBalanceSummary, LeaveTypeBalance } from '@/types/employee'
 
 interface LeaveBalanceStripProps {
-  balance: {
-    availableStandard: number | string
-    standardUsed: number | string
-    pendingDays: number | string
-    availableEmergency: number | string
-    availableFloater: number | string
-  } | null
+  balance?: LeaveBalanceSummary | null
 }
 
+const EMPTY_BALANCE: LeaveTypeBalance = { type: 'ANNUAL', total: 0, consumed: 0, inApproval: 0 }
+
 export function LeaveBalanceStrip({ balance }: LeaveBalanceStripProps) {
+  const getBal = (type: LeaveType): LeaveTypeBalance =>
+    balance?.balances?.find((b) => b.type === type) ?? { ...EMPTY_BALANCE, type }
+
+  const std = getBal('ANNUAL')
+  const emg = getBal('EMERGENCY')
+  const flt = getBal('FLOATER')
+
   const stats = [
-    { label: 'Available Days', value: balance?.availableStandard ?? '—', color: 'text-blue-600' },
-    { label: 'Used Days', value: balance?.standardUsed ?? '—', color: 'text-slate-600' },
-    { label: 'Pending Request', value: balance?.pendingDays ?? '—', color: 'text-amber-600' },
-    { label: 'Emergency Quota', value: `${balance?.availableEmergency ?? 0}/2`, color: 'text-red-600' },
-    { label: 'Floater Quota', value: `${balance?.availableFloater ?? 0}/2`, color: 'text-purple-600' },
+    { label: 'Available Days', value: (std.total - std.consumed - std.inApproval).toFixed(1), color: 'text-slate-900' },
+    { label: 'Used Days', value: std.consumed.toFixed(1), color: 'text-slate-600' },
+    { label: 'Pending Request', value: std.inApproval.toFixed(1), color: 'text-amber-600' },
+    { label: 'Emergency Quota', value: `${(emg.total - emg.consumed - emg.inApproval)}/${emg.total}`, color: 'text-red-600' },
+    { label: 'Floater Quota', value: `${(flt.total - flt.consumed - flt.inApproval)}/${flt.total}`, color: 'text-purple-600' },
   ]
 
   return (

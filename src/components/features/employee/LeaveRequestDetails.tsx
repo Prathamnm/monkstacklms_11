@@ -1,22 +1,14 @@
 'use client'
 
-import { format, isEqual } from 'date-fns'
-import { Info, AlertTriangle } from 'lucide-react'
-import { HalfDaySelector } from '@/components/leave/HalfDaySelector'
+import { Info, AlertTriangle, Activity } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { DateRange } from 'react-day-picker'
-import { HalfDayType } from '@/types/leave'
-import { SectionHeader, FormField, Divider } from '@/components/shared/DesignSystem'
+import { FormField, Divider } from '@/components/shared/DesignSystem'
+
+import type { DayOverride } from '@/types/leave'
 
 interface LeaveRequestDetailsProps {
-  title: string
-  setTitle: (v: string) => void
-  range: DateRange | undefined
+  dayOverrides: DayOverride[]
   totalDays: number
-  startHalfDay: HalfDayType
-  setStartHalfDay: (v: HalfDayType) => void
-  endHalfDay: HalfDayType
-  setEndHalfDay: (v: HalfDayType) => void
   reason: string
   setReason: (v: string) => void
   isEmergency: boolean
@@ -28,14 +20,8 @@ interface LeaveRequestDetailsProps {
 }
 
 export function LeaveRequestDetails({
-  title,
-  setTitle,
-  range,
+  dayOverrides,
   totalDays,
-  startHalfDay,
-  setStartHalfDay,
-  endHalfDay,
-  setEndHalfDay,
   reason,
   setReason,
   isEmergency,
@@ -45,46 +31,35 @@ export function LeaveRequestDetails({
   isSubmitting,
   onSubmit
 }: LeaveRequestDetailsProps) {
-  const isSingleDay = !range?.to || (range.from && range.to && isEqual(range.from, range.to))
-
   return (
-    <div className="bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden h-fit sticky top-8">
-      <div className="bg-white border-b border-slate-100 px-6 py-4">
-        <SectionHeader title="Request Details" className="mb-0" />
-      </div>
+    <div className="bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden h-fit sticky top-8 shadow-sm">
+      <div className="p-5 space-y-4">
 
-      <div className="p-6 space-y-6">
-        <FormField label="Leave Title" required>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Annual Leave, Medical"
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all"
-          />
-        </FormField>
-
-        {range?.from && (
+        {dayOverrides.length > 0 && (
           <>
             <Divider />
-            <RequestSummary 
-              from={range.from} 
-              to={range.to} 
-              totalDays={totalDays} 
-            />
-            
-            <Divider />
-            <FormField label="Day Options">
-              <div className="p-4 bg-white rounded-xl border border-slate-100">
-                <HalfDaySelector
-                  startHalfDay={startHalfDay}
-                  endHalfDay={endHalfDay}
-                  onStartHalfDayChange={setStartHalfDay}
-                  onEndHalfDayChange={setEndHalfDay}
-                  isSingleDay={!!isSingleDay}
-                />
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                Total Selected
               </div>
-            </FormField>
+              <div className="text-[12px] font-black text-slate-900 uppercase tracking-widest">
+                {totalDays} day{totalDays !== 1 ? 's' : ''}
+              </div>
+            </div>
+            <div className="bg-slate-800 rounded-2xl p-5 shadow-lg shadow-slate-200 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform">
+                <Info size={40} className="text-white" />
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">
+                  <Activity size={12} />
+                  Pro Tip
+                </div>
+                <p className="text-white text-[13px] font-bold leading-relaxed">
+                  Right-click any selected date on the calendar to toggle it as a <span className="text-slate-300">Half Day</span>.
+                </p>
+              </div>
+            </div>
           </>
         )}
 
@@ -96,7 +71,7 @@ export function LeaveRequestDetails({
               onChange={(e) => setReason(e.target.value)}
               placeholder="Please provide a reason for your leave request"
               maxLength={500}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 min-h-[120px] focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 min-h-[120px] focus:ring-4 focus:ring-slate-500/5 focus:border-slate-500 outline-none transition-all resize-none"
             />
             <div className="flex justify-end">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight bg-slate-100 px-2 py-0.5 rounded-md">
@@ -129,7 +104,7 @@ export function LeaveRequestDetails({
             "w-full py-4 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all shadow-lg active:scale-95 mt-4",
             isSubmitDisabled
               ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-              : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-100"
+              : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-200"
           )}
         >
           {isSubmitting ? (
@@ -142,22 +117,6 @@ export function LeaveRequestDetails({
           )}
         </button>
       </div>
-    </div>
-  )
-}
-
-function RequestSummary({ from, to, totalDays }: { from: Date, to: Date | undefined, totalDays: number }) {
-  return (
-    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-      <div className="flex items-center gap-3 text-blue-900 text-sm font-semibold mb-1">
-        <Info size={16} className="text-blue-600" />
-        {to && !isEqual(from, to)
-          ? `${format(from, 'MMM d')} – ${format(to, 'MMM d, yyyy')}`
-          : format(from, 'MMMM d, yyyy')}
-      </div>
-      <p className="text-xs text-blue-700 font-medium ml-7">
-        Total Duration: <span className="font-bold">{totalDays} day{totalDays !== 1 ? 's' : ''}</span>
-      </p>
     </div>
   )
 }

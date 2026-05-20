@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Users, CalendarOff, UserPlus } from 'lucide-react'
-import { PageSkeleton, TableSkeleton } from '@/components/shared/LoadingSkeleton'
+import { PageSkeleton } from '@/components/shared/LoadingSkeleton'
 import { StatCard } from '@/components/shared/StatCard'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { SearchInput } from '@/components/shared/SearchInput'
@@ -49,7 +49,7 @@ export default function TeamMonkstackPage() {
           label="Total members"
           value={stats.total}
           icon={<Users size={18} className="text-blue-600" />}
-          color="bg-blue-500"
+          color="bg-slate-800"
         />
         <StatCard 
           label="On leave today"

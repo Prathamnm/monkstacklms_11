@@ -1,7 +1,6 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { Menu } from 'lucide-react'
 import { NotificationBell } from './NotificationBell'
 import { UserAvatar } from './UserAvatar'
 import type { CurrentUser } from '@/types/auth'
@@ -43,7 +42,7 @@ function getPageTitle(pathname: string): string {
   return titleMap[last] ?? (last ? last.charAt(0).toUpperCase() + last.slice(1) : 'Dashboard')
 }
 
-export function TopHeader({ user, onToggle, collapsed }: TopHeaderProps) {
+export function TopHeader({ user, onToggle: _onToggle, collapsed: _collapsed }: TopHeaderProps) {
   const pathname = usePathname()
   const pageTitle = getPageTitle(pathname)
 

@@ -20,18 +20,12 @@ export default function HRLeavePage() {
   const {
     activeTab,
     setActiveTab,
-    range,
-    setRange,
+    selectedDates,
+    setSelectedDates,
     visibleMonth,
     setVisibleMonth,
-    startHalfDay,
-    setStartHalfDay,
-    endHalfDay,
-    setEndHalfDay,
     reason,
     setReason,
-    title,
-    setTitle,
     isEmergency,
     setIsEmergency,
     errors,
@@ -51,7 +45,7 @@ export default function HRLeavePage() {
   } = useLeaveManagement()
 
   return (
-    <div className="p-6 md:p-8 bg-[var(--color-page-bg)] min-h-screen space-y-6">
+    <div className="p-4 md:p-6 bg-[var(--color-page-bg)] min-h-screen space-y-4">
       <PageHeader 
         title="Leave Management" 
         description="HR Portal · Plan time off or review history" 
@@ -80,15 +74,15 @@ export default function HRLeavePage() {
               <div className="flex justify-between items-center px-1">
                 <div>
                   <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-1 flex items-center gap-2">
-                    <Calendar size={12} className="text-blue-500" />
+                    <Calendar size={12} className="text-slate-500" />
                     Select Dates
                   </h3>
-                  <p className="text-[13px] font-medium text-slate-500">Choose your leave range on the calendar</p>
+                  <p className="text-[13px] font-medium text-slate-500">Choose your leave days on the calendar</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setRulesOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition-all active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-600 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all active:scale-95"
                 >
                   <BookOpen size={14} />
                   Leave Rules
@@ -99,19 +93,17 @@ export default function HRLeavePage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                   <div className="lg:col-span-7">
                     <LeaveCalendarPicker
-                      selected={range}
-                      onSelect={setRange}
+                      selected={selectedDates}
+                      onSelect={setSelectedDates}
                       month={visibleMonth}
                       onMonthChange={setVisibleMonth}
                       holidays={holidays}
                       existingLeaves={existingLeaves}
                       dayOverrides={dayOverrides}
                       onDayOverrideChange={setDayOverrides}
-                      startHalfDay={startHalfDay}
-                      endHalfDay={endHalfDay}
                     />
 
-                    {conflictCount > 0 && range?.from && (
+                    {conflictCount > 0 && dayOverrides.length > 0 && (
                       <motion.div 
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -143,14 +135,8 @@ export default function HRLeavePage() {
 
             {/* Details Sidebar */}
             <LeaveRequestDetails 
-              title={title}
-              setTitle={setTitle}
-              range={range}
+              dayOverrides={dayOverrides}
               totalDays={totalDays}
-              startHalfDay={startHalfDay}
-              setStartHalfDay={setStartHalfDay}
-              endHalfDay={endHalfDay}
-              setEndHalfDay={setEndHalfDay}
               reason={reason}
               setReason={setReason}
               isEmergency={isEmergency}

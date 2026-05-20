@@ -6,7 +6,7 @@ import { AuditAction } from '@prisma/client'
 export async function GET(req: NextRequest) {
   try {
     const token = await validateToken(req)
-    requireRole(token, ['ADMIN'])
+    requireRole(token, ['HR'])
 
     const { searchParams } = new URL(req.url)
     const action = searchParams.get('action')

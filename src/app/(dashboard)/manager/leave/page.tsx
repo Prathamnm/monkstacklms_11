@@ -20,18 +20,12 @@ export default function ManagerLeavePage() {
   const {
     activeTab,
     setActiveTab,
-    range,
-    setRange,
+    selectedDates,
+    setSelectedDates,
     visibleMonth,
     setVisibleMonth,
-    startHalfDay,
-    setStartHalfDay,
-    endHalfDay,
-    setEndHalfDay,
     reason,
     setReason,
-    title,
-    setTitle,
     isEmergency,
     setIsEmergency,
     errors,
@@ -92,19 +86,17 @@ export default function ManagerLeavePage() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-7">
                   <LeaveCalendarPicker
-                    selected={range}
-                    onSelect={setRange}
+                    selected={selectedDates}
+                    onSelect={setSelectedDates}
                     month={visibleMonth}
                     onMonthChange={setVisibleMonth}
                     holidays={holidays}
                     existingLeaves={existingLeaves}
                     dayOverrides={dayOverrides}
                     onDayOverrideChange={setDayOverrides}
-                    startHalfDay={startHalfDay}
-                    endHalfDay={endHalfDay}
                   />
 
-                  {conflictCount > 0 && range?.from && (
+                  {conflictCount > 0 && selectedDates.length > 0 && (
                     <motion.div 
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -130,14 +122,8 @@ export default function ManagerLeavePage() {
 
           {/* Details Sidebar */}
           <LeaveRequestDetails 
-            title={title}
-            setTitle={setTitle}
-            range={range}
+            dayOverrides={dayOverrides}
             totalDays={totalDays}
-            startHalfDay={startHalfDay}
-            setStartHalfDay={setStartHalfDay}
-            endHalfDay={endHalfDay}
-            setEndHalfDay={setEndHalfDay}
             reason={reason}
             setReason={setReason}
             isEmergency={isEmergency}

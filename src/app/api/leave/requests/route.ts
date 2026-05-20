@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
     // Allow HR/Admin/Manager to view other users' requests
     if (userIdParam && userIdParam !== token.userId) {
-      if (!['HR', 'ADMIN', 'MANAGER'].includes(token.role)) {
+      if (!['HR', 'MANAGER'].includes(token.role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
       
@@ -102,7 +102,7 @@ export async function PATCH(req: NextRequest) {
 
     // Only approvers can approve/reject
     if (['APPROVED', 'REJECTED'].includes(status)) {
-      if (!['HR', 'ADMIN', 'MANAGER'].includes(token.role)) {
+      if (!['HR', 'MANAGER'].includes(token.role)) {
         return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 })
       }
       

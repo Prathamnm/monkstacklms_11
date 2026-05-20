@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
 import { cn } from '@/lib/utils/cn'
 import { ROLE_LABELS, ROLE_COLORS } from '@/constants/roles'
-import type { Role } from '@/types/auth'
+import { Role } from '@/constants'
 import type { EmployeeWithAvailability } from '@/types/employee'
 
 const TABS = ['Personal Details', 'Work Details', 'Leave Log'] as const
@@ -33,7 +33,7 @@ export function ManagerEmployeeDetailPanel({ employee }: { employee: EmployeeWit
   if (isLoading || !data) {
     return (
       <div className="p-10 flex flex-col items-center justify-center bg-slate-50/30">
-        <div className="w-6 h-6 border-3 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-3" />
+        <div className="w-6 h-6 border-3 border-slate-100 border-t-slate-600 rounded-full animate-spin mb-3" />
         <p className="text-xs font-medium text-slate-500">Loading team member records...</p>
       </div>
     )
@@ -54,13 +54,13 @@ export function ManagerEmployeeDetailPanel({ employee }: { employee: EmployeeWit
             className={cn(
               'px-6 py-4 text-[13px] font-bold border-b-2 transition-all relative',
               activeTab === tab
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-slate-800 text-slate-900'
                 : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-heading)]'
             )}
           >
             {tab}
             {activeTab === tab && (
-              <motion.div layoutId="manager-tab-indicator" className="absolute bottom-[-2px] left-0 right-0 h-0.5 bg-blue-600" />
+              <motion.div layoutId="manager-tab-indicator" className="absolute bottom-[-2px] left-0 right-0 h-0.5 bg-slate-800" />
             )}
           </button>
         ))}

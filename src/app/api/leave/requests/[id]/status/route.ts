@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateToken } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
+import { AuditAction } from '@prisma/client'
 
 export async function PATCH(
   req: NextRequest,
@@ -84,7 +85,7 @@ export async function PATCH(
 
     await prisma.auditLog.create({
       data: {
-        action: auditActionMap[status] || 'LEAVE_APPROVE',
+        action: (auditActionMap[status] || 'LEAVE_APPROVE') as AuditAction,
         performedBy: token.userId,
         targetId: request.employeeId,
         details: { requestId: id, oldStatus: request.status, newStatus: status },
