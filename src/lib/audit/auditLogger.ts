@@ -17,7 +17,7 @@ export async function logAudit(
         performedBy: performedById,
         targetId,
         details,
-        ipAddress: req?.headers.get('x-forwarded-for') ?? req?.ip ?? null,
+        ipAddress: req?.headers.get('x-forwarded-for') ?? null,
         userAgent: req?.headers.get('user-agent') ?? null,
       },
     })
