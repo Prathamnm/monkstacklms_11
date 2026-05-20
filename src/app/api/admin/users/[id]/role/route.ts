@@ -10,9 +10,10 @@ import { getNotificationEmail } from '@/lib/email/getNotificationEmail'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: rawIdentifier } = await params
     const token = await validateToken(req)
     requireRole(token, ['HR'])
 
@@ -23,8 +24,6 @@ export async function PATCH(
     if (!['EMPLOYEE', 'MANAGER', 'HR'].includes(nextRole)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
-
-    const { id: rawIdentifier } = params
     const employee = await prisma.employee.findFirst({
       where: {
         OR: [

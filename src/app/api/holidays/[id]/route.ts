@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['HR'])
 
@@ -15,7 +16,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (notes !== undefined) data.notes = notes
 
     const updated = await prisma.publicHoliday.update({
-      where: { id: params.id },
+      where: { id },
       data,
     })
 
@@ -28,12 +29,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['HR'])
 
-    const { id } = params
     await prisma.publicHoliday.delete({ where: { id } })
 
     return NextResponse.json({ success: true })

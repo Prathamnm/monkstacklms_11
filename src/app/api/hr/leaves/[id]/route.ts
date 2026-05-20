@@ -4,13 +4,12 @@ import { prisma } from '@/lib/db/prisma'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['HR'])
-
-    const { id } = params
 
     const leave = await prisma.leaveRequest.findUnique({
       where: { id },

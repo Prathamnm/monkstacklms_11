@@ -5,9 +5,10 @@ import { logAudit } from '@/lib/audit/auditLogger'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['MANAGER', 'HR'])
 
@@ -15,7 +16,7 @@ export async function PATCH(
     const { title, content } = body
 
     const oldAnnouncement = await prisma.announcement.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!oldAnnouncement) {
@@ -23,7 +24,7 @@ export async function PATCH(
     }
 
     const announcement = await prisma.announcement.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         title: title ?? oldAnnouncement.title,
         content: content ?? oldAnnouncement.content,
@@ -33,7 +34,7 @@ export async function PATCH(
     await logAudit('ANNOUNCEMENT_POST', token.userId, null, {
       before: { title: oldAnnouncement.title, content: oldAnnouncement.content },
       after: { title: announcement.title, content: announcement.content },
-      params: { announcementId: params.id },
+      params: { announcementId: id },
     }, req)
 
     return NextResponse.json(announcement)
@@ -47,14 +48,15 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['MANAGER', 'HR'])
 
     const announcement = await prisma.announcement.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!announcement) {
@@ -62,14 +64,14 @@ export async function DELETE(
     }
 
     await prisma.announcement.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         isActive: false,
       },
     })
 
     await logAudit('ANNOUNCEMENT_DELETE', token.userId, null, {
-      before: { announcementId: params.id, title: announcement.title },
+      before: { announcementId: id, title: announcement.title },
       after: { deleted: true },
       params: {},
     }, req)

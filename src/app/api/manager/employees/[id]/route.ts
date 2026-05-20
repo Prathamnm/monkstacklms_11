@@ -4,14 +4,15 @@ import { prisma } from '@/lib/db/prisma'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['MANAGER', 'HR'])
 
     const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         manager: { select: { id: true, displayName: true, workEmail: true } },
         leaveBalance: true,

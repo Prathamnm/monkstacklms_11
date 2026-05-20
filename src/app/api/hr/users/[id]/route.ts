@@ -6,13 +6,12 @@ import { logAudit } from '@/lib/audit/auditLogger'
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['HR'])
-
-    const { id } = params
 
     const employee = await prisma.employee.findUnique({
       where: { id },

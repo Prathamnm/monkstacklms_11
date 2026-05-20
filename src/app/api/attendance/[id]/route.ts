@@ -4,9 +4,10 @@ import { prisma } from '@/lib/db/prisma'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     if (token.role !== 'HR') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -23,7 +24,7 @@ export async function PATCH(
     }
 
     const updated = await prisma.attendanceRecord.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         punchIn: punchIn ? new Date(punchIn) : null,
         punchOut: punchOut ? new Date(punchOut) : null,
@@ -39,16 +40,17 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     if (token.role !== 'HR') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     await prisma.attendanceRecord.delete({
-      where: { id: params.id }
+      where: { id }
     })
 
     return NextResponse.json({ success: true })

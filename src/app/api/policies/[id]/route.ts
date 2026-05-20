@@ -4,14 +4,15 @@ import { prisma } from '@/lib/db/prisma'
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     if (!['HR'].includes(token.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    await prisma.policy.delete({ where: { id: params.id } })
+    await prisma.policy.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown'

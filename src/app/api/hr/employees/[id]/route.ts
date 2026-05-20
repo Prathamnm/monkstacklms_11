@@ -6,13 +6,12 @@ import { logAudit } from '@/lib/audit/auditLogger'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['HR'])
-
-    const { id } = params
 
     if (id === '0') {
       const today = new Date()
@@ -101,9 +100,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['HR'])
 
@@ -119,7 +119,7 @@ export async function PATCH(
     // Azure-synced fields (jobTitle, managerId, phoneNumber, firstName, lastName, displayName) 
     // are NOT accepted here.
 
-    const employeeId = params.id
+    const employeeId = id
     const prevEmployee = await prisma.employee.findUnique({ where: { id: employeeId } })
     if (!prevEmployee) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 

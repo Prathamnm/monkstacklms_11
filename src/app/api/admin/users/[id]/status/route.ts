@@ -6,13 +6,14 @@ import { getAppAccessToken } from '@/lib/auth/graphClient'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['HR'])
 
-    if (params.id === token.userId) {
+    if (id === token.userId) {
       return NextResponse.json({ error: 'Cannot deactivate your own account' }, { status: 403 })
     }
 
@@ -23,11 +24,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'status must be ACTIVE or INACTIVE' }, { status: 400 })
     }
 
-    const employee = await prisma.employee.findUnique({ where: { id: params.id } })
+    const employee = await prisma.employee.findUnique({ where: { id } })
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
 
     await prisma.employee.update({
-      where: { id: params.id },
+      where: { id },
       data: { employmentStatus: status },
     })
 
@@ -54,12 +55,12 @@ export async function PATCH(
         message: status === 'INACTIVE'
           ? 'Your account has been deactivated by an administrator.'
           : 'Your account has been reactivated by an administrator.',
-        recipientId: params.id,
+        recipientId: id,
         senderId: token.userId,
       },
     })
 
-    await logAudit('ACCOUNT_DEACTIVATE', token.userId, params.id, {
+    await logAudit('ACCOUNT_DEACTIVATE', token.userId, id, {
       before: { status: employee.employmentStatus },
       after: { status },
       params: {},

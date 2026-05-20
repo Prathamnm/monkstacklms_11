@@ -5,11 +5,11 @@ import { AuditAction } from '@prisma/client'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
-    const { id } = params
     const { status, rejectionReason } = await req.json()
 
     if (!status) {

@@ -8,9 +8,10 @@ import { getNotificationEmail } from '@/lib/email/getNotificationEmail'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
     requireRole(token, ['HR'])
 
@@ -26,7 +27,7 @@ export async function PATCH(
     }
 
     const leave = await prisma.leaveRequest.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         employee: { select: { id: true, displayName: true, workEmail: true, notificationEmail: true, managerId: true } },
       },
@@ -38,7 +39,7 @@ export async function PATCH(
     const newStatus = action === 'approve' ? 'APPROVED' : 'REJECTED'
 
     await prisma.leaveRequest.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: newStatus,
         approverId: token.userId,

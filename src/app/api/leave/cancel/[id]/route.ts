@@ -9,11 +9,11 @@ import { wrapEmailBody, detailRow, detailCard } from '@/lib/email/templates/shar
 
 async function cancelLeave(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = await validateToken(req)
-    const { id } = params
 
     const leave = await prisma.leaveRequest.findUnique({
       where: { id },
@@ -147,14 +147,14 @@ async function cancelLeave(
 
 export async function POST(
   req: NextRequest,
-  ctx: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   return cancelLeave(req, ctx)
 }
 
 export async function DELETE(
   req: NextRequest,
-  ctx: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   return cancelLeave(req, ctx)
 }
