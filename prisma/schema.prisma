@@ -11,7 +11,7 @@ datasource db {
 model Employee {
   id                String            @id
   entraObjectId     String            @unique
-  email             String            @unique
+  workEmail         String            @unique @map("email")
   firstName         String
   lastName          String
   displayName       String?
@@ -33,7 +33,7 @@ model Employee {
   receivedMessages  Message[]         @relation("MessageRecipient")
 
   @@index([managerId])
-  @@index([email])
+  @@index([workEmail], map: "employees_email_idx")
   @@map("employees")
 }
 
