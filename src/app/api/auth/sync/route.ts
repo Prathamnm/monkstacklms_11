@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
       jobTitle: resolvedJobTitle,
       phoneNumber: extendedProfile.mobilePhone ?? undefined,
       notificationEmail: extendedProfile.mail ?? null,
-      ...(resolvedJoinDate    ? { joinDate:   resolvedJoinDate }    : {}),
+      ...(resolvedJoinDate    ? { joinedAt:   resolvedJoinDate }    : {}),
       ...(resolvedManagerId !== undefined ? { managerId: resolvedManagerId } : {}),
     }
 
@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
       employee = await prisma.employee.update({
         where: { id: existingUser.id },
         data: coreUserData,
-        select: { id: true, role: true, employmentStatus: true },
+        select: { id: true, role: true, status: true },
       })
     } else {
       try {
@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
             ...coreUserData,
             entraObjectId,
           },
-          select: { id: true, role: true, employmentStatus: true },
+          select: { id: true, role: true, status: true },
         })
       } catch (createErr) {
         // Resolve races/legacy duplicates by retrying as update when unique constraints trip.
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
               ...coreUserData,
               entraObjectId,
             },
-            select: { id: true, role: true, employmentStatus: true },
+            select: { id: true, role: true, status: true },
           })
         } else {
           throw createErr
@@ -238,9 +238,9 @@ export async function POST(req: NextRequest) {
     // Use the employee's actual hire date from the DB, falling back to now() only for brand-new records
     const freshEmployee = await prisma.employee.findUnique({
       where: { id: employee.id },
-      select: { joinDate: true },
+      select: { joinedAt: true },
     })
-    const hireDate = freshEmployee?.joinDate ?? new Date()
+    const hireDate = freshEmployee?.joinedAt ?? new Date()
     const currentYear = new Date().getFullYear()
 
     const proratedStandard  = calculateProratedLeaves(hireDate, 18, currentYear)
