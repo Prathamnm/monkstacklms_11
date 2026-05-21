@@ -1,18 +1,22 @@
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
+const TEST_EMAIL_SUFFIX = 'monikajadhav1907gmail.onmicrosoft.com'
+
+type TestEmployeeRow = {
+  id: string
+  email: string
+  displayName: string | null
+}
 
 async function main() {
   console.log('Removing demo/test employees...')
 
-  const testEmployees = await prisma.employee.findMany({
-    where: {
-      workEmail: {
-        endsWith: 'monikajadhav1907gmail.onmicrosoft.com',
-      },
-    },
-    select: { id: true, workEmail: true, displayName: true },
-  })
+  const testEmployees = await prisma.$queryRaw<TestEmployeeRow[]>`
+    SELECT id, email, "displayName"
+    FROM "employees"
+    WHERE email LIKE ${`%${TEST_EMAIL_SUFFIX}`}
+  `
 
   if (testEmployees.length === 0) {
     console.log('No test employees found. Database is already clean.')
@@ -21,7 +25,7 @@ async function main() {
 
   console.log(`Found ${testEmployees.length} test employees:`)
   testEmployees.forEach((employee) => {
-    console.log(`  - ${employee.displayName} (${employee.workEmail})`)
+    console.log(`  - ${employee.displayName ?? 'Unnamed'} (${employee.email})`)
   })
 
   const testIds = testEmployees.map((employee) => employee.id)
