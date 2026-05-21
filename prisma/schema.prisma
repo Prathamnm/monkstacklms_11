@@ -8,32 +8,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model Employee {
-  id               String           @id @default(cuid())
-  entraObjectId    String           @unique
-  workEmail        String           @unique @map("email")
-  firstName        String
-  lastName         String
-  displayName      String?
-  role             Role             @default(EMPLOYEE)
-  status           EmploymentStatus @default(ACTIVE)
-  managerId        String?
-  joinedAt         DateTime         @default(now())
-  terminatedAt     DateTime?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  profile          EmployeeProfile?
-  manager          Employee?        @relation("ManagerSubordinates", fields: [managerId], references: [id])
-  subordinates     Employee[]       @relation("ManagerSubordinates")
-  leaveRequests    LeaveRequest[]   @relation("EmployeeLeaveRequests")
-  approvedLeaves   LeaveRequest[]   @relation("ApproverLeaveRequests")
+  id                String            @id
+  entraObjectId     String            @unique
+  email             String            @unique
+  firstName         String
+  lastName          String
+  displayName       String?
+  role              Role
+  status            EmploymentStatus
+  managerId         String?
+  joinedAt          DateTime
+  terminatedAt      DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  manager           Employee?         @relation("ManagerSubordinates", fields: [managerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  subordinates      Employee[]        @relation("ManagerSubordinates")
+  profile           EmployeeProfile?
+  leaveRequests     LeaveRequest[]    @relation("EmployeeLeaveRequests")
+  approvedLeaves    LeaveRequest[]    @relation("ApproverLeaveRequests")
   leaveLedgerEntries LeaveLedgerEntry[]
-  auditLogsPerformed AuditLog[]     @relation("AuditPerformer")
-  auditLogsTargeted  AuditLog[]     @relation("AuditTarget")
-  sentMessages     Message[]        @relation("MessageSender")
-  receivedMessages Message[]        @relation("MessageRecipient")
+  attendanceRecords AttendanceRecord[]
+  sentMessages      Message[]         @relation("MessageSender")
+  receivedMessages  Message[]         @relation("MessageRecipient")
 
+  @@index([managerId])
+  @@index([email])
   @@map("employees")
 }
 
@@ -46,128 +46,169 @@ model EmployeeProfile {
   emergencyPhone    String?
   emergencyRelation String?
   timezone          String   @default("UTC")
-  employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("employee_profiles")
 }
 
-
 model LeaveType {
-  id                String   @id @default(cuid())
-  code              String   @unique
+  id                String             @id
+  code              String             @unique
   name              String
   yearlyQuota       Float
-  isAccrued         Boolean  @default(false)
+  isAccrued         Boolean
   carryForwardLimit Float?
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
+  isActive          Boolean
+  createdAt         DateTime           @default(now())
   leaveRequests     LeaveRequest[]
+  leaveLedgerEntries LeaveLedgerEntry[]
 
+  @@index([code])
   @@map("leave_types")
 }
 
 model LeaveRequest {
-  id             String      @id @default(cuid())
-  employeeId     String
-  leaveTypeId    String
-  approverId     String?
-  startDate      DateTime
-  endDate        DateTime
-  totalDays      Float
-  reason         String
-  status         LeaveStatus @default(PENDING)
+  id              String            @id
+  employeeId      String
+  leaveTypeId     String
+  approverId      String?
+  startDate       DateTime
+  endDate         DateTime
+  totalDays       Float
+  reason          String
+  status          LeaveStatus
   statusChangedAt DateTime?
-  statusReason   String?
-  createdAt      DateTime    @default(now())
-  employee       Employee    @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id])
-  approver       Employee?   @relation("ApproverLeaveRequests", fields: [approverId], references: [id])
-  leaveType      LeaveType   @relation(fields: [leaveTypeId], references: [id])
+  statusReason    String?
+  isEmergency     Boolean
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  employee        Employee          @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  approver        Employee?         @relation("ApproverLeaveRequests", fields: [approverId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  leaveType       LeaveType         @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   leaveRequestDays LeaveRequestDay[]
+  ledgerEntries   LeaveLedgerEntry[] @relation("LeaveRequestLedgerEntries")
 
+  @@index([employeeId])
+  @@index([leaveTypeId])
+  @@index([approverId])
+  @@index([status])
   @@map("leave_requests")
 }
 
 model LeaveRequestDay {
-  id             String      @id @default(cuid())
+  id             String      @id
   leaveRequestId String
   date           DateTime    @db.Date
-  portion        HalfDayType @default(NONE)
-  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  portion        HalfDayType
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([leaveRequestId, date])
+  @@index([leaveRequestId])
+  @@index([date])
   @@map("leave_request_days")
 }
 
 model LeaveLedgerEntry {
-  id          String          @id @default(cuid())
+  id          String          @id
   employeeId  String
-  leaveTypeId String?
+  leaveTypeId String
   entryType   LedgerEntryType
   days        Float
   referenceId String?
   reason      String
   performedBy String?
   createdAt   DateTime        @default(now())
-  employee    Employee        @relation(fields: [employeeId], references: [id])
+  employee    Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  leaveType   LeaveType       @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reference   LeaveRequest?   @relation("LeaveRequestLedgerEntries", fields: [referenceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
+  @@index([employeeId])
+  @@index([leaveTypeId])
+  @@index([entryType])
+  @@index([referenceId])
   @@map("leave_ledger_entries")
 }
 
+model AttendanceRecord {
+  id          String   @id
+  employeeId  String
+  date        DateTime @db.Date
+  punchIn     DateTime?
+  punchOut    DateTime?
+  hoursWorked Float?
+  source      String?
+  createdAt   DateTime @default(now())
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
+  @@map("attendance_records")
+}
 
 model Message {
-  id          String      @id @default(cuid())
+  id          String      @id
   type        MessageType
   title       String
   content     String
   senderId    String?
   recipientId String?
-  isGlobal    Boolean     @default(false)
-  isRead      Boolean     @default(false)
+  isGlobal    Boolean
+  isRead      Boolean
   readAt      DateTime?
   createdAt   DateTime    @default(now())
-  sender      Employee?   @relation("MessageSender", fields: [senderId], references: [id])
-  recipient   Employee?   @relation("MessageRecipient", fields: [recipientId], references: [id])
+  sender      Employee?   @relation("MessageSender", fields: [senderId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  recipient   Employee?   @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([type])
+  @@index([isGlobal])
+  @@index([isRead])
   @@map("messages")
 }
 
-
 model PublicHoliday {
-  id        String      @id @default(cuid())
+  id        String      @id
   name      String
-  date      DateTime
-  type      HolidayType @default(PUBLIC)
+  date      DateTime    @db.Date
+  type      HolidayType
   notes     String?
   createdAt DateTime    @default(now())
 
+  @@unique([date])
+  @@index([date])
+  @@index([type])
   @@map("public_holidays")
 }
 
 model Policy {
-  id         String   @id @default(cuid())
+  id         String   @id
   title      String
   fileName   String
   fileUrl    String
   uploadedBy String
   createdAt  DateTime @default(now())
 
+  @@index([uploadedBy])
+  @@index([createdAt])
   @@map("policies")
 }
 
-
 model AuditLog {
-  id         String   @id @default(cuid())
-  action     String
+  id          String   @id
+  action      String
   performedBy String
-  targetId   String?
-  details    Json
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-  performer  Employee  @relation("AuditPerformer", fields: [performedBy], references: [id])
-  target     Employee? @relation("AuditTarget", fields: [targetId], references: [id])
+  targetId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
 
+  @@index([performedBy])
+  @@index([targetId])
+  @@index([action])
+  @@index([createdAt])
   @@map("audit_logs")
 }
 
@@ -175,22 +216,20 @@ model SystemSettings {
   key         String   @id
   value       String
   description String?
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime
 
   @@map("system_settings")
 }
-
-// ENUMS
 
 enum Role {
   EMPLOYEE
   MANAGER
   HR
+  ADMIN
 }
 
 enum EmploymentStatus {
   ACTIVE
-  INACTIVE
   ON_LEAVE
   TERMINATED
 }
@@ -200,7 +239,6 @@ enum LeaveStatus {
   APPROVED
   REJECTED
   CANCELLED
-  REVOKED
 }
 
 enum HalfDayType {
