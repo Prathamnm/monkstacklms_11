@@ -82,6 +82,16 @@ export function useLeaveManagement(options?: { onSuccess?: () => void }) {
     refetchInterval: 30 * 1000,
   })
 
+  const { data: leaveTypes = [] } = useQuery({
+    queryKey: ['leaveTypes'],
+    queryFn: async () => {
+      const token = await getAccessToken(instance)
+      const res = await fetch('/api/leave-types', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch leave types')
+      return res.json()
+    },
+  })
+
   const pendingCount = useMemo(() => 
     existingLeaves.filter(l => l.status === 'PENDING').length,
     [existingLeaves]
@@ -204,6 +214,7 @@ export function useLeaveManagement(options?: { onSuccess?: () => void }) {
     pendingCount,
     totalDays,
     conflictCount,
+    leaveTypes,
     isSubmitDisabled: applyMutation.isPending || dayOverrides.length === 0 || reason.trim().length < 10 || totalDays <= 0 || !leaveTypeId,
     isSubmitting: applyMutation.isPending,
     handleSubmit,

@@ -202,44 +202,14 @@ export function LeaveCalendarPicker({
             },
             weekend: (day) => day.getDay() === 0 || day.getDay() === 6,
           }}
-          modifiersStyles={{
-            publicHoliday: {
-              backgroundColor: '#FEE2E2',
-              color: '#991B1B',
-              borderRadius: '50%',
-              fontWeight: 700,
-            },
-            floaterHoliday: {
-              backgroundColor: '#FEF9C3',
-              color: '#854D0E',
-              borderRadius: '50%',
-              fontWeight: 700,
-            },
-            pendingLeave: {
-              backgroundColor: '#FED7AA',
-              color: '#9A3412',
-              borderRadius: '50%',
-            },
-            approvedLeave: {
-              backgroundColor: '#BBF7D0',
-              color: '#15803D',
-              borderRadius: '50%',
-            },
-            selected: {
-              backgroundColor: '#1e293b',
-              color: 'white',
-              borderRadius: '50%',
-            },
-            halfDay: {
-              background: 'linear-gradient(90deg, #64748b 50%, #f8fafc 50%)',
-              backgroundSize: '100% 100%',
-              color: '#1e293b',
-              border: '2px solid #64748b',
-              borderRadius: '50%',
-            },
-            weekend: {
-              opacity: 0.35,
-            }
+          modifiersClassNames={{
+            publicHoliday: 'cal-day-public-holiday',
+            floaterHoliday: 'cal-day-floater-holiday',
+            pendingLeave: 'cal-day-pending-leave',
+            approvedLeave: 'cal-day-approved-leave',
+            today: 'cal-day-today',
+            halfDay: 'cal-day-half',
+            weekend: 'cal-day-weekend',
           }}
           classNames={{
             months: 'flex justify-center w-full',

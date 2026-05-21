@@ -23,7 +23,7 @@ read -r CONFIRM2
 if [ "$CONFIRM2" != "YES" ]; then echo "Aborted."; exit 0; fi
 
 DUMP_FILE=$(mktemp)
-TABLES="-t leave_requests -t leave_balances -t leave_ledger_entries -t notifications -t audit_logs -t announcements -t holidays -t attendance_records"
+TABLES="-t leave_requests -t leave_balances -t leave_ledger_entries -t notifications -t audit_logs -t announcements -t public_holidays"
 
 echo "==> Exporting data from local database..."
 pg_dump -d "$LOCAL_DB" $TABLES --data-only --disable-triggers -Fc -f "$DUMP_FILE"
@@ -36,8 +36,7 @@ TRUNCATE TABLE leave_ledger_entries CASCADE;
 TRUNCATE TABLE leave_requests CASCADE;
 TRUNCATE TABLE leave_balances CASCADE;
 TRUNCATE TABLE announcements CASCADE;
-TRUNCATE TABLE holidays CASCADE;
-TRUNCATE TABLE attendance_records CASCADE;
+TRUNCATE TABLE public_holidays CASCADE;
 "
 
 echo "==> Restoring data into production database..."

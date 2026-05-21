@@ -634,3 +634,46 @@ body {
 .cal-day-half.cal-day-in-range {
   background: linear-gradient(90deg, #64748b 50%, #f8fafc 50%) !important;
 }
+
+.cal-day-public-holiday {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border: 1px solid #dc2626 !important;
+  border-radius: 9999px !important;
+  font-weight: 700 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18) !important;
+}
+
+.cal-day-floater-holiday {
+  background-color: #fde68a !important;
+  color: #92400e !important;
+  border: 1px solid #f59e0b !important;
+  border-radius: 9999px !important;
+  font-weight: 700 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+.cal-day-pending-leave {
+  background-color: #fed7aa !important;
+  color: #9a3412 !important;
+  border-radius: 9999px !important;
+}
+
+.cal-day-approved-leave {
+  background-color: #bbf7d0 !important;
+  color: #15803d !important;
+  border-radius: 9999px !important;
+}
+
+.cal-day-today {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  border: 1px solid #2563eb !important;
+  border-radius: 9999px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12) !important;
+}
+
+.cal-day-weekend {
+  opacity: 0.35 !important;
+}

@@ -19,7 +19,7 @@ read -r CONFIRM
 if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then echo "Aborted."; exit 0; fi
 
 DUMP_FILE=$(mktemp)
-TABLES="-t leave_requests -t leave_balances -t leave_ledger_entries -t notifications -t audit_logs -t announcements -t public_holidays -t attendance_records"
+TABLES="-t leave_requests -t leave_balances -t leave_ledger_entries -t notifications -t audit_logs -t announcements -t public_holidays"
 
 echo "==> Exporting data from production..."
 pg_dump -d "$PROD_DB" $TABLES --data-only --disable-triggers -Fc -f "$DUMP_FILE"
@@ -33,7 +33,6 @@ TRUNCATE TABLE leave_requests CASCADE;
 TRUNCATE TABLE leave_balances CASCADE;
 TRUNCATE TABLE announcements CASCADE;
 TRUNCATE TABLE public_holidays CASCADE;
-TRUNCATE TABLE attendance_records CASCADE;
 "
 
 echo "==> Restoring data into local database..."

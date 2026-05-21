@@ -5,13 +5,13 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMsal } from '@azure/msal-react'
 import { getAccessToken } from '@/lib/auth/getAccessToken'
-import { format, parseISO } from 'date-fns'
+import { format, isValid, parse, parseISO } from 'date-fns'
 import { Trash2, Upload, Pencil, FileText, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
 import { cn } from '@/lib/utils/cn'
-import { getString, isRecord } from '@/lib/utils/typeGuards'
+import { isRecord } from '@/lib/utils/typeGuards'
 
 interface PublicHoliday {
   id: string
@@ -32,6 +32,117 @@ interface HolidayUploadRow {
 
 function normalizeHolidayType(value: unknown): HolidayType {
   return String(value).trim().toUpperCase() === 'FLOATER' ? 'FLOATER' : 'PUBLIC'
+}
+
+function normalizeFieldKey(key: string): string {
+  return key
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '')
+}
+
+function readField(row: Record<string, unknown>, candidates: string[]): unknown {
+  const normalizedCandidates = new Set(candidates.map(normalizeFieldKey))
+  for (const [key, value] of Object.entries(row)) {
+    const normalizedKey = normalizeFieldKey(key)
+    const matchesCandidate = [...normalizedCandidates].some(
+      (candidate) => normalizedKey === candidate || normalizedKey.includes(candidate) || candidate.includes(normalizedKey)
+    )
+    if (!matchesCandidate) continue
+    if (value === null || value === undefined) continue
+    if (typeof value === 'string' && value.trim() === '') continue
+    return value
+  }
+  return undefined
+}
+
+function buildHolidayRow(row: Record<string, unknown>): HolidayUploadRow | null {
+  const name = String(readField(row, ['name', 'holidayname', 'holiday', 'holidaytitle']) ?? '').trim()
+  const date = normalizeHolidayDate(readField(row, ['date', 'holidaydate', 'holiday']))
+  const typeRaw = readField(row, ['type', 'holidaytype'])
+  const notes = String(readField(row, ['notes', 'remark', 'description']) ?? '').trim()
+  if (!name || !date) return null
+  return { name, date, type: normalizeHolidayType(typeRaw), notes }
+}
+
+function rowLooksLikeHolidayHeader(row: unknown[]): boolean {
+  const normalizedCells = row
+    .map((cell) => normalizeFieldKey(String(cell ?? '')))
+    .filter(Boolean)
+
+  if (normalizedCells.length < 3) return false
+
+  const requiredKeys = ['name', 'date', 'type']
+  return requiredKeys.every((requiredKey) =>
+    normalizedCells.some((cell) => cell === requiredKey || cell.includes(requiredKey) || requiredKey.includes(cell))
+  )
+}
+
+function tableRowsToHolidayRows(table: unknown[][]): HolidayUploadRow[] {
+  if (table.length < 2) return []
+  const headerIndex = table.findIndex(rowLooksLikeHolidayHeader)
+  if (headerIndex === -1 || headerIndex >= table.length - 1) return []
+
+  const headers = table[headerIndex].map((header) => String(header ?? '').trim())
+  const dataRows = table.slice(headerIndex + 1)
+
+  return dataRows
+    .filter((values) => values.some((value) => String(value ?? '').trim() !== ''))
+    .map((values) => {
+      const row: Record<string, unknown> = {}
+      headers.forEach((header, index) => {
+        if (!header) return
+        row[header] = values[index]
+      })
+      return buildHolidayRow(row)
+    })
+    .filter((row): row is HolidayUploadRow => Boolean(row))
+}
+
+function formatExcelSerialDate(serial: number): string | null {
+  const parsed = XLSX.SSF.parse_date_code(serial)
+  if (!parsed) return null
+  const date = new Date(parsed.y, parsed.m - 1, parsed.d)
+  return isValid(date) ? format(date, 'yyyy-MM-dd') : null
+}
+
+function normalizeHolidayDate(value: unknown): string {
+  if (value instanceof Date) {
+    return isValid(value) ? format(value, 'yyyy-MM-dd') : ''
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return formatExcelSerialDate(value) ?? ''
+  }
+
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+
+  if (/^\d+(?:\.\d+)?$/.test(raw)) {
+    const serial = Number(raw)
+    const formatted = Number.isFinite(serial) ? formatExcelSerialDate(serial) : null
+    if (formatted) return formatted
+  }
+
+  const candidates = [
+    'yyyy-MM-dd',
+    'dd-MM-yyyy',
+    'yyyy/MM/dd',
+    'dd/MM/yyyy',
+    'MM/dd/yyyy',
+    'MMM d, yyyy',
+    'd MMM yyyy',
+    'dd MMM yyyy',
+  ]
+
+  for (const dateFormat of candidates) {
+    const parsed = parse(raw, dateFormat, new Date())
+    if (isValid(parsed)) return format(parsed, 'yyyy-MM-dd')
+  }
+
+  const fallback = parseISO(raw)
+  return isValid(fallback) ? format(fallback, 'yyyy-MM-dd') : ''
 }
 
 export function HolidayManagerTab() {
@@ -157,11 +268,22 @@ function HolidayUploadView() {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      if (!res.ok) throw new Error('Upload failed')
-      return res.json()
+      const result = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(result.error || result.details?.[0] || 'Upload failed')
+      }
+      return result as { processed: number; errors?: string[] }
     },
     onSuccess: (data) => {
-      toast.success(`${data.processed} holidays imported successfully`)
+      if (data.processed === 0) {
+        toast.error('No holidays were imported. Please check the file format and column names.')
+        return
+      }
+      if (data.errors?.length) {
+        toast.success(`${data.processed} holidays imported with ${data.errors.length} skipped rows`)
+      } else {
+        toast.success(`${data.processed} holidays imported successfully`)
+      }
       queryClient.invalidateQueries({ queryKey: ['publicHolidays'] })
       setParsed([])
       setFileName('')
@@ -175,31 +297,35 @@ function HolidayUploadView() {
     
     if (ext === 'csv') {
       const text = await file.text()
-      const lines = text.trim().split('\n')
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+      const lines = text.trim().split(/\r?\n/)
+      const headers = lines[0].split(',').map((header) => header.trim())
       const rows = lines.slice(1).map(line => {
         const vals = line.split(',').map(v => v.trim())
         const row: Record<string, string> = {}
         headers.forEach((h, i) => { row[h] = vals[i] ?? '' })
-        return { name: row.name ?? '', date: row.date ?? '', type: normalizeHolidayType(row.type), notes: row.notes ?? '' }
+        return buildHolidayRow(row)
       })
-      setParsed(rows.filter(r => r.name && r.date))
+      const nextParsed = rows.filter((row): row is HolidayUploadRow => Boolean(row))
+      setParsed(nextParsed)
+      if (nextParsed.length === 0) {
+        toast.error('No valid holiday rows found. Check the CSV headers and date values.')
+      }
     } else if (ext === 'xlsx' || ext === 'xls') {
       const buffer = await file.arrayBuffer()
-      const wb = XLSX.read(buffer, { type: 'array' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const rowsUnknown = XLSX.utils.sheet_to_json(ws) as unknown[]
-      const parsedRows: HolidayUploadRow[] = []
-      for (const rowUnknown of rowsUnknown) {
-        if (!isRecord(rowUnknown)) continue
-        const name = getString(rowUnknown, 'name') ?? getString(rowUnknown, 'Name') ?? ''
-        const date = getString(rowUnknown, 'date') ?? getString(rowUnknown, 'Date') ?? ''
-        const typeRaw = getString(rowUnknown, 'type') ?? getString(rowUnknown, 'Type') ?? 'PUBLIC'
-        const notes = getString(rowUnknown, 'notes') ?? getString(rowUnknown, 'Notes') ?? ''
-        if (!name || !date) continue
-        parsedRows.push({ name, date, type: normalizeHolidayType(typeRaw), notes })
-      }
+      const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
+      const parsedRows = wb.SheetNames.flatMap((sheetName) => {
+        const ws = wb.Sheets[sheetName]
+        if (!ws) return []
+        const table = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true }) as unknown[][]
+        return tableRowsToHolidayRows(table)
+      })
       setParsed(parsedRows)
+      if (parsedRows.length === 0) {
+        toast.error('No valid holiday rows found. Check the Excel headers and date values.')
+      }
+    } else {
+      setParsed([])
+      toast.error('Unsupported file type. Please upload a CSV, XLSX, or XLS file.')
     }
   }
 

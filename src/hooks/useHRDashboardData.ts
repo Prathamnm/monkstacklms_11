@@ -150,7 +150,7 @@ export function useAuditLogs(limit = 10) {
     queryKey: ['auditLogs', limit],
     queryFn: async () => {
       const token = await getAccessToken(instance)
-      const res = await fetch(`/api/admin/audit?limit=${limit}`, { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch(`/api/hr/audit?limit=${limit}`, { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) return []
       return (await res.json()) as AuditLog[]
     },

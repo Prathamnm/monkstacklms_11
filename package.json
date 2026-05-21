@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:deploy": "prisma migrate deploy && prisma db seed",
     "db:reset": "prisma migrate reset",
     "db: studio": "prisma studio",
     "db:cleanup-test": "ts-node --project tsconfig.json scripts/cleanup-test-users.ts"

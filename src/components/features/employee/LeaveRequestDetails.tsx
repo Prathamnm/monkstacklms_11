@@ -11,8 +11,9 @@ interface LeaveRequestDetailsProps {
   totalDays: number
   reason: string
   setReason: (v: string) => void
-  isEmergency: boolean
-  setIsEmergency: (v: boolean) => void
+  leaveTypeId: string
+  setLeaveTypeId: (v: string) => void
+  leaveTypes: Array<{ id: string; code: string; name: string }>
   errors: string[]
   isSubmitDisabled: boolean
   isSubmitting: boolean
@@ -24,8 +25,9 @@ export function LeaveRequestDetails({
   totalDays,
   reason,
   setReason,
-  isEmergency,
-  setIsEmergency,
+  leaveTypeId,
+  setLeaveTypeId,
+  leaveTypes,
   errors,
   isSubmitDisabled,
   isSubmitting,
@@ -64,6 +66,22 @@ export function LeaveRequestDetails({
         )}
 
         <Divider />
+        <FormField label="Leave Type" required>
+          <select
+            value={leaveTypeId}
+            onChange={(e) => setLeaveTypeId(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 focus:ring-4 focus:ring-slate-500/5 focus:border-slate-500 outline-none transition-all"
+          >
+            <option value="">Select leave type</option>
+            {leaveTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+
+        <Divider />
         <FormField label="Reason" required>
           <div className="space-y-2">
             <textarea
@@ -80,11 +98,6 @@ export function LeaveRequestDetails({
             </div>
           </div>
         </FormField>
-
-        <EmergencyToggle 
-          checked={isEmergency} 
-          onChange={setIsEmergency} 
-        />
 
         {errors.length > 0 && (
           <div className="space-y-2 pt-2">
@@ -118,29 +131,5 @@ export function LeaveRequestDetails({
         </button>
       </div>
     </div>
-  )
-}
-
-function EmergencyToggle({ checked, onChange }: { checked: boolean, onChange: (v: boolean) => void }) {
-  return (
-    <label className={cn(
-      "flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border",
-      checked 
-        ? "bg-red-50 border-red-100 shadow-sm shadow-red-50" 
-        : "bg-slate-50/50 border-transparent hover:border-slate-200"
-    )}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-4 h-4 text-red-600 rounded focus:ring-red-500 border-slate-300"
-      />
-      <div className={cn("p-1.5 rounded-lg transition-colors", checked ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-400")}>
-        <AlertTriangle size={14} />
-      </div>
-      <span className={cn("text-[11px] font-bold uppercase tracking-wider", checked ? "text-red-700" : "text-slate-500")}>
-        Emergency Leave
-      </span>
-    </label>
   )
 }

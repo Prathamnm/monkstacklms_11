@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import { PageSkeleton } from '@/components/shared/LoadingSkeleton'
 import { StatCard } from '@/components/shared/StatCard'
 import { PoliciesSection } from '@/components/shared/PoliciesSection'
-import { AttendanceCard } from '@/components/shared/AttendanceCard'
 import { UpcomingLeavesCard } from '@/components/shared/UpcomingLeavesCard'
 import { LeaveBalanceCard } from '@/components/leave/LeaveBalanceCard'
 import { useEmployeeDashboard } from '@/hooks/useEmployeeDashboard'
@@ -47,9 +46,8 @@ export default function EmployeeDashboardPage() {
         <LeaveBalanceCard />
       </div>
 
-      {/* Bottom row — attendance 2/3, policies 1/3 */}
-      <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: '2fr 1fr' }}>
-        <AttendanceCard />
+      {/* Bottom row — policies  */}
+      <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: '1fr' }}>
         <PoliciesSection canUpload={false} />
       </div>
 

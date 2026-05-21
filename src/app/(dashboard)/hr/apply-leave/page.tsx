@@ -18,22 +18,26 @@ export default function HRApplyLeavePage() {
   const [rulesOpen, setRulesOpen] = useState(false)
   
   const {
+    activeTab,
+    setActiveTab,
     selectedDates,
     setSelectedDates,
     visibleMonth,
     setVisibleMonth,
     reason,
     setReason,
-    isEmergency,
-    setIsEmergency,
+    leaveTypeId,
+    setLeaveTypeId,
     errors,
     dayOverrides,
     setDayOverrides,
     leaveBalance,
     holidays,
     existingLeaves,
+    pendingCount,
     totalDays,
     conflictCount,
+    leaveTypes,
     isSubmitDisabled,
     isSubmitting,
     handleSubmit,
@@ -127,8 +131,9 @@ export default function HRApplyLeavePage() {
           totalDays={totalDays}
           reason={reason}
           setReason={setReason}
-          isEmergency={isEmergency}
-          setIsEmergency={setIsEmergency}
+          leaveTypeId={leaveTypeId}
+          setLeaveTypeId={setLeaveTypeId}
+          leaveTypes={leaveTypes}
           errors={errors}
           isSubmitDisabled={isSubmitDisabled}
           isSubmitting={isSubmitting}

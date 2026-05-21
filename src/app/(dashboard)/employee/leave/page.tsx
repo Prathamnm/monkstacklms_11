@@ -26,8 +26,8 @@ export default function EmployeeLeavePage() {
     setVisibleMonth,
     reason,
     setReason,
-    isEmergency,
-    setIsEmergency,
+    leaveTypeId,
+    setLeaveTypeId,
     errors,
     dayOverrides,
     setDayOverrides,
@@ -37,12 +37,13 @@ export default function EmployeeLeavePage() {
     pendingCount,
     totalDays,
     conflictCount,
+    leaveTypes,
     isSubmitDisabled,
     isSubmitting,
     handleSubmit,
     windowFrom,
     windowTo,
-  } = useLeaveManagement()
+  } = useLeaveManagement({ onSuccess: () => setActiveTab('requests') })
 
   return (
     <div className="p-6 md:p-8 bg-[var(--color-page-bg)] min-h-screen space-y-6">
@@ -138,8 +139,9 @@ export default function EmployeeLeavePage() {
               totalDays={totalDays}
               reason={reason}
               setReason={setReason}
-              isEmergency={isEmergency}
-              setIsEmergency={setIsEmergency}
+              leaveTypeId={leaveTypeId}
+              setLeaveTypeId={setLeaveTypeId}
+              leaveTypes={leaveTypes}
               errors={errors}
               isSubmitDisabled={isSubmitDisabled}
               isSubmitting={isSubmitting}

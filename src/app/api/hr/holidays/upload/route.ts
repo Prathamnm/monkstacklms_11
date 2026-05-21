@@ -1,7 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateToken, requireRole } from '@/lib/auth/validateToken'
 import { prisma } from '@/lib/db/prisma'
-import { parse, parseISO } from 'date-fns'
+import { isValid, parse, parseISO } from 'date-fns'
+import * as XLSX from 'xlsx'
+
+function parseHolidayDate(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return isValid(value) ? value : null
+  }
+
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+
+  if (/^\d+(?:\.\d+)?$/.test(raw)) {
+    const serial = Number(raw)
+    const parsedCode = XLSX.SSF.parse_date_code(serial)
+    if (parsedCode) {
+      const serialDate = new Date(parsedCode.y, parsedCode.m - 1, parsedCode.d)
+      if (isValid(serialDate)) return serialDate
+    }
+  }
+
+  const formats = ['yyyy-MM-dd', 'dd-MM-yyyy', 'yyyy/MM/dd', 'dd/MM/yyyy', 'MM/dd/yyyy', 'MMM d, yyyy', 'd MMM yyyy', 'dd MMM yyyy']
+  for (const dateFormat of formats) {
+    const parsed = parse(raw, dateFormat, new Date())
+    if (isValid(parsed)) return parsed
+  }
+
+  const iso = parseISO(raw)
+  return isValid(iso) ? iso : null
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,29 +51,9 @@ export async function POST(req: NextRequest) {
           continue
         }
 
-        let dateObj: Date
-        const dateStr = h.date.trim()
-        
-        if (dateStr.includes('-')) {
-          const parts = dateStr.split('-')
-          if (parts[0].length === 4) {
-            dateObj = parse(dateStr, 'yyyy-MM-dd', new Date())
-          } else {
-            dateObj = parse(dateStr, 'dd-MM-yyyy', new Date())
-          }
-        } else if (dateStr.includes('/')) {
-          const parts = dateStr.split('/')
-          if (parts[0].length === 4) {
-            dateObj = parse(dateStr, 'yyyy/MM/dd', new Date())
-          } else {
-            dateObj = parse(dateStr, 'dd/MM/yyyy', new Date())
-          }
-        } else {
-          dateObj = parseISO(dateStr)
-        }
-
-        if (isNaN(dateObj.getTime())) {
-          throw new Error(`Invalid date format: ${dateStr}`)
+        const dateObj = parseHolidayDate(h.date)
+        if (!dateObj) {
+          throw new Error(`Invalid date format: ${String(h.date)}`)
         }
 
         await prisma.publicHoliday.create({

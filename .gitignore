@@ -11,6 +11,7 @@ tsconfig.tsbuildinfo
 
 # Environment variables (keep .env.example and .env.development in Git)
 .env
+.env.development
 .env.local
 .env.production
 .env.test

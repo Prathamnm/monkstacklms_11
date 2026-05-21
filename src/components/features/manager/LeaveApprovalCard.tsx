@@ -36,7 +36,7 @@ export function LeaveApprovalCard({ leave, onApprove, onReject }: LeaveApprovalC
             </div>
             <p className={HEADING_STYLES.cardSubtitle + " flex items-center gap-2"}>
               {formatDays(leave.totalDays)} · {leave.title || 'Leave Request'}
-              {leave.isEmergency && (
+              {leave.leaveType?.code === 'EMERGENCY' && (
                 <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-lg font-black tracking-tighter">Emergency</span>
               )}
             </p>

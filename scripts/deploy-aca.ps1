@@ -85,6 +85,7 @@ az containerapp update `
     NODE_ENV=production `
     PORT=3000 `
     RUN_MIGRATIONS=true `
+    RUN_SEED=true `
     NEXTAUTH_URL="$nextAuthUrl" `
     NEXT_PUBLIC_AZURE_AD_CLIENT_ID="$nextPublicClientId" `
     NEXT_PUBLIC_AZURE_AD_TENANT_ID="$nextPublicTenantId" `

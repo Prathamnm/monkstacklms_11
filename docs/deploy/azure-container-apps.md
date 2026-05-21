@@ -71,5 +71,6 @@ Use these for Container Apps probes and post-deployment smoke checks.
 ## Database Migrations in Container
 The container startup script supports:
 - `RUN_MIGRATIONS=true` to run `prisma migrate deploy` on startup.
+- `RUN_SEED=true` to run `prisma db seed` after migrations.
 
 For high-scale production, prefer a dedicated migration job in pipeline before traffic cutover.

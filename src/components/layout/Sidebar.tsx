@@ -10,8 +10,8 @@ import {
   BarChart2,
   ScrollText,
   LogOut,
-  Clock,
   Menu,
+  FileText,
 } from 'lucide-react'
 import { useMsal } from '@azure/msal-react'
 import { cn } from '@/lib/utils/cn'
@@ -53,8 +53,8 @@ function getNavItems(role: string, pendingCount = 0): NavItem[] {
       return [
         { label: 'Dashboard',      href: '/hr/dashboard',          icon: <LayoutDashboard size={18} /> },
         { label: 'Team Monkstack', href: '/hr/employees',          icon: <Users size={18} /> },
-        { label: 'Document Uploads', href: '/hr/attendance',    icon: <Clock size={18} /> },
         { label: 'Leave Management',          href: '/hr/leave',              icon: <ClipboardList size={18} /> },
+        { label: 'Documents',      href: '/hr/documents',          icon: <FileText size={18} /> },
         { label: 'Reports',        href: '/hr/reports',            icon: <BarChart2 size={18} /> },
         { label: 'Users & Roles',  href: '/hr/users',              icon: <Users size={18} /> },
         { label: 'Audit Log',      href: '/hr/audit',              icon: <ScrollText size={18} /> },

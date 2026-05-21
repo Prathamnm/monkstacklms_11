@@ -14,6 +14,7 @@
 - `NODE_ENV=production`
 - `PORT=3000`
 - `RUN_MIGRATIONS=false` by default in steady state
+- `RUN_SEED=false` by default in steady state
 - Correct Entra redirect URI for deployed FQDN
 
 ## Observability

@@ -11,5 +11,10 @@ if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
   npx prisma migrate deploy
 fi
 
+if [ "${RUN_SEED:-false}" = "true" ]; then
+  echo "Running prisma db seed..."
+  npx prisma db seed
+fi
+
 echo "Starting Next.js server..."
 exec node server.js

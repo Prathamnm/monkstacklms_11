@@ -155,7 +155,7 @@ export function MyLeavesView({ role, initialLeaves }: MyLeavesViewProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium text-slate-900 text-sm">{leave.title || 'Leave Request'}</p>
-                        {leave.isEmergency && (
+                        {leave.leaveType?.code === 'EMERGENCY' && (
                           <span className="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full font-medium">Emergency</span>
                         )}
                       </div>

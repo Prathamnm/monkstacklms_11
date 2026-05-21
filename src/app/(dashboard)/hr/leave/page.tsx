@@ -26,8 +26,8 @@ export default function HRLeavePage() {
     setVisibleMonth,
     reason,
     setReason,
-    isEmergency,
-    setIsEmergency,
+    leaveTypeId,
+    setLeaveTypeId,
     errors,
     dayOverrides,
     setDayOverrides,
@@ -37,6 +37,7 @@ export default function HRLeavePage() {
     pendingCount,
     totalDays,
     conflictCount,
+    leaveTypes,
     isSubmitDisabled,
     isSubmitting,
     handleSubmit,
@@ -139,8 +140,9 @@ export default function HRLeavePage() {
               totalDays={totalDays}
               reason={reason}
               setReason={setReason}
-              isEmergency={isEmergency}
-              setIsEmergency={setIsEmergency}
+              leaveTypeId={leaveTypeId}
+              setLeaveTypeId={setLeaveTypeId}
+              leaveTypes={leaveTypes}
               errors={errors}
               isSubmitDisabled={isSubmitDisabled}
               isSubmitting={isSubmitting}

@@ -26,8 +26,8 @@ export default function ManagerLeavePage() {
     setVisibleMonth,
     reason,
     setReason,
-    isEmergency,
-    setIsEmergency,
+    leaveTypeId,
+    setLeaveTypeId,
     errors,
     dayOverrides,
     setDayOverrides,
@@ -37,6 +37,7 @@ export default function ManagerLeavePage() {
     pendingCount,
     totalDays,
     conflictCount,
+    leaveTypes,
     isSubmitDisabled,
     isSubmitting,
     handleSubmit,
@@ -126,8 +127,9 @@ export default function ManagerLeavePage() {
             totalDays={totalDays}
             reason={reason}
             setReason={setReason}
-            isEmergency={isEmergency}
-            setIsEmergency={setIsEmergency}
+            leaveTypeId={leaveTypeId}
+            setLeaveTypeId={setLeaveTypeId}
+            leaveTypes={leaveTypes}
             errors={errors}
             isSubmitDisabled={isSubmitDisabled}
             isSubmitting={isSubmitting}

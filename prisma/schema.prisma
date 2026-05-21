@@ -8,98 +8,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 model Employee {
-  id                    String             @id @default(cuid())
-  entraObjectId         String             @unique
-  workEmail             String             @unique @map("email")
-  displayName           String
-  firstName             String
-  lastName              String
-  jobTitle              String?
-  phoneNumber           String?
-  profilePictureUrl     String?
-  role                  Role               @default(EMPLOYEE)
-  employmentStatus      EmploymentStatus   @default(ACTIVE)
-  managerId             String?
-  joinDate              DateTime           @default(now())
-  terminationDate       DateTime?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
-  emergencyName         String?
-  emergencyPhone        String?
-  emergencyRelation     String?
-  notificationEmail     String?            @map("notification_email")
-  timeZone              String             @default("UTC")
-  announcements         Announcement[]
-  attendanceRecords     AttendanceRecord[]
-  auditLogsPerformed    AuditLog[]         @relation("AuditPerformer")
-  auditLogsTargeted     AuditLog[]         @relation("AuditTarget")
-  manager               Employee?          @relation("ManagerSubordinates", fields: [managerId], references: [id])
-  subordinates          Employee[]         @relation("ManagerSubordinates")
-  leaveBalance          LeaveBalance?
-  leaveLedgerEntries    LeaveLedgerEntry[]
-  approvedLeaves        LeaveRequest[]     @relation("ApproverLeaveRequests")
-  leaveRequests         LeaveRequest[]     @relation("EmployeeLeaveRequests")
-  receivedNotifications Notification[]     @relation("NotificationRecipient")
-  sentNotifications     Notification[]     @relation("NotificationSender")
+  id               String           @id @default(cuid())
+  entraObjectId    String           @unique
+  email            String           @unique
+  firstName        String
+  lastName         String
+  displayName      String?
+  role             Role             @default(EMPLOYEE)
+  status           EmploymentStatus @default(ACTIVE)
+  managerId        String?
+  joinedAt         DateTime         @default(now())
+  terminatedAt     DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  profile          EmployeeProfile?
+  manager          Employee?        @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates     Employee[]       @relation("ManagerSubordinates")
+  leaveRequests    LeaveRequest[]   @relation("EmployeeLeaveRequests")
+  approvedLeaves   LeaveRequest[]   @relation("ApproverLeaveRequests")
+  leaveLedgerEntries LeaveLedgerEntry[]
+  auditLogsPerformed AuditLog[]     @relation("AuditPerformer")
+  auditLogsTargeted  AuditLog[]     @relation("AuditTarget")
+  sentMessages     Message[]        @relation("MessageSender")
+  receivedMessages Message[]        @relation("MessageRecipient")
 
   @@map("employees")
 }
 
-model LeaveRequest {
-  id               String      @id @default(cuid())
-  employeeId       String
-  leaveTypeId      String
-  startDate        DateTime
-  endDate          DateTime
-  startHalfDay     HalfDayType @default(NONE)
-  endHalfDay       HalfDayType @default(NONE)
-  totalDays        Float
-  reason           String
-  status           LeaveStatus @default(PENDING)
-  approverId       String?
-  approvedAt       DateTime?
-  rejectedAt       DateTime?
-  rejectionReason  String?
-  revokedAt        DateTime?
-  revokedBy        String?
-  revocationReason String?
-  cancelledAt      DateTime?
-  emailsSent       Json?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  title            String      @default("Leave Request")
-  approverComments String?
-  halfDayDates     Json?
-  dayOverrides     Json?
-  managerId        String?
-  updatedBy        String?
-  approver         Employee?   @relation("ApproverLeaveRequests", fields: [approverId], references: [id])
-  employee         Employee    @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id])
-  leaveType        LeaveType   @relation(fields: [leaveTypeId], references: [id])
-  leaveRequestDays LeaveRequestDay[]
+model EmployeeProfile {
+  employeeId        String   @id
+  phone             String?
+  jobTitle          String?
+  profilePictureUrl String?
+  emergencyName     String?
+  emergencyPhone    String?
+  emergencyRelation String?
+  timezone          String   @default("UTC")
+  employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
-  @@map("leave_requests")
+  @@map("employee_profiles")
 }
 
-model LeaveBalance {
-  id                   String   @id @default(cuid())
-  employeeId           String   @unique
-  year                 Int
-  standardTotal        Float    @default(18)
-  standardAccrued      Float    @default(0)
-  standardUsed         Float    @default(0)
-  standardCarryForward Float    @default(0)
-  emergencyTotal       Float    @default(2)
-  emergencyUsed        Float    @default(0)
-  updatedAt            DateTime @updatedAt
-  floaterTotal         Float    @default(2)
-  floaterUsed          Float    @default(0)
-  updatedBy            String?
-  employee             Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  @@map("leave_balances")
-}
 
 model LeaveType {
   id                String   @id @default(cuid())
@@ -110,10 +61,30 @@ model LeaveType {
   carryForwardLimit Float?
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
   leaveRequests     LeaveRequest[]
 
   @@map("leave_types")
+}
+
+model LeaveRequest {
+  id             String      @id @default(cuid())
+  employeeId     String
+  leaveTypeId    String
+  approverId     String?
+  startDate      DateTime
+  endDate        DateTime
+  totalDays      Float
+  reason         String
+  status         LeaveStatus @default(PENDING)
+  statusChangedAt DateTime?
+  statusReason   String?
+  createdAt      DateTime    @default(now())
+  employee       Employee    @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id])
+  approver       Employee?   @relation("ApproverLeaveRequests", fields: [approverId], references: [id])
+  leaveType      LeaveType   @relation(fields: [leaveTypeId], references: [id])
+  leaveRequestDays LeaveRequestDay[]
+
+  @@map("leave_requests")
 }
 
 model LeaveRequestDay {
@@ -131,84 +102,36 @@ model LeaveLedgerEntry {
   id          String          @id @default(cuid())
   employeeId  String
   leaveTypeId String?
-  type        LedgerEntryType
+  entryType   LedgerEntryType
   days        Float
-  reason      String
   referenceId String?
+  reason      String
   performedBy String?
-  year        Int
-  month       Int?
   createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  updatedBy   String?
   employee    Employee        @relation(fields: [employeeId], references: [id])
 
   @@map("leave_ledger_entries")
 }
 
-model AccrualRule {
-  id                     String   @id @default(cuid())
-  name                   String   @default("Default Accrual Rule")
-  standardLeavesPerYear  Float    @default(18)
-  emergencyLeavesPerYear Float    @default(2)
-  accrualMethod          String   @default("YEARLY_FLAT")
-  daysPerMonth           Float    @default(1.5)
-  carryForwardEnabled    Boolean  @default(true)
-  carryForwardMaxDays    Float    @default(10)
-  isActive               Boolean  @default(true)
-  effectiveFrom          DateTime @default(now())
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  updatedBy              String?
 
-  @@map("accrual_rules")
-}
 
-model Notification {
-  id          String           @id @default(cuid())
-  type        NotificationType
-  title       String
-  message     String
-  recipientId String
-  senderId    String?
-  referenceId String?
-  isRead      Boolean          @default(false)
-  readAt      DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  updatedBy   String?
-  recipient   Employee         @relation("NotificationRecipient", fields: [recipientId], references: [id])
-  sender      Employee?        @relation("NotificationSender", fields: [senderId], references: [id])
-
-  @@map("notifications")
-}
-
-model AuditLog {
+model Message {
   id          String      @id @default(cuid())
-  action      AuditAction
-  performedBy String
-  targetId    String?
-  details     Json
-  ipAddress   String?
-  userAgent   String?
+  type        MessageType
+  title       String
+  content     String
+  senderId    String?
+  recipientId String?
+  isGlobal    Boolean     @default(false)
+  isRead      Boolean     @default(false)
+  readAt      DateTime?
   createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  performer   Employee    @relation("AuditPerformer", fields: [performedBy], references: [id])
-  target      Employee?   @relation("AuditTarget", fields: [targetId], references: [id])
+  sender      Employee?   @relation("MessageSender", fields: [senderId], references: [id])
+  recipient   Employee?   @relation("MessageRecipient", fields: [recipientId], references: [id])
 
-  @@map("audit_logs")
+  @@map("messages")
 }
 
-model SystemSettings {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  value       String
-  description String?
-  updatedBy   String?
-  updatedAt   DateTime @updatedAt
-
-  @@map("system_settings")
-}
 
 model PublicHoliday {
   id        String      @id @default(cuid())
@@ -216,26 +139,9 @@ model PublicHoliday {
   date      DateTime
   type      HolidayType @default(PUBLIC)
   notes     String?
-  createdBy String
   createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  updatedBy String?
 
   @@map("public_holidays")
-}
-
-model Announcement {
-  id        String   @id @default(cuid())
-  title     String
-  content   String
-  postedBy  String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  updatedBy String?
-  poster    Employee @relation(fields: [postedBy], references: [id])
-
-  @@map("announcements")
 }
 
 model Policy {
@@ -245,36 +151,41 @@ model Policy {
   fileUrl    String
   uploadedBy String
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  updatedBy  String?
 
   @@map("policies")
 }
 
-model AttendanceRecord {
-  id          String    @id @default(cuid())
-  employeeId  String
-  date        DateTime  @db.Date
-  punchIn     DateTime?
-  punchOut    DateTime?
-  hoursWorked Float?
-  uploadBatch String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  updatedBy   String?
-  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
-  @@unique([employeeId, date])
-  @@index([employeeId])
-  @@index([date])
-  @@map("attendance_records")
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  performedBy String
+  targetId   String?
+  details    Json
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  performer  Employee  @relation("AuditPerformer", fields: [performedBy], references: [id])
+  target     Employee? @relation("AuditTarget", fields: [targetId], references: [id])
+
+  @@map("audit_logs")
 }
+
+model SystemSettings {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// ENUMS
 
 enum Role {
   EMPLOYEE
   MANAGER
   HR
-  ADMIN
 }
 
 enum EmploymentStatus {
@@ -300,47 +211,15 @@ enum HalfDayType {
 enum LedgerEntryType {
   ACCRUAL
   USAGE
-  REVERSAL
   ADJUSTMENT
+  REVERSAL
   CARRY_FORWARD
-  YEAR_RESET
-  EMERGENCY_GRANT
 }
 
-enum NotificationType {
-  LEAVE_APPLIED
-  LEAVE_APPROVED
-  LEAVE_REJECTED
-  LEAVE_CANCELLED
-  LEAVE_REVOKED
-  BALANCE_ADJUSTED
+enum MessageType {
   SYSTEM
-  HOLIDAY_CREATED
-  ANNOUNCEMENT_POSTED
-  ROLE_CHANGED
-  ACCOUNT_DEACTIVATED
-}
-
-enum AuditAction {
-  LEAVE_APPLY
-  LEAVE_APPROVE
-  LEAVE_REJECT
-  LEAVE_CANCEL
-  LEAVE_REVOKE
-  BALANCE_ADJUST
-  EMPLOYEE_UPDATE
-  RULES_UPDATE
-  ACCRUAL_RUN
-  ROLE_CHANGE
-  HOLIDAY_CREATE
-  ANNOUNCEMENT_POST
-  ANNOUNCEMENT_DELETE
-  ADMIN_OVERRIDE
-  ACCOUNT_DEACTIVATE
-  LEAVE_APPROVED
-  LEAVE_REJECTED
-  LEAVE_CANCELLED
-  LEAVE_REVOKED
+  LEAVE
+  ANNOUNCEMENT
 }
 
 enum HolidayType {

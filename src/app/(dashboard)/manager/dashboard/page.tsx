@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import { Users, CalendarX, CheckSquare, Calendar } from 'lucide-react'
 import { PageSkeleton } from '@/components/shared/LoadingSkeleton'
 import { StatCard } from '@/components/shared/StatCard'
-import { AttendanceCard } from '@/components/shared/AttendanceCard'
 import { PoliciesSection } from '@/components/shared/PoliciesSection'
 import { useManagerDashboard } from '@/hooks/useManagerDashboard'
 import { ManagerWelcomeBanner } from '@/components/features/manager/ManagerWelcomeBanner'
@@ -66,7 +65,7 @@ export default function ManagerDashboardPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         <div className="xl:col-span-2">
-          <AttendanceCard />
+          {/* Attendance feature removed */}
         </div>
         
         <div className="space-y-6">

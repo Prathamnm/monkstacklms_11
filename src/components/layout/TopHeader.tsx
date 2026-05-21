@@ -26,13 +26,13 @@ function getPageTitle(pathname: string): string {
     lifecycle: 'Employee Lifecycle',
     leaves: 'All Leaves',
     leave: 'Leave Management',
+    documents: 'Documents & Holidays',
     reports: 'Reports',
     rules: 'Accrual Rules',
     users: 'Users',
     audit: 'Audit Log',
     settings: 'Settings',
     onboard: 'Onboard Employee',
-    attendance: 'Document Uploads',
   }
 
   if (!isNaN(Number(last)) || last?.length > 20) {

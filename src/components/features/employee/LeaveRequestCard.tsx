@@ -32,7 +32,7 @@ export function LeaveRequestCard({ leave, onCancel }: LeaveRequestCardProps) {
           <p className="text-sm font-semibold text-[var(--color-heading)]">
             {leave.title || 'Leave Request'}
           </p>
-          {leave.isEmergency && (
+          {leave.leaveType?.code === 'EMERGENCY' && (
             <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
               Emergency
             </span>

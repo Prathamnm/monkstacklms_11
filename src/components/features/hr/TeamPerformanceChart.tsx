@@ -18,7 +18,7 @@ interface TeamPerformanceChartProps {
 
 export function TeamPerformanceChart({ data }: TeamPerformanceChartProps) {
   return (
-    <div className="bg-white border border-slate-200/60 rounded-2xl p-6 h-[400px] flex flex-col">
+    <div className="bg-white border border-slate-200/60 rounded-2xl p-6 h-full min-h-[430px] flex flex-col">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h3 className="text-sm font-bold text-slate-900 leading-tight">Team Leave Trends</h3>
@@ -67,7 +67,7 @@ export function TeamPerformanceChart({ data }: TeamPerformanceChartProps) {
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
-                  fill={index === data.length - 1 ? '#2563eb' : '#cbd5e1'} 
+                  fill={index === data.length - 1 ? '#64748b' : '#cbd5e1'} 
                   className="hover:fill-blue-500 transition-colors cursor-pointer"
                 />
               ))}
