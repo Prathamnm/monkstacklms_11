@@ -23,6 +23,22 @@ async function main() {
   })
   console.log('✅ Default accrual rule ensured')
 
+  // Create default leave types
+  const leaveTypes = [
+    { code: 'ANNUAL', name: 'Annual Leave', yearlyQuota: 18, isAccrued: false, carryForwardLimit: 10 },
+    { code: 'EMERGENCY', name: 'Emergency Leave', yearlyQuota: 2, isAccrued: false, carryForwardLimit: 0 },
+    { code: 'FLOATER', name: 'Floater Holiday', yearlyQuota: 2, isAccrued: false, carryForwardLimit: 0 },
+  ]
+
+  for (const leaveType of leaveTypes) {
+    await prisma.leaveType.upsert({
+      where: { code: leaveType.code },
+      update: {},
+      create: leaveType,
+    })
+  }
+  console.log('✅ Default leave types ensured')
+
   // Default system settings
   const defaultSettings = [
     { key: 'company_name', value: 'Moonshine', description: 'Company name' },

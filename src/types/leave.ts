@@ -6,6 +6,12 @@ export interface LeaveRequest {
   id: string
   title: string
   employeeId: string
+  leaveTypeId: string
+  leaveType?: {
+    id: string
+    code: string
+    name: string
+  }
   employee?: {
     id: string
     displayName: string
@@ -20,7 +26,6 @@ export interface LeaveRequest {
   endHalfDay: HalfDayType
   totalDays: number
   reason: string
-  isEmergency?: boolean
   status: LeaveStatus
   approverId?: string | null
   approver?: {
@@ -58,7 +63,7 @@ export interface ApplyLeavePayload {
   dayOverrides?: { date: string, type: 'full' | 'half' }[]
   totalDays: number
   reason: string
-  isEmergency?: boolean
+  leaveTypeId: string
   managerId?: Guid | null
 }
 

@@ -30,6 +30,7 @@ export async function PATCH(
       where: { id },
       include: {
         employee: { select: { id: true, displayName: true, workEmail: true, notificationEmail: true, managerId: true } },
+        leaveType: { select: { code: true } }
       },
     })
 
@@ -71,7 +72,7 @@ export async function PATCH(
         await prisma.leaveBalance.update({
           where: { employeeId: leave.employeeId },
           data: {
-            ...(leave.isEmergency
+            ...(leave.leaveType.code === 'EMERGENCY'
               ? { emergencyUsed: { increment: leave.totalDays } }
               : { standardUsed: { increment: leave.totalDays } }),
           },

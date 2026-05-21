@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       dayOverrides = [],
       totalDays,
       reason,
-      isEmergency = false,
+      leaveTypeId,
       managerId,
     } = body
     const title = typeof body.title === 'string' && body.title.trim() ? body.title.trim() : 'Leave Request'
@@ -32,8 +32,16 @@ export async function POST(req: NextRequest) {
     const normalizedStartHalfDay: any = startDateType === 'half' ? 'HALF_DAY' : 'NONE'
     const normalizedEndHalfDay: any = endDateType === 'half' ? 'HALF_DAY' : 'NONE'
 
-    if (!startDate || !endDate || !reason) {
+    if (!startDate || !endDate || !reason || !leaveTypeId) {
       return NextResponse.json({ error: 'Missing required fields', code: 'BAD_REQUEST' }, { status: 400 })
+    }
+
+    // Validate leaveTypeId exists
+    const leaveType = await prisma.leaveType.findUnique({
+      where: { id: leaveTypeId },
+    })
+    if (!leaveType || !leaveType.isActive) {
+      return NextResponse.json({ error: 'Invalid leave type', code: 'BAD_REQUEST' }, { status: 400 })
     }
 
     // Get existing leaves for overlap check
@@ -103,7 +111,7 @@ export async function POST(req: NextRequest) {
     const annual = balance.balances.find(b => b.type === 'ANNUAL')!
     const effectiveAvailable = annual.total - (annual.consumed + annual.inApproval)
 
-    if (isEmergency) {
+    if (leaveType.code === 'EMERGENCY') {
       if (calculatedTotalDays > 2) {
         return NextResponse.json(
           { error: 'Emergency leave can be applied for a maximum of 2 consecutive days.', code: 'VALIDATION_ERROR' },
@@ -141,6 +149,7 @@ export async function POST(req: NextRequest) {
     const leave = await prisma.leaveRequest.create({
       data: {
         employeeId: token.userId,
+        leaveTypeId,
         managerId: resolvedManagerId,
         title,
         startDate: start,
@@ -150,7 +159,6 @@ export async function POST(req: NextRequest) {
         dayOverrides: Array.isArray(dayOverrides) ? dayOverrides : [],
         totalDays: calculatedTotalDays,
         reason: reason.trim(),
-        isEmergency,
         status: leaveStatus,
         ...(isManagerApplying && {
           approverId: token.userId,
@@ -225,7 +233,7 @@ export async function POST(req: NextRequest) {
       endDate:       fmtDate(end),
       totalDays,
       reason,
-      isEmergency,
+      isEmergency: leaveType.code === 'EMERGENCY',
       leaveId:       leave.id,
       appBaseUrl,
     }
@@ -255,7 +263,7 @@ export async function POST(req: NextRequest) {
 
     await logAudit('LEAVE_APPLY', token.userId, token.userId, {
       before: {},
-      after: { leaveId: leave.id, startDate, endDate, totalDays: calculatedTotalDays, isEmergency },
+      after: { leaveId: leave.id, startDate, endDate, totalDays: calculatedTotalDays, leaveTypeId },
       params: { reason },
     }, req)
     } catch (postErr) {

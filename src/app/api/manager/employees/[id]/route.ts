@@ -21,6 +21,7 @@ export async function GET(
           take: 20,
           include: {
             approver: { select: { id: true, displayName: true, workEmail: true } },
+            leaveType: { select: { code: true } }
           },
         },
       },
@@ -76,7 +77,7 @@ export async function GET(
         totalDays: lr.totalDays,
         reason: lr.reason,
         status: lr.status,
-        isEmergency: lr.isEmergency,
+        leaveTypeCode: lr.leaveType.code,
         approver: lr.approver ? { ...lr.approver, email: (lr.approver as any).workEmail } : null,
         rejectionReason: lr.rejectionReason,
         createdAt: lr.createdAt.toISOString(),

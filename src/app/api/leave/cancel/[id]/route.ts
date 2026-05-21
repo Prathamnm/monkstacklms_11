@@ -27,6 +27,9 @@ async function cancelLeave(
             managerId: true,
             manager: { select: { workEmail: true, notificationEmail: true, displayName: true } }
           }
+        },
+        leaveType: {
+          select: { code: true }
         }
       }
     })
@@ -79,7 +82,7 @@ async function cancelLeave(
         }),
         prisma.leaveBalance.update({
           where: { employeeId: token.userId },
-          data: leave.isEmergency
+          data: leave.leaveType.code === 'EMERGENCY'
             ? { emergencyUsed: { decrement: Math.abs(leave.totalDays) } }
             : { standardUsed: { decrement: Math.abs(leave.totalDays) } },
         }),

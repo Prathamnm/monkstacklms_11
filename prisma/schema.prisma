@@ -49,6 +49,7 @@ model Employee {
 model LeaveRequest {
   id               String      @id @default(cuid())
   employeeId       String
+  leaveTypeId      String
   startDate        DateTime
   endDate          DateTime
   startHalfDay     HalfDayType @default(NONE)
@@ -67,7 +68,6 @@ model LeaveRequest {
   emailsSent       Json?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
-  isEmergency      Boolean     @default(false)
   title            String      @default("Leave Request")
   approverComments String?
   halfDayDates     Json?
@@ -76,6 +76,8 @@ model LeaveRequest {
   updatedBy        String?
   approver         Employee?   @relation("ApproverLeaveRequests", fields: [approverId], references: [id])
   employee         Employee    @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id])
+  leaveType        LeaveType   @relation(fields: [leaveTypeId], references: [id])
+  leaveRequestDays LeaveRequestDay[]
 
   @@map("leave_requests")
 }
@@ -99,9 +101,36 @@ model LeaveBalance {
   @@map("leave_balances")
 }
 
+model LeaveType {
+  id                String   @id @default(cuid())
+  code              String   @unique
+  name              String
+  yearlyQuota       Float
+  isAccrued         Boolean  @default(false)
+  carryForwardLimit Float?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  leaveRequests     LeaveRequest[]
+
+  @@map("leave_types")
+}
+
+model LeaveRequestDay {
+  id             String      @id @default(cuid())
+  leaveRequestId String
+  date           DateTime    @db.Date
+  portion        HalfDayType @default(NONE)
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([leaveRequestId, date])
+  @@map("leave_request_days")
+}
+
 model LeaveLedgerEntry {
   id          String          @id @default(cuid())
   employeeId  String
+  leaveTypeId String?
   type        LedgerEntryType
   days        Float
   reason      String

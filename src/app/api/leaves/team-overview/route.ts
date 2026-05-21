@@ -107,7 +107,9 @@ export async function GET(req: NextRequest) {
         startDate: true,
         endDate: true,
         status: true,
-        isEmergency: true,
+        leaveType: {
+          select: { code: true }
+        },
         employee: {
           select: {
             displayName: true,
@@ -131,7 +133,7 @@ export async function GET(req: NextRequest) {
         designation,
         avatarInitials: initialsFromName(name),
         avatarColor: colorFromSeed(lr.employeeId),
-        leaveType: lr.isEmergency ? ('emergency' as const) : ('annual' as const),
+        leaveType: lr.leaveType.code === 'EMERGENCY' ? ('emergency' as const) : ('annual' as const),
         startDate: ymd(lr.startDate),
         endDate: ymd(lr.endDate),
         status: lr.status === 'PENDING' ? ('pending' as const) : ('approved' as const),

@@ -16,13 +16,21 @@ export async function POST(req: NextRequest) {
     requireRole(token, ['MANAGER'])
 
     const body = await req.json()
-    const { title, startDate, endDate, startHalfDay = 'NONE', endHalfDay = 'NONE', halfDayDates = [], dayOverrides = [], totalDays, reason, isEmergency = false } = body
+    const { title, startDate, endDate, startHalfDay = 'NONE', endHalfDay = 'NONE', halfDayDates = [], dayOverrides = [], totalDays, reason, leaveTypeId } = body
 
     const normalizedStartHalfDay = startHalfDay === 'NONE' ? 'NONE' : 'HALF_DAY'
     const normalizedEndHalfDay = endHalfDay === 'NONE' ? 'NONE' : 'HALF_DAY'
 
-    if (!title || !startDate || !endDate || !reason) {
-      return NextResponse.json({ error: 'title, startDate, endDate, and reason are required' }, { status: 400 })
+    if (!title || !startDate || !endDate || !reason || !leaveTypeId) {
+      return NextResponse.json({ error: 'title, startDate, endDate, reason, and leaveTypeId are required' }, { status: 400 })
+    }
+
+    // Validate leaveTypeId exists
+    const leaveType = await prisma.leaveType.findUnique({
+      where: { id: leaveTypeId },
+    })
+    if (!leaveType || !leaveType.isActive) {
+      return NextResponse.json({ error: 'Invalid leave type' }, { status: 400 })
     }
 
     const start = parseISO(startDate)
@@ -79,7 +87,7 @@ export async function POST(req: NextRequest) {
     const balance = await prisma.leaveBalance.findUnique({ where: { employeeId: token.userId } })
     if (!balance) return NextResponse.json({ error: 'No leave balance found' }, { status: 400 })
 
-    if (isEmergency) {
+    if (leaveType.code === 'EMERGENCY') {
       if (calculatedTotalDays > 2) {
         return NextResponse.json(
           { error: 'Emergency leave can be applied for a maximum of 2 consecutive days.' },
@@ -103,6 +111,7 @@ export async function POST(req: NextRequest) {
     const leave = await prisma.leaveRequest.create({
       data: {
         employeeId: token.userId,
+        leaveTypeId,
         title,
         startDate: start,
         endDate: end,
@@ -112,7 +121,6 @@ export async function POST(req: NextRequest) {
         dayOverrides: Array.isArray(dayOverrides) ? dayOverrides : [],
         totalDays: calculatedTotalDays,
         reason,
-        isEmergency,
         status: 'APPROVED',
         approverId: token.userId,
         approvedAt: now,

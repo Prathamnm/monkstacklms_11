@@ -35,7 +35,7 @@ export function useLeaveManagement(options?: { onSuccess?: () => void }) {
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [visibleMonth, setVisibleMonth] = useState<Date>(new Date())
   const [reason, setReason] = useState('')
-  const [isEmergency, setIsEmergency] = useState(false)
+  const [leaveTypeId, setLeaveTypeId] = useState('')
   const [errors, setErrors] = useState<string[]>([])
   const [dayOverrides, setDayOverrides] = useState<DayOverride[]>([])
 
@@ -114,7 +114,7 @@ export function useLeaveManagement(options?: { onSuccess?: () => void }) {
           dayOverrides,
           totalDays,
           reason,
-          isEmergency,
+          leaveTypeId,
           managerId: currentUser?.user.managerId,
         }),
       })
@@ -136,7 +136,7 @@ export function useLeaveManagement(options?: { onSuccess?: () => void }) {
       setSelectedDates([])
       setDayOverrides([])
       setReason('')
-      setIsEmergency(false)
+      setLeaveTypeId('')
       setActiveTab('requests')
       options?.onSuccess?.()
     },
@@ -193,8 +193,8 @@ export function useLeaveManagement(options?: { onSuccess?: () => void }) {
     setVisibleMonth,
     reason,
     setReason,
-    isEmergency,
-    setIsEmergency,
+    leaveTypeId,
+    setLeaveTypeId,
     errors,
     dayOverrides,
     setDayOverrides,
@@ -204,7 +204,7 @@ export function useLeaveManagement(options?: { onSuccess?: () => void }) {
     pendingCount,
     totalDays,
     conflictCount,
-    isSubmitDisabled: applyMutation.isPending || dayOverrides.length === 0 || reason.trim().length < 10 || totalDays <= 0,
+    isSubmitDisabled: applyMutation.isPending || dayOverrides.length === 0 || reason.trim().length < 10 || totalDays <= 0 || !leaveTypeId,
     isSubmitting: applyMutation.isPending,
     handleSubmit,
     windowFrom,
