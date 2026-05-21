@@ -12,7 +12,7 @@ datasource db {
 model Employee {
   id               String           @id @default(cuid())
   entraObjectId    String           @unique
-  email            String           @unique
+  workEmail        String           @unique @map("email")
   firstName        String
   lastName         String
   displayName      String?
